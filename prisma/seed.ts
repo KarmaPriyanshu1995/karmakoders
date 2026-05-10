@@ -1,15 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
 
-const dbUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const dbPath = dbUrl.replace("file:", "");
-const absolutePath = path.isAbsolute(dbPath)
-  ? dbPath
-  : path.resolve(process.cwd(), dbPath);
-
-const adapter = new PrismaBetterSqlite3({ url: `file:${absolutePath}` });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding database...");
@@ -34,7 +25,7 @@ async function main() {
     create: {
       key: "seoMeta",
       value: JSON.stringify({
-        title: "NEXUS.ai – Premium AI Business Portfolio",
+        title: "karmakoders – Premium AI Business Portfolio",
         description: "We build premium, scalable, and immersive web platforms powered by AI.",
         keywords: ["AI", "portfolio", "web design", "nextjs"],
       }),
