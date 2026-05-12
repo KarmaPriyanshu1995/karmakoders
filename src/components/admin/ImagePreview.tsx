@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 
-export function ImagePreview({ initialUrl, name }: { initialUrl?: string, name: string }) {
+export function ImagePreview({ initialUrl, name }: { initialUrl?: string | null, name: string }) {
   const [url, setUrl] = useState(initialUrl || "");
 
   return (

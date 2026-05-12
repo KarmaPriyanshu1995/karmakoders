@@ -1,13 +1,16 @@
 
 export interface PostData {
+  id?: string;
   title: string;
   slug: string;
-  category: string;
-  date: string;
-  author: string;
-  image: string;
+  category?: string | null;
+  date?: string;
+  author?: string | null;
+  image?: string | null;
   content: string;
-  excerpt: string;
+  excerpt?: string | null;
+  createdAt?: Date | string;
+  published?: boolean;
 }
 
 export const DEFAULT_POSTS: PostData[] = [

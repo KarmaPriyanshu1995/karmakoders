@@ -3,7 +3,7 @@ import { getProjectBySlug } from "@/lib/actions";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Github, Code2, Globe } from "lucide-react";
+import { Code2, Globe } from "lucide-react";
 import { DEFAULT_PROJECTS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";

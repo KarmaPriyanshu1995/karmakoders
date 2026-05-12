@@ -66,7 +66,7 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
         <div className="prose prose-invert prose-indigo max-w-none">
           {/* This is where the post content goes. In a real app, you'd use a markdown renderer here. */}
           <div className="text-slate-300 text-lg leading-relaxed space-y-6">
-            {post.content.split('\n').map((para, i) => (
+            {post.content.split('\n').map((para: string, i: number) => (
               <p key={i}>{para}</p>
             ))}
           </div>
