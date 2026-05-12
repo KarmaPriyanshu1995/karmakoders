@@ -5,15 +5,23 @@ import { notFound } from "next/navigation";
 import { Calendar, User, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 
+import { DEFAULT_POSTS } from "@/lib/constants";
+
 export const dynamic = "force-dynamic";
 
 export default async function BlogPostDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  let post: any = await getPostBySlug(slug);
+
+  if (!post) {
+    post = DEFAULT_POSTS.find((p) => p.slug === slug);
+  }
 
   if (!post) {
     notFound();
   }
+
+  const postDate = post.createdAt ? new Date(post.createdAt) : new Date(post.date);
 
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
@@ -26,7 +34,7 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
             <span className="text-slate-500">•</span>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              {new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              {postDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </div>
           </div>
           

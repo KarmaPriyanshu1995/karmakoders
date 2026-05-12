@@ -69,8 +69,8 @@ export function HeroSection({
           </h1>
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-xl leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/portfolio" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-base font-bold rounded-full transition-all shadow-[0_0_25px_rgba(79,70,229,0.5)] hover:shadow-[0_0_35px_rgba(79,70,229,0.7)]">Explore Portfolio</Link>
-            <Link href="/services" className="px-8 py-4 bg-white/5 backdrop-blur border border-white/10 text-white hover:bg-white/10 text-base font-bold rounded-full transition-colors">Our Services</Link>
+            <Link href="/contact" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-base font-bold rounded-full transition-all shadow-[0_0_25px_rgba(79,70,229,0.5)] hover:shadow-[0_0_35px_rgba(79,70,229,0.7)]">Start Project</Link>
+            <Link href="/portfolio" className="px-8 py-4 bg-white/5 backdrop-blur border border-white/10 text-white hover:bg-white/10 text-base font-bold rounded-full transition-colors">View Portfolio</Link>
           </div>
           {/* Stats row */}
           <div className="flex flex-wrap gap-8 mt-16 pt-8 border-t border-white/10">

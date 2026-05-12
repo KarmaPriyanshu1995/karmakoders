@@ -7,12 +7,21 @@ const connectionString = process.env.DATABASE_URL;
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
+  // During build time on Vercel, DATABASE_URL might be missing.
+  // We avoid throwing at build time to allow static generation (where DB is not used) to pass.
   if (!connectionString) {
-    throw new Error("DATABASE_URL is not set");
+    console.warn("DATABASE_URL is not set. Prisma will only work if provided at runtime.");
+    return new PrismaClient(); 
   }
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+
+  try {
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    return new PrismaClient({ adapter });
+  } catch (error) {
+    console.error("Failed to initialize Prisma with PostgreSQL adapter:", error);
+    return new PrismaClient();
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

@@ -109,6 +109,44 @@ async function main() {
     });
   }
 
+  // Seed Blog Posts
+  console.log("📝 Seeding blog posts...");
+  const { DEFAULT_POSTS, DEFAULT_PROJECTS } = await import("../src/lib/constants");
+  for (const post of DEFAULT_POSTS) {
+    await prisma.post.upsert({
+      where: { slug: post.slug },
+      update: {},
+      create: {
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        content: post.content,
+        image: post.image,
+        category: post.category,
+        author: post.author,
+        published: true,
+      },
+    });
+  }
+
+  // Seed Projects
+  console.log("🚀 Seeding projects...");
+  for (const project of DEFAULT_PROJECTS) {
+    await prisma.project.upsert({
+      where: { slug: project.slug },
+      update: {},
+      create: {
+        title: project.title,
+        slug: project.slug,
+        description: project.description,
+        imageUrl: project.image,
+        content: project.content,
+        tags: project.tags,
+        link: project.link,
+      },
+    });
+  }
+
   console.log("✅ Seeding complete.");
 }
 

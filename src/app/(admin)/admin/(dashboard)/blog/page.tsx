@@ -28,7 +28,7 @@ export default async function AdminBlogList() {
           <thead>
             <tr className="border-b border-slate-800 bg-slate-900/50">
               <th className="p-4 font-medium text-slate-300">Title</th>
-              <th className="p-4 font-medium text-slate-300">Category</th>
+              <th className="p-4 font-medium text-slate-300">Type</th>
               <th className="p-4 font-medium text-slate-300">Status</th>
               <th className="p-4 font-medium text-slate-300">Created At</th>
               <th className="p-4 font-medium text-slate-300 text-right">Actions</th>
@@ -50,8 +50,12 @@ export default async function AdminBlogList() {
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500 bg-slate-800/50 px-2 py-1 rounded">
-                    {post.category || "Uncategorized"}
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${
+                    post.type === 'case-study' 
+                      ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' 
+                      : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                  }`}>
+                    {post.type === 'case-study' ? 'Success Story' : 'Blog Post'}
                   </span>
                 </td>
                 <td className="p-4">

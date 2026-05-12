@@ -1,5 +1,5 @@
 import { getContactSubmissions } from "@/lib/actions";
-import { Mail, Clock } from "lucide-react";
+import { Mail, Clock, Phone } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +40,24 @@ export default async function InquiriesPage() {
                     </div>
                     <div>
                       <p className="text-white font-semibold">{sub.name}</p>
-                      <a
-                        href={`mailto:${sub.email}`}
-                        className="text-indigo-400 text-sm hover:text-indigo-300 transition-colors"
-                      >
-                        {sub.email}
-                      </a>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <a
+                          href={`mailto:${sub.email}`}
+                          className="flex items-center gap-1.5 text-indigo-400 text-sm hover:text-indigo-300 transition-colors"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          {sub.email}
+                        </a>
+                        {sub.phone && (
+                          <a
+                            href={`tel:${sub.phone}`}
+                            className="flex items-center gap-1.5 text-emerald-400 text-sm hover:text-emerald-300 transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            {sub.phone}
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <p className="text-slate-300 text-sm leading-relaxed bg-slate-800/40 rounded-lg p-4 border border-slate-800">

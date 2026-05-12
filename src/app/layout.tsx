@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -17,10 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
+    <html lang="en" className={`${inter.variable} h-full antialiased dark`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-slate-950 text-slate-50 selection:bg-indigo-500/30" suppressHydrationWarning>
         <ThemeProvider>
           {children}
+          <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>
     </html>

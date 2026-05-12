@@ -87,6 +87,7 @@ export async function setSiteConfig(key: string, value: object) {
 export async function submitContact(data: {
   name: string;
   email: string;
+  phone?: string;
   message: string;
 }) {
   return prisma.contactSubmission.create({ data });
@@ -110,10 +111,15 @@ export async function subscribeNewsletter(email: string) {
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────
 
-export async function getPosts() {
+export async function getPosts(type?: string) {
   return prisma.post.findMany({
+    where: type ? { type } : undefined,
     orderBy: { createdAt: "desc" },
   });
+}
+
+export async function getCaseStudies() {
+  return getPosts("case-study");
 }
 
 export async function getPostBySlug(slug: string) {
@@ -131,6 +137,7 @@ export async function upsertPost(data: {
   image?: string;
   category?: string;
   author?: string;
+  type?: string;
   published: boolean;
 }) {
   const { id, ...postData } = data;
@@ -140,6 +147,7 @@ export async function upsertPost(data: {
     create: postData,
   });
   revalidatePath("/blog");
+  revalidatePath("/portfolio");
   revalidatePath("/admin/blog");
   return post;
 }
@@ -155,6 +163,12 @@ export async function deletePost(id: string) {
 export async function getProjects() {
   return prisma.project.findMany({
     orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getProjectBySlug(slug: string) {
+  return prisma.project.findUnique({
+    where: { slug },
   });
 }
 

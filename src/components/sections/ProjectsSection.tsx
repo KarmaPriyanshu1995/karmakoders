@@ -4,44 +4,24 @@ import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-const defaultProjects = [
-  {
-    title: "Quantum Pay",
-    category: "Fintech",
-    image: "https://images.unsplash.com/photo-1551288049-bbbda536339a?auto=format&fit=crop&q=80&w=800",
-    link: "#",
-  },
-  {
-    title: "Nova Health",
-    category: "Healthcare",
-    image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=800",
-    link: "#",
-  },
-  {
-    title: "Evo Stream",
-    category: "Entertainment",
-    image: "https://images.unsplash.com/photo-1593784991095-a205039475fe?auto=format&fit=crop&q=80&w=800",
-    link: "#",
-  },
-  {
-    title: "Aura Home",
-    category: "Real Estate",
-    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800",
-    link: "#",
-  },
-];
+import { DEFAULT_PROJECTS } from "@/lib/constants";
 
 interface ProjectsProps {
   tagline?: string;
   heading?: string;
-  projects?: typeof defaultProjects;
+  projects?: any[];
+  limit?: number;
+  showViewAll?: boolean;
 }
 
 export function ProjectsSection({
   tagline = "Selected Works",
   heading = "Transforming Visions into Digital Reality",
-  projects = defaultProjects,
+  projects = DEFAULT_PROJECTS,
+  limit = 4,
+  showViewAll = true,
 }: ProjectsProps) {
+  const displayProjects = (limit && limit > 0) ? projects.slice(0, limit) : projects;
   return (
     <section id="portfolio" className="py-32 px-8 md:px-24 bg-slate-950">
       <div className="max-w-7xl mx-auto">
@@ -65,32 +45,34 @@ export function ProjectsSection({
               {heading}
             </motion.h2>
           </div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <Link href="/portfolio" className="px-8 py-4 border border-slate-800 hover:border-indigo-500 text-white font-bold rounded-full transition-all flex items-center group">
-              View All Projects
-              <ArrowUpRight className="ml-2 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </Link>
-          </motion.div>
+          {showViewAll && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <Link href="/projects" className="px-8 py-4 border border-slate-800 hover:border-indigo-500 text-white font-bold rounded-full transition-all flex items-center group">
+                View All Projects
+                <ArrowUpRight className="ml-2 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </Link>
+            </motion.div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {projects.map((project, i) => (
+          {displayProjects.map((project, i) => (
             <motion.div
-              key={project.title}
+              key={project.id || project.title}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
               className="group relative rounded-3xl overflow-hidden aspect-[4/3] cursor-pointer"
             >
-              <Link href={`/portfolio/${project.title.toLowerCase().replace(/ /g, '-')}`}>
+              <Link href={`/portfolio/${project.slug}`}>
                 <img
-                  src={project.image}
+                  src={project.imageUrl || project.image}
                   alt={project.title}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />

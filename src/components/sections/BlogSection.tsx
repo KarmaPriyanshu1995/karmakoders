@@ -4,42 +4,7 @@ import { motion } from "framer-motion";
 import { Calendar, User, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const defaultPosts: PostData[] = [
-  {
-    title: "The Future of Web Design in an AI-Driven World",
-    slug: "future-of-web-design",
-    category: "Design",
-    date: "May 12, 2026",
-    author: "Maya Patel",
-    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    title: "Scaling Modern Applications with Next.js 16",
-    slug: "scaling-modern-applications",
-    category: "Development",
-    date: "May 08, 2026",
-    author: "Leo Zhang",
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    title: "How to Leverage 3D Experiences for User Engagement",
-    slug: "leverage-3d-experiences",
-    category: "Creative",
-    date: "May 05, 2026",
-    author: "Alex Rivera",
-    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=800",
-  },
-];
-
-interface PostData {
-  title: string;
-  slug?: string | null;
-  category?: string | null;
-  date?: string | null;
-  author?: string | null;
-  image?: string | null;
-  createdAt?: Date | string;
-}
+import { DEFAULT_POSTS, type PostData } from "@/lib/constants";
 
 interface BlogProps {
   tagline?: string;
@@ -51,7 +16,7 @@ interface BlogProps {
 export function BlogSection({
   tagline = "Our Blog",
   heading = "Latest Insights & Digital Trends",
-  posts = defaultPosts,
+  posts = DEFAULT_POSTS,
   showViewAll = true,
 }: BlogProps) {
   return (

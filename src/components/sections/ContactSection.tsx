@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { submitContact } from "@/lib/actions";
+import { toast } from "sonner";
 
 interface ContactProps {
   tagline?: string;
@@ -15,6 +18,34 @@ export function ContactSection({
   heading = "Let's Start Your Next Digital Project",
   description = "Ready to transform your vision into reality? Our team is standing by to help you navigate your digital journey.",
 }: ContactProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await submitContact(formData);
+      toast.success("Message sent successfully! We'll get back to you soon.");
+      setFormData({ name: "", email: "", phone: "", message: "" });
+    } catch (error) {
+      toast.error("Failed to send message. Please try again later.");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   return (
     <section id="contact" className="py-32 px-8 md:px-24 bg-slate-950">
       <div className="max-w-7xl mx-auto">
@@ -86,12 +117,16 @@ export function ContactSection({
             viewport={{ once: true }}
             className="p-10 rounded-[32px] bg-slate-900/40 border border-slate-800 backdrop-blur-sm"
           >
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
                   <input
                     type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
                     placeholder="John Doe"
                     className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 transition-colors outline-none"
                   />
@@ -100,6 +135,10 @@ export function ContactSection({
                   <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
                   <input
                     type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
                     placeholder="john@example.com"
                     className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 transition-colors outline-none"
                   />
@@ -107,26 +146,37 @@ export function ContactSection({
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Subject</label>
+                <label className="text-sm font-medium text-slate-300 ml-1">Phone Number (Optional)</label>
                 <input
-                  type="text"
-                  placeholder="How can we help?"
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+91 98765 43210"
                   className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 transition-colors outline-none"
                 />
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Message</label>
+                <label className="text-sm font-medium text-slate-300 ml-1">Project Details</label>
                 <textarea
+                  name="message"
+                  required
                   rows={5}
-                  placeholder="Tell us about your project..."
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="Tell us about your project idea..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 transition-colors outline-none resize-none"
                 />
               </div>
               
-              <Button className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 group shadow-[0_10px_30px_rgba(79,70,229,0.3)]">
-                Send Message
-                <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 group shadow-[0_10px_30px_rgba(79,70,229,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
+                {!isSubmitting && <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
               </Button>
             </form>
           </motion.div>

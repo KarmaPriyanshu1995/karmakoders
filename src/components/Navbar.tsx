@@ -40,7 +40,7 @@ export function Navbar() {
       </nav>
 
       <Link
-        href="/#contact"
+        href="/contact"
         className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-full transition-all shadow-[0_0_15px_rgba(79,70,229,0.5)]"
       >
         Start Project
