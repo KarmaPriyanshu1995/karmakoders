@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Eye, EyeOff, CheckCircle, Moon, Sun } from "lucide-react";
+import { getSiteConfig, setSiteConfig } from "@/lib/actions";
 
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [themeConfig, setThemeConfig] = useState({
+    mode: "dark",
+    bgColor: "#020617",
+    textColor: "#f8fafc",
+    primaryColor: "#4f46e5",
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   const [form, setForm] = useState({
     businessName: "karmakoders",
@@ -24,7 +32,11 @@ export default function SettingsPage() {
     setPasswordError("");
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    // In future if we need to load settings
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
@@ -32,7 +44,6 @@ export default function SettingsPage() {
       return;
     }
 
-    // In a real app you'd call a server action here
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

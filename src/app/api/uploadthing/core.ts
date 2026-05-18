@@ -16,6 +16,12 @@ export const ourFileRouter = {
       console.log("File URL:", file.url);
       return { uploadedBy: metadata.userId };
     }),
+    
+  cvUploader: f({ pdf: { maxFileSize: "4MB", maxFileCount: 1 } })
+    .onUploadComplete(async ({ file }) => {
+      console.log("CV uploaded:", file.url);
+      return { url: file.url };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

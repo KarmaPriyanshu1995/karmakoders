@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { UTApi } from "uploadthing/server";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -197,4 +198,104 @@ export async function deleteProject(id: string) {
   await prisma.project.delete({ where: { id } });
   revalidatePath("/portfolio");
   revalidatePath("/admin/projects");
+}
+
+// ─── Career Actions ──────────────────────────────────────────────────────────
+
+export async function getJobs() {
+  return prisma.jobOpening.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: { applications: true }
+      }
+    }
+  });
+}
+
+export async function getJobBySlug(slug: string) {
+  return prisma.jobOpening.findUnique({
+    where: { slug },
+  });
+}
+
+export async function upsertJob(data: {
+  id?: string;
+  title: string;
+  slug: string;
+  department?: string;
+  location?: string;
+  type: string;
+  description: string;
+  isActive: boolean;
+}) {
+  const { id, ...jobData } = data;
+  const job = await prisma.jobOpening.upsert({
+    where: { id: id || "new-id" },
+    update: jobData,
+    create: jobData,
+  });
+  revalidatePath("/careers");
+  revalidatePath("/admin/careers");
+  return job;
+}
+
+export async function deleteJob(id: string) {
+  await prisma.jobOpening.delete({ where: { id } });
+  revalidatePath("/careers");
+  revalidatePath("/admin/careers");
+}
+
+export async function submitJobApplication(data: {
+  jobId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  portfolio?: string;
+  cvUrl: string;
+  coverLetter?: string;
+}) {
+  return prisma.jobApplication.create({ data });
+}
+
+export async function getJobApplications(jobId?: string) {
+  return prisma.jobApplication.findMany({
+    where: jobId ? { jobId } : undefined,
+    include: {
+      job: { select: { title: true } }
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function updateApplicationStatus(id: string, status: string) {
+  await prisma.jobApplication.update({
+    where: { id },
+    data: { status },
+  });
+  revalidatePath("/admin/careers/applications");
+}
+
+export async function deleteJobApplication(id: string) {
+  const application = await prisma.jobApplication.findUnique({
+    where: { id }
+  });
+
+  if (application && application.cvUrl) {
+    const fileKey = application.cvUrl.split("/").pop();
+    if (fileKey) {
+      try {
+        const utapi = new UTApi();
+        await utapi.deleteFiles(fileKey);
+      } catch (error) {
+        console.error("Failed to delete file from UploadThing:", error);
+      }
+    }
+  }
+
+  await prisma.jobApplication.delete({
+    where: { id }
+  });
+  
+  revalidatePath("/admin/careers/applications");
 }

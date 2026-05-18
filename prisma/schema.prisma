@@ -120,3 +120,30 @@ model NewsletterSubscriber {
   email     String   @unique
   createdAt DateTime @default(now())
 }
+
+model JobOpening {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  department  String?
+  location    String?
+  type        String   @default("Full-time")
+  description String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  phone       String?
+  portfolio   String?
+  cvUrl       String
+  coverLetter String?
+  status      String   @default("Pending") // Pending, Reviewed, Interview, Rejected, Hired
+  createdAt   DateTime @default(now())
+}
