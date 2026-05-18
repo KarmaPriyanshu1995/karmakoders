@@ -3,7 +3,7 @@ import { getPages, getPosts, getProjects } from "@/lib/actions";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Use environment variable for base URL, fallback to localhost for development
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://karmakoders.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://karmakoders.xyz";
 
   let pages: any[] = [];
   let posts: any[] = [];
