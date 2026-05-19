@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
+import CanonicalURL from "@/components/CanonicalURL";
 
 export default async function RootLayout({
   children,
@@ -79,6 +80,7 @@ export default async function RootLayout({
     <html lang="en" className={htmlClass} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: customStyles }} />
+        <CanonicalURL />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
         <ThemeProvider>

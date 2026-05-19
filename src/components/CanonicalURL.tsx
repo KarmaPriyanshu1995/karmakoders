@@ -1,0 +1,18 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
+export default function CanonicalURL() {
+  const pathname = usePathname();
+  
+  // Clean up potential trailing slashes except for root
+  const cleanPathname = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
+  const canonicalUrl = `https://karmakoders.xyz${cleanPathname}`;
+
+  return (
+    <>
+      <link rel="canonical" href={canonicalUrl} />
+      <meta name="robots" content="index, follow" />
+    </>
+  );
+}
