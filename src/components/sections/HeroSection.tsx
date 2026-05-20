@@ -63,9 +63,15 @@ export function HeroSection({
             {badge}
           </div>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8 leading-[1.1]">
-            {headline}{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{highlight}</span>
-            {" "}of Your Brand
+            {headline === "Design the" ? (
+              <>
+                Design the{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{highlight}</span>
+                {" "}of Your Brand
+              </>
+            ) : (
+              headline
+            )}
           </h1>
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-xl leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-4">

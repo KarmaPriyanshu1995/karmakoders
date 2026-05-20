@@ -12,6 +12,7 @@ import { CareersSection } from "@/components/sections/CareersSection";
 import { CaseStudiesSection } from "@/components/sections/CaseStudiesSection";
 import { NewsletterSection } from "@/components/sections/NewsletterSection";
 import { ContentSection } from "@/components/sections/ContentSection";
+import { HeroScrollSection } from "@/components/sections/HeroScrollSection";
 
 // Map section types to their corresponding React components
 const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> = {
@@ -29,6 +30,7 @@ const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> =
   casestudies: CaseStudiesSection,
   newsletter: NewsletterSection,
   content: ContentSection,
+  heroscroll: HeroScrollSection,
 };
 
 interface SectionData {

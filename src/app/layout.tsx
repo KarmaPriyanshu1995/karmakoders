@@ -79,7 +79,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={htmlClass} suppressHydrationWarning>
       <head>
-        <style dangerouslySetInnerHTML={{ __html: customStyles }} />
+        <style dangerouslySetInnerHTML={{ __html: customStyles }} suppressHydrationWarning />
         <CanonicalURL />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
