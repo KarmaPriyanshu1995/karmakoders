@@ -8,7 +8,9 @@ export const ourFileRouter = {
   imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 10 } })
     .middleware(async ({ req }) => {
       const session = await getServerSession(authOptions);
-      if (!session || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+      if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+        throw new Error("Unauthorized");
+      }
       return { userId: session.user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
