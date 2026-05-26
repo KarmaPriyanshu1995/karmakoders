@@ -15,6 +15,20 @@ const fontVariables = `${inter.variable} ${roboto.variable} ${poppins.variable} 
 export const metadata: Metadata = {
   title: "AI Business Portfolio",
   description: "Premium AI-powered business portfolio platform",
+  metadataBase: new URL("https://karmakoders.xyz"),
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 import { ThemeProvider } from "@/components/ThemeProvider";

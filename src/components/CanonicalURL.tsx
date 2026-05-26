@@ -12,7 +12,6 @@ export default function CanonicalURL() {
   return (
     <>
       <link rel="canonical" href={canonicalUrl} />
-      <meta name="robots" content="index, follow" />
     </>
   );
 }
