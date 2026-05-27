@@ -28,19 +28,26 @@ export function AboutSection({
   return (
     <section id="about" className="relative py-32 px-8 md:px-24 overflow-hidden">
       {/* bg glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500 opacity-[0.02] blur-[200px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
         {/* Left copy */}
-        <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
-          <span className="text-indigo-400 text-sm font-semibold uppercase tracking-widest">{tagline}</span>
-          <h2 className="mt-4 text-4xl md:text-5xl font-bold text-white leading-tight">{heading}</h2>
-          <p className="mt-6 text-slate-400 text-lg leading-relaxed">{body}</p>
+        <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="flex flex-col items-start">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
+          >
+            {tagline}
+          </motion.div>
+          <h2 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{heading}</h2>
+          <p className="mt-6 text-slate-300 text-lg leading-relaxed font-medium">{body}</p>
           <div className="mt-10 flex flex-wrap gap-4">
-            <a href="#contact" className="px-7 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+            <a href="#contact" className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
               Work With Us
             </a>
-            <a href="#case-studies" className="px-7 py-3 border border-slate-700 hover:border-indigo-500 text-slate-300 hover:text-white font-semibold rounded-full transition-all">
+            <a href="#case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
               View Case Studies
             </a>
           </div>
@@ -50,12 +57,12 @@ export function AboutSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {features.map(({ icon: Icon, title, desc }, i) => (
             <motion.div key={title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-indigo-500/40 transition-colors group">
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 hover:-translate-y-1 transition-all duration-300 group">
               <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors mb-4">
                 <Icon className="w-5 h-5" />
               </div>
-              <h3 className="text-white font-semibold mb-1">{title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+              <h3 className="text-white font-bold mb-1">{title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed font-medium">{desc}</p>
             </motion.div>
           ))}
         </div>

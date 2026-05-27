@@ -1,45 +1,52 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Code2, Palette, Globe2, BarChart3, ShieldCheck, Smartphone } from "lucide-react";
+import { Code2, Palette, Globe2, BarChart3, ShieldCheck, Smartphone, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 const defaultServices = [
   {
     icon: Palette,
-    title: "UI/UX Design",
-    description: "Creating visually stunning and highly intuitive interfaces that resonate with your target audience.",
-    gradient: "from-pink-500 to-rose-500",
+    title: "UI/UX Design & Branding",
+    description: "Creating visually stunning, cyberpunk-minimal interfaces that resonate with elite audiences. We build design systems that scale and look breathtaking.",
+    className: "md:col-span-2 md:row-span-2",
+    delay: 0.1,
   },
   {
     icon: Code2,
-    title: "Web Development",
-    description: "Building scalable, high-performance web applications using modern frameworks like Next.js and React.",
-    gradient: "from-indigo-500 to-blue-500",
+    title: "Web Engineering",
+    description: "Scalable, high-performance apps using Next.js & React.",
+    className: "md:col-span-1 md:row-span-1",
+    delay: 0.2,
   },
   {
     icon: Globe2,
-    title: "AI Integration",
-    description: "Leveraging cutting-edge AI technologies to automate workflows and enhance user experiences.",
-    gradient: "from-cyan-500 to-teal-500",
+    title: "AI Automation",
+    description: "Cutting-edge AI agents to automate your workflows.",
+    className: "md:col-span-1 md:row-span-1",
+    delay: 0.3,
   },
   {
     icon: Smartphone,
     title: "Mobile Solutions",
-    description: "Developing responsive and native-feeling mobile experiences for iOS and Android platforms.",
-    gradient: "from-amber-500 to-orange-500",
+    description: "Native-feeling mobile experiences for iOS and Android.",
+    className: "md:col-span-1",
+    delay: 0.4,
   },
   {
     icon: BarChart3,
-    title: "Digital Marketing",
-    description: "Driving growth through data-driven marketing strategies, SEO optimization, and content creation.",
-    gradient: "from-emerald-500 to-green-500",
+    title: "Growth & Analytics",
+    description: "Data-driven strategies and predictive AI models to scale your brand.",
+    className: "md:col-span-2",
+    delay: 0.5,
   },
   {
     icon: ShieldCheck,
-    title: "Cyber Security",
-    description: "Ensuring your digital assets are protected with enterprise-grade security and robust architecture.",
-    gradient: "from-purple-500 to-violet-500",
+    title: "Enterprise Cyber Security",
+    description: "Zero-trust architectures and continuous monitoring to ensure your digital assets remain impenetrable against modern threats.",
+    className: "md:col-span-3",
+    delay: 0.6,
   },
 ];
 
@@ -57,23 +64,27 @@ export function ServicesSection({
   services = defaultServices,
 }: ServicesProps) {
   return (
-    <section id="services" className="relative py-32 px-8 md:px-24 bg-slate-950">
-      <div className="max-w-7xl mx-auto">
+    <section id="services" className="relative py-32 px-6 md:px-12 bg-slate-950">
+      {/* Background glow effects */}
+      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-indigo-500 opacity-5 blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/2" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <motion.span
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-indigo-400 text-sm font-semibold uppercase tracking-widest"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)]"
           >
             {tagline}
-          </motion.span>
+          </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="mt-4 text-4xl md:text-5xl font-bold text-white"
+            className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
           >
             {heading}
           </motion.h2>
@@ -82,40 +93,47 @@ export function ServicesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="mt-6 text-slate-400 text-lg"
+            className="mt-6 text-[#D6D6D6] text-xl max-w-2xl mx-auto"
           >
             {description}
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-min gap-6">
           {services.map((service, i) => (
             <motion.div
               key={service.title}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="p-8 rounded-3xl bg-slate-900/40 border border-slate-800 hover:border-indigo-500/50 transition-all group relative overflow-hidden"
+              transition={{ delay: service.delay, duration: 0.6, ease: "easeOut" }}
+              className={cn(
+                "group relative overflow-hidden rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 flex flex-col justify-between transition-all duration-500 hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1",
+                service.className
+              )}
             >
-              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity`} />
-              
-              <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
-                <service.icon className="w-7 h-7" />
-              </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-4">{service.title}</h3>
-              <p className="text-slate-400 leading-relaxed">
-                {service.description}
-              </p>
-              
-              <div className="mt-8">
-                <Link href="/services" className="text-indigo-400 font-semibold inline-flex items-center group/link">
-                  Learn More 
-                  <svg className="w-4 h-4 ml-2 group-hover/link:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+              {/* Inner animated gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-indigo-500/0 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="w-16 h-16 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-center text-indigo-500 mb-8 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-indigo-500/10 group-hover:shadow-indigo-500/30">
+                  <service.icon className="w-8 h-8" />
+                </div>
+                
+                <div className="mt-auto">
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-4 tracking-tight group-hover:text-indigo-500 transition-colors duration-300">
+                    {service.title}
+                  </h3>
+                  <p className="text-[#D6D6D6] text-lg leading-relaxed mb-8 font-medium">
+                    {service.description}
+                  </p>
+                  
+                  <Link href="/services" className="inline-flex items-center text-indigo-500 font-bold text-sm uppercase tracking-widest hover:text-white transition-colors group/btn w-fit">
+                    Explore Service
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-2 transition-transform duration-300" />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           ))}

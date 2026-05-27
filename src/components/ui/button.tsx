@@ -4,17 +4,17 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC300] disabled:pointer-events-none disabled:opacity-50 active:scale-95",
   {
     variants: {
       variant: {
-        default: "bg-indigo-600 text-white hover:bg-indigo-600/90 shadow-[0_0_15px_rgba(79,70,229,0.5)]",
+        default: "bg-[#FFC300] text-[#1C1B1A] hover:bg-[#FFC300]/90 hover:shadow-[0_0_20px_rgba(255,195,0,0.35)] hover:-translate-y-0.5",
         destructive: "bg-rose-500 text-white hover:bg-rose-500/90",
-        outline: "border border-slate-700 bg-transparent hover:bg-slate-800 text-slate-100",
-        secondary: "bg-slate-800 text-slate-100 hover:bg-slate-800/80",
-        ghost: "hover:bg-slate-800 hover:text-slate-100 text-slate-300",
-        link: "text-indigo-400 underline-offset-4 hover:underline",
-        glass: "bg-white/5 backdrop-blur-lg border border-white/10 text-white hover:bg-white/10",
+        outline: "border border-[#FFC300]/50 bg-transparent text-[#FFC300] hover:bg-[#FFC300] hover:text-[#1C1B1A] hover:shadow-[0_0_20px_rgba(255,195,0,0.35)] hover:-translate-y-0.5",
+        secondary: "bg-[#1C1B1A] text-[#D6D6D6] hover:bg-[#1C1B1A]/80 border border-white/10",
+        ghost: "hover:bg-white/10 text-slate-300 hover:text-white",
+        link: "text-[#FFC300] underline-offset-4 hover:underline",
+        glass: "bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 hover:border-[#FFC300]/30 hover:shadow-[0_0_20px_rgba(255,195,0,0.2)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-9 px-4 py-2",

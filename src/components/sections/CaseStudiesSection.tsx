@@ -38,24 +38,28 @@ export function CaseStudiesSection({
 }: CaseStudiesProps) {
   const displayCases = (limit && limit > 0) ? cases.slice(0, limit) : cases;
   return (
-    <section id="case-studies" className="py-32 px-8 md:px-24 bg-slate-950">
-      <div className="max-w-7xl mx-auto">
+    <section id="case-studies" className="py-32 px-8 md:px-24 bg-slate-950 relative overflow-hidden">
+      {/* Background glowing orb */}
+      <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
           <div className="max-w-2xl">
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="text-indigo-400 text-sm font-semibold uppercase tracking-widest"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
             >
               {tagline}
-            </motion.span>
+            </motion.div>
             <motion.h2
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="mt-4 text-4xl md:text-5xl font-bold text-white leading-tight"
+              className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight"
             >
               {heading}
             </motion.h2>
@@ -67,9 +71,9 @@ export function CaseStudiesSection({
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <Link href="/case-studies" className="px-8 py-4 border border-slate-800 hover:border-indigo-500 text-white font-bold rounded-full transition-all flex items-center group whitespace-nowrap">
+              <Link href="/case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all flex items-center group whitespace-nowrap shadow-indigo-500/5 hover:shadow-indigo-500/20">
                 View All Case Studies
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform text-indigo-500" />
               </Link>
             </motion.div>
           )}
@@ -83,14 +87,14 @@ export function CaseStudiesSection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group cursor-pointer"
+              className="group cursor-pointer p-6 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
             >
-              <Link href={`/blog/${item.slug}`}>
-                <div className="relative rounded-[40px] overflow-hidden aspect-[16/10] mb-8">
+              <Link href={`/blog/${item.slug || "#"}`}>
+                <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
                   <img
-                    src={item.image}
+                    src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800"}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.color || "from-indigo-600 to-purple-600"} opacity-40 mix-blend-multiply`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
@@ -98,7 +102,7 @@ export function CaseStudiesSection({
                   <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between">
                     <div>
                       <div className="text-white/60 text-sm font-bold uppercase tracking-widest mb-1">{item.category || item.client || "Success Story"}</div>
-                      <h3 className="text-3xl font-bold text-white">{item.title}</h3>
+                      <h3 className="text-3xl font-black text-white">{item.title}</h3>
                     </div>
                     <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
                       <div className="text-xs text-white/60 uppercase font-bold mb-1">Impact</div>
@@ -108,12 +112,12 @@ export function CaseStudiesSection({
                 </div>
                 
                 <div className="flex items-center justify-between px-4">
-                  <div className="flex items-center gap-2 text-slate-400 font-medium">
+                  <div className="flex items-center gap-2 text-slate-400 font-bold group-hover:text-indigo-400 transition-colors">
                     <BarChart className="w-5 h-5 text-indigo-500" />
                     Read Full Success Story
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white group-hover:bg-indigo-600 group-hover:border-indigo-600 transition-all">
-                    <ArrowRight className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-all duration-300 shadow-indigo-500/5 group-hover:shadow-indigo-500/20">
+                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </Link>

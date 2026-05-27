@@ -7,9 +7,35 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 40px var(--glass-shadow);
   }
   .glass-card {
-    @apply bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 40px var(--glass-shadow);
+  }
+  .glow-hover {
+    transition-all: duration-300;
+    box-shadow: 0 0 20px var(--glow-color);
+    transform: translateY(0);
+    transition: all 0.3s ease;
+  }
+  .glow-hover:hover {
+    box-shadow: 0 0 30px var(--glow-color);
+    transform: translateY(-4px);
+  }
+  .text-glow {
+    text-shadow: 0 0 10px var(--glow-color);
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

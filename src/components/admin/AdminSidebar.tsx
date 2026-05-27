@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -45,7 +46,7 @@ export function AdminSidebar() {
       {/* Mobile Floating Action Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 p-3.5 bg-indigo-650 text-white rounded-full shadow-2xl border border-indigo-450/20 md:hidden transition-all flex items-center justify-center scale-100 hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 p-3.5 bg-[#FFC300] text-[#1C1B1A] rounded-full shadow-[0_0_20px_rgba(255,195,0,0.4)] md:hidden transition-all flex items-center justify-center hover:scale-105 active:scale-95"
         aria-label="Toggle Sidebar"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -55,23 +56,23 @@ export function AdminSidebar() {
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-[#1C1B1A]/80 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 w-64 border-r border-slate-800 bg-slate-950 flex-col flex transition-transform duration-300 md:static md:translate-x-0 md:bg-slate-900/50 md:backdrop-blur md:h-screen md:sticky md:top-0
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#1C1B1A] flex-col flex transition-transform duration-300 md:static md:translate-x-0 md:bg-[#1C1B1A]/50 md:backdrop-blur-xl md:h-screen md:sticky md:top-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
       >
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 flex-shrink-0">
-          <span className="text-xl font-bold text-white">
-            karmakoders<span className="text-indigo-400">.admin</span>
+        <div className="h-16 flex items-center px-6 border-b border-white/5 flex-shrink-0">
+          <span className="text-xl font-black text-white tracking-tight">
+            karmakoders<span className="text-[#FFC300]">.admin</span>
           </span>
         </div>
-        <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item);
             return (
@@ -79,27 +80,31 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center px-3 py-2.5 rounded-lg font-medium transition-colors ${
+                className={cn(
+                  "flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 group",
                   active
-                    ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                }`}
+                    ? "bg-[#FFC300]/10 text-[#FFC300] border border-[#FFC300]/20 shadow-[0_0_15px_rgba(255,195,0,0.05)]"
+                    : "text-[#D6D6D6] border border-transparent hover:text-white hover:bg-white/5 hover:border-white/10"
+                )}
               >
-                <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                <item.icon className={cn(
+                  "w-5 h-5 mr-3 flex-shrink-0 transition-colors",
+                  active ? "text-[#FFC300]" : "text-slate-400 group-hover:text-white"
+                )} />
                 {item.label}
                 {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FFC300] shadow-[0_0_5px_#FFC300]" />
                 )}
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 border-t border-slate-800 flex-shrink-0">
+        <div className="p-4 border-t border-white/5 flex-shrink-0">
           <button
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
-            className="flex w-full items-center px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg font-medium transition-colors"
+            className="flex w-full items-center px-4 py-3 text-[#D6D6D6] hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 border border-transparent rounded-xl font-bold transition-all group"
           >
-            <LogOut className="w-5 h-5 mr-3" /> Sign Out
+            <LogOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-rose-400 transition-colors" /> Sign Out
           </button>
         </div>
       </aside>

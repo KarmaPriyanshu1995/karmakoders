@@ -1,29 +1,34 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const defaultPlans = [
   {
     name: "Starter",
-    price: "$99",
-    description: "Perfect for small businesses looking to establish a digital presence.",
-    features: ["1 Landing Page", "Basic 3D Components", "Standard SEO", "Email Support", "1 Month Maintenance"],
+    monthlyPrice: "$99",
+    yearlyPrice: "$950",
+    description: "Perfect for stealth startups looking to establish a premium digital footprint.",
+    features: ["1 Landing Page", "Basic Animations", "Standard SEO", "Email Support", "1 Month Maintenance"],
     isPopular: false,
   },
   {
     name: "Professional",
-    price: "$299",
-    description: "The ideal solution for growing companies needing advanced features.",
-    features: ["Up to 5 Pages", "Advanced 3D Animations", "Full AI Integration", "24/7 Priority Support", "3 Months Maintenance", "Dynamic CMS Access"],
+    monthlyPrice: "$299",
+    yearlyPrice: "$2,850",
+    description: "The ideal solution for growing tech agencies needing advanced features and AI.",
+    features: ["Up to 5 Pages", "Advanced 3D Effects", "Full AI Agent Integration", "24/7 Priority Support", "3 Months Maintenance", "Dynamic CMS Access"],
     isPopular: true,
   },
   {
     name: "Enterprise",
-    price: "Custom",
-    description: "Fully bespoke solutions for large-scale enterprise requirements.",
-    features: ["Unlimited Pages", "Custom 3D Environments", "Private AI Model Training", "Dedicated Project Manager", "12 Months Maintenance", "Multi-language Support"],
+    monthlyPrice: "Custom",
+    yearlyPrice: "Custom",
+    description: "Fully bespoke SaaS architectures for large-scale enterprise requirements.",
+    features: ["Unlimited Pages", "Custom 3D Environments", "Private AI Model Training", "Dedicated Engineering Team", "12 Months Maintenance", "Multi-region Support"],
     isPopular: false,
   },
 ];
@@ -35,78 +40,133 @@ interface PricingProps {
 }
 
 export function PricingSection({
-  tagline = "Pricing Plans",
-  heading = "Invest in Your Future Digital Success",
+  tagline = "Pricing Architecture",
+  heading = "Invest in Your Digital Dominance",
   plans = defaultPlans,
 }: PricingProps) {
+  const [isYearly, setIsYearly] = useState(false);
+
   return (
-    <section id="pricing" className="py-32 px-8 md:px-24 bg-slate-950 relative overflow-hidden">
-      {/* Bg glow */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] -mr-64 -mt-64" />
+    <section id="pricing" className="py-32 px-6 md:px-12 bg-[#252422] relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.03] blur-[120px] -mr-64 -mt-64 rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.02] blur-[150px] -ml-64 -mb-64 rounded-full pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-20">
-          <motion.span
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-16">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-indigo-400 text-sm font-semibold uppercase tracking-widest"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-[#FFC300] text-sm font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(255,195,0,0.1)] mb-6"
           >
             {tagline}
-          </motion.span>
+          </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="mt-4 text-4xl md:text-5xl font-bold text-white max-w-2xl mx-auto"
+            className="mt-4 text-5xl md:text-6xl font-black text-white max-w-2xl mx-auto tracking-tight"
           >
             {heading}
           </motion.h2>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="mt-12 flex items-center justify-center gap-4"
+          >
+            <span className={cn("text-lg font-bold transition-colors", !isYearly ? "text-white" : "text-[#D6D6D6]")}>Monthly</span>
+            <button 
+              onClick={() => setIsYearly(!isYearly)}
+              className="relative w-16 h-8 rounded-full bg-white/10 border border-white/20 p-1 transition-colors hover:border-[#FFC300]/50"
+            >
+              <motion.div 
+                className="w-6 h-6 rounded-full bg-[#FFC300] shadow-[0_0_10px_rgba(255,195,0,0.5)]"
+                animate={{ x: isYearly ? 32 : 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </button>
+            <span className={cn("text-lg font-bold transition-colors flex items-center gap-2", isYearly ? "text-white" : "text-[#D6D6D6]")}>
+              Yearly <span className="text-xs px-2 py-1 bg-[#FFC300]/20 text-[#FFC300] rounded-full uppercase tracking-wider font-bold">Save 20%</span>
+            </span>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`p-10 rounded-[32px] border ${plan.isPopular ? 'border-indigo-500 bg-indigo-500/5 relative' : 'border-slate-800 bg-slate-900/40'} flex flex-col`}
+              transition={{ delay: i * 0.1, duration: 0.6 }}
+              className={cn(
+                "relative group rounded-[2rem]",
+                plan.isPopular ? "lg:-mt-8 lg:mb-8" : ""
+              )}
             >
+              {/* Animated Glowing Border for Popular Plan */}
               {plan.isPopular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full uppercase tracking-widest">
-                  Most Popular
-                </div>
+                <div className="absolute -inset-[2px] rounded-[2.1rem] bg-gradient-to-b from-[#FFC300] via-[#FFC300]/20 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-[2px]" />
               )}
               
-              <div className="mb-8">
-                <h4 className="text-xl font-bold text-white mb-2">{plan.name}</h4>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-5xl font-bold text-white">{plan.price}</span>
-                  {plan.price !== "Custom" && <span className="text-slate-500">/project</span>}
-                </div>
-                <p className="text-slate-400 text-sm">{plan.description}</p>
-              </div>
-              
-              <div className="space-y-4 mb-10 flex-1">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                      <Check className="w-3 h-3" />
-                    </div>
-                    <span className="text-slate-300 text-sm">{feature}</span>
+              <div className={cn(
+                "relative p-10 rounded-[2rem] flex flex-col h-full transition-all duration-500 backdrop-blur-xl border",
+                plan.isPopular ? "bg-[#1C1B1A]/90 border-[#FFC300]/50 shadow-[0_0_40px_rgba(255,195,0,0.15)]" : "bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10"
+              )}>
+                {plan.isPopular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#FFC300] text-[#1C1B1A] text-xs font-bold rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(255,195,0,0.4)]">
+                    Recommended
                   </div>
-                ))}
+                )}
+                
+                <div className="mb-8">
+                  <h4 className="text-2xl font-bold text-white mb-4">{plan.name}</h4>
+                  <div className="flex items-baseline gap-1 mb-4 h-16">
+                    <AnimatePresence mode="wait">
+                      <motion.span 
+                        key={isYearly ? 'yearly' : 'monthly'}
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-5xl font-black text-white"
+                      >
+                        {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                      </motion.span>
+                    </AnimatePresence>
+                    {plan.monthlyPrice !== "Custom" && (
+                      <span className="text-[#D6D6D6] font-medium">/{isYearly ? 'year' : 'month'}</span>
+                    )}
+                  </div>
+                  <p className="text-[#D6D6D6] text-sm leading-relaxed">{plan.description}</p>
+                </div>
+                
+                <div className="space-y-5 mb-10 flex-1">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#FFC300]/10 flex items-center justify-center text-[#FFC300] shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                      </div>
+                      <span className="text-slate-200 text-sm font-medium leading-relaxed">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <Button
+                  variant={plan.isPopular ? "default" : "outline"}
+                  className={cn(
+                    "w-full h-14 rounded-xl text-base font-bold transition-all duration-300",
+                    plan.isPopular ? "bg-[#FFC300] text-[#1C1B1A] hover:shadow-[0_0_25px_rgba(255,195,0,0.4)]" : "border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+                  )}
+                >
+                  {plan.monthlyPrice === "Custom" ? "Contact Us" : "Choose Plan"}
+                </Button>
               </div>
-              
-              <Button
-                variant={plan.isPopular ? "default" : "outline"}
-                className={`w-full h-12 rounded-full font-bold transition-all ${plan.isPopular ? 'bg-indigo-600 hover:bg-indigo-500' : 'border-slate-700 hover:bg-white/5'}`}
-              >
-                Choose Plan
-              </Button>
             </motion.div>
           ))}
         </div>
