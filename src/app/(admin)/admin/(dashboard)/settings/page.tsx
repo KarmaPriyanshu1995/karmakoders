@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Eye, EyeOff, CheckCircle, Moon, Sun } from "lucide-react";
-import { getSiteConfig, setSiteConfig } from "@/lib/actions";
+import { Save, Eye, EyeOff, CheckCircle, Database, RefreshCw } from "lucide-react";
+import { getSiteConfig, setSiteConfig, seedDatabase } from "@/lib/actions";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
@@ -14,6 +15,8 @@ export default function SettingsPage() {
     primaryColor: "#4f46e5",
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedStatus, setSeedStatus] = useState("");
 
   const [form, setForm] = useState({
     businessName: "karmakoders",
@@ -46,6 +49,28 @@ export default function SettingsPage() {
 
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleSeed = async (type: "sections" | "all") => {
+    setIsSeeding(true);
+    setSeedStatus(type === "all" ? "Syncing layout and seeding mock datasets..." : "Recreating homepage sections layout...");
+    try {
+      const res = await seedDatabase(type);
+      if (res.success) {
+        toast.success("Seeding completed successfully!");
+        setSeedStatus("Success! Database has been populated.");
+      } else {
+        toast.error("Failed to seed database.");
+        setSeedStatus("Seeding failed.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("An error occurred during seeding.");
+      setSeedStatus("Error: Seeding failed.");
+    } finally {
+      setIsSeeding(false);
+      setTimeout(() => setSeedStatus(""), 4000);
+    }
   };
 
   return (
@@ -158,6 +183,44 @@ export default function SettingsPage() {
           )}
         </div>
       </form>
+
+      {/* Database Seeding Utilities */}
+      <div className="glass-card rounded-xl p-6 border border-slate-800 space-y-5">
+        <div className="flex items-center gap-2 text-white border-b border-slate-800 pb-3">
+          <Database className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-lg font-semibold">Production Database Sync & Seeding</h3>
+        </div>
+        
+        <p className="text-slate-400 text-sm leading-relaxed">
+          When deploying to a new environment, your remote database may lack pages and layout sections. Re-seed homepage structures or seed the database with sample projects, careers, and case studies instantly:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <button
+            type="button"
+            disabled={isSeeding}
+            onClick={() => handleSeed("sections")}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSeeding ? <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" /> : <Database className="w-4 h-4 text-indigo-400" />}
+            Reset Layout Sections
+          </button>
+          
+          <button
+            type="button"
+            disabled={isSeeding}
+            onClick={() => handleSeed("all")}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSeeding ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <RefreshCw className="w-4 h-4 text-white" />}
+            Seed Layout & Sample Data
+          </button>
+        </div>
+
+        {seedStatus && (
+          <p className="text-indigo-400 text-sm font-semibold animate-pulse mt-2">{seedStatus}</p>
+        )}
+      </div>
     </div>
   );
 }
