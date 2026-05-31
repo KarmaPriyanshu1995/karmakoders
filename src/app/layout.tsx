@@ -38,6 +38,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export default async function RootLayout({
   children,
@@ -155,6 +156,7 @@ export default async function RootLayout({
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>
+      <GoogleAnalytics gaId="G-NG3CPDVF6F" />
     </html>
   );
 }
