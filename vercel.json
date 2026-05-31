@@ -1,7 +1,7 @@
 {
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/(?!sitemap\\.xml|robots\\.txt)(.*)",
       "has": [
         {
           "type": "header",
@@ -9,11 +9,11 @@
           "value": "www.karmakoders.com"
         }
       ],
-      "destination": "https://karmakoders.com/:path*",
+      "destination": "https://karmakoders.com/$1",
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/(?!sitemap\\.xml|robots\\.txt)(.*)",
       "has": [
         {
           "type": "header",
@@ -21,11 +21,11 @@
           "value": "karmakoders.xyz"
         }
       ],
-      "destination": "https://karmakoders.com/:path*",
+      "destination": "https://karmakoders.com/$1",
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/(?!sitemap\\.xml|robots\\.txt)(.*)",
       "has": [
         {
           "type": "header",
@@ -33,7 +33,7 @@
           "value": "www.karmakoders.xyz"
         }
       ],
-      "destination": "https://karmakoders.com/:path*",
+      "destination": "https://karmakoders.com/$1",
       "permanent": true
     }
   ]
