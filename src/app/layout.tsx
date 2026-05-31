@@ -15,7 +15,10 @@ const fontVariables = `${inter.variable} ${roboto.variable} ${poppins.variable} 
 export const metadata: Metadata = {
   title: "AI Business Portfolio",
   description: "Premium AI-powered business portfolio platform",
-  metadataBase: new URL("https://karmakoders.xyz"),
+  metadataBase: new URL("https://karmakoders.com"),
+  verification: {
+    google: "uO__zcdAWvEBhoUqJoqCJxMsmLYDh2wGYW7dw2nVxlI",
+  },
   robots: {
     index: true,
     follow: true,

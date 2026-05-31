@@ -5,24 +5,9 @@ import { X, Globe, Code2 } from "lucide-react";
 
 const defaultTeam = [
   {
-    name: "Alex Rivera",
-    role: "Founder & Creative Director",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    name: "Jordan Smith",
-    role: "Lead AI Engineer",
-    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    name: "Maya Patel",
-    role: "Head of Design",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    name: "Leo Zhang",
-    role: "Senior Full Stack Dev",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=300",
+    name: "Ethan Walker",
+    role: "Founder & CEO at KarmaKoders | Mobile App Developer | AI & SaaS Consultant | Helping Startups Scale with Technology",
+    image: "/ethan-walker.jpg",
   },
 ];
 
@@ -64,7 +49,11 @@ export function TeamSection({
           </motion.h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className={`grid gap-8 ${
+          team.length === 1
+            ? "grid-cols-1 max-w-sm mx-auto"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+        }`}>
           {team.map((member, i) => (
             <motion.div
               key={member.name}

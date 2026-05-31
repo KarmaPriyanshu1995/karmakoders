@@ -6,10 +6,34 @@
         {
           "type": "header",
           "key": "host",
+          "value": "www.karmakoders.com"
+        }
+      ],
+      "destination": "https://karmakoders.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "host",
+          "value": "karmakoders.xyz"
+        }
+      ],
+      "destination": "https://karmakoders.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "host",
           "value": "www.karmakoders.xyz"
         }
       ],
-      "destination": "https://karmakoders.xyz/:path*",
+      "destination": "https://karmakoders.com/:path*",
       "permanent": true
     }
   ]

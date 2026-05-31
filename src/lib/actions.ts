@@ -296,7 +296,7 @@ export async function deleteJobApplication(id: string) {
   await prisma.jobApplication.delete({
     where: { id }
   });
-  
+
   revalidatePath("/admin/careers/applications");
 }
 
@@ -368,7 +368,14 @@ export async function seedDatabase(type: "sections" | "all") {
       order: 6,
       content: {
         tagline: "Our Team",
-        heading: "The Minds Behind karmakoders"
+        heading: "The Minds Behind karmakoders",
+        team: [
+          {
+            name: "Ethan Walker",
+            role: "Founder & CEO at KarmaKoders | Mobile App Developer | AI & SaaS Consultant | Helping Startups Scale with Technology",
+            image: "/ethan-walker.jpg"
+          }
+        ]
       }
     },
     {
@@ -416,11 +423,19 @@ export async function seedDatabase(type: "sections" | "all") {
     update: {},
     create: {
       key: "globalTheme",
+      // value: JSON.stringify({
+      //   mode: "dark",
+      //   theme: "dark",
+      //   bgType: "solid",
+      //   bgColor: "#252422",
+      //   textColor: "#ffffff",
+      //   primaryColor: "#FFC300",
+      // }),
       value: JSON.stringify({
-        mode: "dark",
-        theme: "dark",
+        mode: "light",
+        theme: "light",
         bgType: "solid",
-        bgColor: "#252422",
+        bgColor: "#fafafaff",
         textColor: "#ffffff",
         primaryColor: "#FFC300",
       }),

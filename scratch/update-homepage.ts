@@ -70,7 +70,14 @@ async function main() {
       order: 6,
       content: {
         tagline: "Our Team",
-        heading: "The Minds Behind karmakoders"
+        heading: "The Minds Behind karmakoders",
+        team: [
+          {
+            name: "Ethan Walker",
+            role: "Founder & CEO at KarmaKoders | Mobile App Developer | AI & SaaS Consultant | Helping Startups Scale with Technology",
+            image: "/ethan-walker.jpg"
+          }
+        ]
       }
     },
     {
