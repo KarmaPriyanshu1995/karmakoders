@@ -11,9 +11,7 @@ export default withAuth(
 
     // If logged in and trying to access login page, redirect to admin dashboard
     if (token && isLoginPage) {
-      if (pathname !== "/admin") {
-        return NextResponse.redirect(new URL("/admin", req.url));
-      }
+      return NextResponse.redirect(new URL("/admin", req.url));
     }
 
     // If NOT logged in (or not admin) and trying to access protected /admin routes
