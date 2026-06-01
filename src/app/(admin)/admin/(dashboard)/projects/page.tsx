@@ -1,7 +1,9 @@
-import { getProjects } from "@/lib/actions";
+import { getProjects, deleteProject } from "@/lib/actions";
 import Link from "next/link";
-import { Edit2, Briefcase, Plus, Trash2, Eye } from "lucide-react";
+import { Edit2, Plus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -66,9 +68,17 @@ export default async function AdminProjectList() {
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DeleteConfirmButton
+                      iconOnly
+                      confirmTitle="Delete this project?"
+                      confirmMessage={`"${project.title}" will be permanently deleted and removed from the portfolio.`}
+                      onDelete={async () => {
+                        "use server";
+                        await deleteProject(project.id);
+                        revalidatePath("/admin/projects");
+                      }}
+                      className="h-8 w-8"
+                    />
                   </div>
                 </td>
               </tr>
