@@ -1,11 +1,12 @@
 
-import { upsertProject } from "@/lib/actions";
+import { upsertProject, deleteProject } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ImagePreview } from "@/components/admin/ImagePreview";
-import { ArrowLeft, Save, Trash2, Globe, Tag } from "lucide-react";
+import { ArrowLeft, Save, Globe, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
+import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 
 export const dynamic = "force-dynamic";
 
@@ -131,9 +132,17 @@ export default async function AdminProjectEditor({ params }: { params: Promise<{
 
         <div className="flex justify-end gap-4">
           {!isNew && (
-            <Button type="button" variant="ghost" className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">
-              <Trash2 className="w-4 h-4 mr-2" /> Delete Project
-            </Button>
+            <DeleteConfirmButton
+              label="Delete Project"
+              confirmTitle="Delete this project?"
+              confirmMessage={`"${project?.title}" will be permanently deleted and removed from the portfolio.`}
+              onDelete={async () => {
+                "use server";
+                await deleteProject(id);
+                redirect("/admin/projects");
+              }}
+              className="px-6 h-12 text-sm"
+            />
           )}
           <Button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 h-12 shadow-[0_0_20px_rgba(79,70,229,0.4)] font-bold">
             <Save className="w-4 h-4 mr-2" />

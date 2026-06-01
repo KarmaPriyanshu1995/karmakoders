@@ -1,16 +1,11 @@
 import { getJobs, deleteJob, upsertJob } from "@/lib/actions";
 import Link from "next/link";
-import { Plus, Building, MapPin, Users, Edit, Trash2, FileText } from "lucide-react";
+import { Plus, Building, MapPin, Users, Edit, FileText } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 
 export default async function AdminCareersPage() {
   const jobs = await getJobs();
-
-  async function handleDelete(formData: FormData) {
-    "use server";
-    await deleteJob(formData.get("id") as string);
-    revalidatePath("/admin/careers");
-  }
 
   async function toggleActive(formData: FormData) {
     "use server";
@@ -93,12 +88,16 @@ export default async function AdminCareersPage() {
                   >
                     <Edit className="w-4 h-4" />
                   </Link>
-                  <form action={handleDelete}>
-                    <input type="hidden" name="id" value={job.id} />
-                    <button type="submit" className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-md transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </form>
+                  <DeleteConfirmButton
+                    iconOnly
+                    confirmTitle="Delete this job posting?"
+                    confirmMessage={`"${job.title}" will be permanently removed along with all its applications.`}
+                    onDelete={async () => {
+                      "use server";
+                      await deleteJob(job.id);
+                      revalidatePath("/admin/careers");
+                    }}
+                  />
                 </div>
               </div>
             ))}

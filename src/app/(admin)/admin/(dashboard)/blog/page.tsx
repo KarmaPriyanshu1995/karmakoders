@@ -1,7 +1,9 @@
-import { getPosts } from "@/lib/actions";
+import { getPosts, deletePost } from "@/lib/actions";
 import Link from "next/link";
-import { Edit2, FileText, Plus, Trash2, Globe, Eye } from "lucide-react";
+import { Edit2, FileText, Plus, Globe, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -84,9 +86,17 @@ export default async function AdminBlogList() {
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DeleteConfirmButton
+                      iconOnly
+                      confirmTitle="Delete this blog post?"
+                      confirmMessage={`"${post.title}" will be permanently deleted and can't be recovered.`}
+                      onDelete={async () => {
+                        "use server";
+                        await deletePost(post.id);
+                        revalidatePath("/admin/blog");
+                      }}
+                      className="h-8 w-8"
+                    />
                   </div>
                 </td>
               </tr>
