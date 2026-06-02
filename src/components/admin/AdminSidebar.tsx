@@ -17,6 +17,7 @@ import {
   Building,
   Menu,
   X,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/admin/media", label: "Media Library", icon: ImageIcon },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/appearance", label: "Appearance", icon: Palette },
+  { href: "/admin/seo", label: "SEO Intelligence", icon: Activity },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

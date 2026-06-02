@@ -147,3 +147,252 @@ model JobApplication {
   status      String   @default("Pending") // Pending, Reviewed, Interview, Rejected, Hired
   createdAt   DateTime @default(now())
 }
+
+// ===========================
+// SEO INTELLIGENCE CENTER
+// ===========================
+
+model SeoPage {
+  id                  String   @id @default(cuid())
+  pageType            String   // "page" | "post" | "project"
+  pageId              String   // references Page.id, Post.id, or Project.id
+  url                 String
+  title               String?
+  metaTitle           String?
+  metaDescription     String?
+  h1                  String?
+  headingsJson        String?  // JSON array of headings
+  wordCount           Int      @default(0)
+  readabilityScore    Float    @default(0)
+  keywordDensityJson  String?  // JSON object
+  internalLinksCount  Int      @default(0)
+  externalLinksCount  Int      @default(0)
+  imagesCount         Int      @default(0)
+  imagesWithAlt       Int      @default(0)
+  hasFaq              Boolean  @default(false)
+  hasSchema           Boolean  @default(false)
+  schemaTypes         String?  // CSV of schema types
+  contentScore        Float    @default(0)
+  technicalScore      Float    @default(0)
+  entityScore         Float    @default(0)
+  internalLinkScore   Float    @default(0)
+  schemaScore         Float    @default(0)
+  ctrScore            Float    @default(0)
+  overallScore        Float    @default(0)
+  issuesJson          String?  // JSON array of issues
+  recommendationsJson String?  // JSON array of recommendations
+  isIndexed           Boolean  @default(true)
+  isOrphan            Boolean  @default(false)
+  lastAnalyzed        DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([pageType, pageId])
+}
+
+model SeoEntity {
+  id          String   @id @default(cuid())
+  type        String   // "brand" | "person" | "service" | "product" | "location" | "topic" | "keyword"
+  name        String
+  description String?
+  aliases     String?  // CSV of alternate names
+  sitewide    Boolean  @default(false)
+  pagesJson   String?  // JSON array of page IDs where this entity appears
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SeoCluster {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  pillarPageId     String?
+  childPagesJson   String?  // JSON array of SeoPage.ids
+  keywords         String?  // CSV
+  topicsJson       String?  // JSON array
+  healthScore      Float    @default(0)
+  authorityScore   Float    @default(0)
+  missingTopics    String?  // JSON array
+  suggestedContent String?  // JSON array
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SeoAudit {
+  id                    String   @id @default(cuid())
+  runAt                 DateTime @default(now())
+  totalPages            Int      @default(0)
+  indexedPages          Int      @default(0)
+  nonIndexedPages       Int      @default(0)
+  brokenPages           Int      @default(0)
+  brokenLinks           Int      @default(0)
+  missingTitles         Int      @default(0)
+  duplicateTitles       Int      @default(0)
+  missingDescriptions   Int      @default(0)
+  duplicateDescriptions Int      @default(0)
+  missingH1             Int      @default(0)
+  multipleH1            Int      @default(0)
+  missingAlt            Int      @default(0)
+  orphanPages           Int      @default(0)
+  missingSchema         Int      @default(0)
+  overallScore          Float    @default(0)
+  technicalScore        Float    @default(0)
+  contentScore          Float    @default(0)
+  issuesSummaryJson     String?
+  status                String   @default("complete")
+}
+
+model SeoInternalLink {
+  id          String   @id @default(cuid())
+  fromPageId  String
+  toPageId    String
+  anchorText  String?
+  url         String
+  isBroken    Boolean  @default(false)
+  isSuggested Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([fromPageId])
+  @@index([toPageId])
+}
+
+model SeoSchema {
+  id         String   @id @default(cuid())
+  pageType   String
+  pageId     String
+  schemaType String
+  schemaJson String
+  isValid    Boolean  @default(true)
+  errorsJson String?
+  isApplied  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model SeoReport {
+  id          String   @id @default(cuid())
+  type        String   @default("weekly")
+  title       String
+  summaryJson String
+  createdAt   DateTime @default(now())
+}
+
+model SeoIssue {
+  id          String    @id @default(cuid())
+  pageType    String?
+  pageId      String?
+  url         String?
+  type        String
+  severity    String    // "critical" | "important" | "recommended"
+  description String
+  suggestion  String?
+  isFixed     Boolean   @default(false)
+  fixedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([pageId])
+  @@index([severity])
+  @@index([isFixed])
+}
+
+model SeoKeywordOpportunity {
+  id                  String   @id @default(cuid())
+  keyword             String
+  pageId              String?
+  url                 String?
+  currentPosition     Float?
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  ctr                 Float    @default(0)
+  positionBucket      String?  // "4-10" | "11-20" | "21-50"
+  opportunityScore    Float    @default(0)
+  trafficOpportunity  Int      @default(0)
+  recommendationsJson String?
+  dataSource          String   @default("search_console")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model SeoCtrReport {
+  id                  String   @id @default(cuid())
+  pageId              String?
+  url                 String
+  currentTitle        String?
+  currentDescription  String?
+  avgPosition         Float    @default(0)
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  ctr                 Float    @default(0)
+  expectedCtr         Float    @default(0)
+  suggestedTitlesJson String?
+  suggestedDescsJson  String?
+  ctrImprovementScore Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model SeoContentGap {
+  id          String   @id @default(cuid())
+  type        String   // "topic" | "keyword" | "faq" | "entity" | "service" | "subtopic"
+  gap         String
+  description String?
+  priority    String   @default("medium")
+  clusterId   String?
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+}
+
+model SeoBrand {
+  id                 String   @id @default(cuid())
+  brandName          String
+  businessName       String?
+  tagline            String?
+  logoUrl            String?
+  websiteUrl         String?
+  founderName        String?
+  founderTitle       String?
+  founderBio         String?
+  founderImage       String?
+  servicesJson       String?
+  locationsJson      String?
+  socialProfilesJson String?
+  awardsJson         String?
+  certificationsJson String?
+  reviewsJson        String?
+  industryKeywords   String?
+  brandScore         Float    @default(0)
+  consistencyScore   Float    @default(0)
+  schemaJson         String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+}
+
+model SeoSearchConsole {
+  id                  String   @id @default(cuid())
+  fetchedAt           DateTime @default(now())
+  dateRange           String
+  totalClicks         Int      @default(0)
+  totalImpressions    Int      @default(0)
+  avgCtr              Float    @default(0)
+  avgPosition         Float    @default(0)
+  topPagesJson        String?
+  topQueriesJson      String?
+  rankingDropsJson    String?
+  cannibalizationJson String?
+  lowCtrPagesJson     String?
+  connected           Boolean  @default(false)
+  siteUrl             String?
+}
+
+model SeoAutomationLog {
+  id          String   @id @default(cuid())
+  action      String
+  pageId      String?
+  pageType    String?
+  url         String?
+  before      String?
+  after       String?
+  status      String   @default("success")
+  triggeredBy String   @default("auto")
+  createdAt   DateTime @default(now())
+}
