@@ -225,6 +225,17 @@ export function generateAllRecommendations(ctx: PageContext): Recommendation[] {
 }
 
 // --- Helpers ---
+export function generateImageAlt(src: string, contextTitle: string): string {
+  if (!src) return `${contextTitle} image`;
+  const filename = src.split('/').pop()?.split('?')[0] || '';
+  const nameWithoutExt = filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+  const cleanName = nameWithoutExt.trim();
+  if (cleanName && cleanName.length > 2 && isNaN(Number(cleanName))) {
+    return `${capitalize(cleanName)} - ${contextTitle}`;
+  }
+  return `${contextTitle} image`;
+}
+
 function extractKeyword(title: string): string {
   const stopWords = new Set(["and", "the", "for", "our", "your", "with", "from", "that", "this", "are", "has", "was", "not", "all"]);
   const words = title.toLowerCase().split(/\s+/).filter((w) => w.length > 3 && !stopWords.has(w));
@@ -234,3 +245,4 @@ function extractKeyword(title: string): string {
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+

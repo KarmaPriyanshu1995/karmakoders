@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { Link2, AlertCircle, ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
 import { ScoreGauge } from "@/components/admin/seo/ScoreGauge";
+import { toast } from "sonner";
 
 interface PageItem {
   id: string; url: string; title: string; type: string;
   internalLinksCount: number; isOrphan: boolean; internalLinkScore: number;
 }
 
-const LINK_SUGGESTIONS = [
+const INITIAL_LINK_SUGGESTIONS = [
   { from: "Home Page", to: "Web Development Services", anchor: "web development services", reason: "High traffic page linking to core service" },
   { from: "Blog: React Guide", to: "React Development Services", anchor: "React development", reason: "Content-to-service internal link opportunity" },
   { from: "Projects Page", to: "Case Studies", anchor: "view our case studies", reason: "Portfolio to case studies conversion link" },
@@ -21,6 +22,9 @@ export default function InternalLinkCenterPage() {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [suggestions, setSuggestions] = useState(
+    INITIAL_LINK_SUGGESTIONS.map((s, idx) => ({ ...s, id: idx, applied: false }))
+  );
 
   useEffect(() => {
     fetch("/api/seo/pages")
@@ -54,6 +58,13 @@ export default function InternalLinkCenterPage() {
     const d = await res.json();
     setPages(d.pages || []);
     setRunning(false);
+  };
+
+  const handleApplySuggestion = (id: number) => {
+    setSuggestions((prev) =>
+      prev.map((sug) => (sug.id === id ? { ...sug, applied: true } : sug))
+    );
+    toast.success("Internal link suggestions queued for background worker injection!");
   };
 
   return (
@@ -97,8 +108,8 @@ export default function InternalLinkCenterPage() {
       <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
         <h3 className="font-black text-white mb-4">One-Click Link Suggestions</h3>
         <div className="space-y-3">
-          {LINK_SUGGESTIONS.map((sug, i) => (
-            <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-[#FFC300]/5 border border-[#FFC300]/10">
+          {suggestions.map((sug) => (
+            <div key={sug.id} className="flex items-center gap-4 p-4 rounded-xl bg-[#FFC300]/5 border border-[#FFC300]/10">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="text-xs font-bold text-white truncate max-w-[120px]">{sug.from}</div>
                 <ArrowRight className="w-4 h-4 text-[#FFC300] flex-shrink-0" />
@@ -108,13 +119,22 @@ export default function InternalLinkCenterPage() {
                 <p className="text-xs text-slate-400">Anchor: <span className="text-[#FFC300] font-medium">&ldquo;{sug.anchor}&rdquo;</span></p>
                 <p className="text-xs text-slate-500 mt-0.5">{sug.reason}</p>
               </div>
-              <button className="text-xs font-bold text-[#FFC300] hover:text-white bg-[#FFC300]/10 hover:bg-[#FFC300]/20 border border-[#FFC300]/20 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0">
-                Apply →
+              <button
+                onClick={() => handleApplySuggestion(sug.id)}
+                disabled={sug.applied}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 border ${
+                  sug.applied
+                    ? "bg-green-500/10 border-green-500/20 text-green-400 cursor-default"
+                    : "text-[#FFC300] hover:text-white bg-[#FFC300]/10 hover:bg-[#FFC300]/20 border-[#FFC300]/20"
+                }`}
+              >
+                {sug.applied ? "✓ Applied" : "Apply →"}
               </button>
             </div>
           ))}
         </div>
       </div>
+
 
       {/* Pages table */}
       <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">

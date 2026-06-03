@@ -49,7 +49,15 @@ export async function GET() {
     }));
 
     const siteScores = pageScores.length > 0
-      ? calcSiteScores({ pages: pageScores, totalPages: auditResult.totalPages, indexedPages: auditResult.indexedPages, brokenLinks: 0, orphanPages: auditResult.orphanPages, missingTitles: auditResult.missingTitles, missingDescriptions: auditResult.missingDescriptions })
+      ? calcSiteScores({
+          pages: pageScores,
+          totalPages: auditResult.totalPages,
+          indexedPages: auditResult.indexedPages,
+          brokenLinks: latestAudit?.brokenLinks || 0,
+          orphanPages: latestAudit?.orphanPages || 0,
+          missingTitles: auditResult.missingTitles,
+          missingDescriptions: auditResult.missingDescriptions,
+        })
       : { technical: auditResult.technicalScore, content: 0, entity: 0, internalLink: 0, schema: 0, ctr: 0, overall: Math.round(auditResult.technicalScore * 0.25) };
 
     // Issue severity breakdown

@@ -188,6 +188,7 @@ model SeoPage {
   updatedAt           DateTime @updatedAt
 
   @@unique([pageType, pageId])
+  @@map("seo_pages")
 }
 
 model SeoEntity {
@@ -200,6 +201,8 @@ model SeoEntity {
   pagesJson   String?  // JSON array of page IDs where this entity appears
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("seo_entities")
 }
 
 model SeoCluster {
@@ -216,6 +219,8 @@ model SeoCluster {
   suggestedContent String?  // JSON array
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@map("seo_clusters")
 }
 
 model SeoAudit {
@@ -240,6 +245,8 @@ model SeoAudit {
   contentScore          Float    @default(0)
   issuesSummaryJson     String?
   status                String   @default("complete")
+
+  @@map("seo_audits")
 }
 
 model SeoInternalLink {
@@ -254,6 +261,7 @@ model SeoInternalLink {
 
   @@index([fromPageId])
   @@index([toPageId])
+  @@map("seo_internal_links")
 }
 
 model SeoSchema {
@@ -267,6 +275,8 @@ model SeoSchema {
   isApplied  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@map("seo_schema")
 }
 
 model SeoReport {
@@ -275,6 +285,8 @@ model SeoReport {
   title       String
   summaryJson String
   createdAt   DateTime @default(now())
+
+  @@map("seo_reports")
 }
 
 model SeoIssue {
@@ -293,6 +305,7 @@ model SeoIssue {
   @@index([pageId])
   @@index([severity])
   @@index([isFixed])
+  @@map("seo_issues")
 }
 
 model SeoKeywordOpportunity {
@@ -311,6 +324,8 @@ model SeoKeywordOpportunity {
   dataSource          String   @default("search_console")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  @@map("seo_keyword_opportunities")
 }
 
 model SeoCtrReport {
@@ -329,6 +344,8 @@ model SeoCtrReport {
   ctrImprovementScore Float    @default(0)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  @@map("seo_ctr_reports")
 }
 
 model SeoContentGap {
@@ -340,6 +357,8 @@ model SeoContentGap {
   clusterId   String?
   sourceUrl   String?
   createdAt   DateTime @default(now())
+
+  @@map("seo_content_gaps")
 }
 
 model SeoBrand {
@@ -365,6 +384,8 @@ model SeoBrand {
   schemaJson         String?
   updatedAt          DateTime @updatedAt
   createdAt          DateTime @default(now())
+
+  @@map("seo_brand")
 }
 
 model SeoSearchConsole {
@@ -382,6 +403,8 @@ model SeoSearchConsole {
   lowCtrPagesJson     String?
   connected           Boolean  @default(false)
   siteUrl             String?
+
+  @@map("seo_search_console")
 }
 
 model SeoAutomationLog {
@@ -395,4 +418,6 @@ model SeoAutomationLog {
   status      String   @default("success")
   triggeredBy String   @default("auto")
   createdAt   DateTime @default(now())
+
+  @@map("seo_automation_logs")
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SchemaPreview } from "@/components/admin/seo/SchemaPreview";
-import { Code2, Plus, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Code2, Plus, RefreshCw, CheckCircle2, AlertCircle, Bookmark } from "lucide-react";
 import { SCHEMA_DESCRIPTIONS } from "@/lib/seo/schemaGenerator";
+import { toast } from "sonner";
 
 type SchemaType = "Organization" | "Website" | "Article" | "FAQ" | "Service" | "Breadcrumb" | "LocalBusiness" | "Person";
 
@@ -23,12 +24,29 @@ const SCHEMA_ICONS: Record<SchemaType, string> = {
   Service: "⚙️", Breadcrumb: "🍞", LocalBusiness: "📍", Person: "👤",
 };
 
+interface TargetPage {
+  id: string;
+  title: string;
+  type: string;
+}
+
 export default function SchemaCenterPage() {
   const [selectedType, setSelectedType] = useState<SchemaType>("Organization");
   const [formData, setFormData] = useState<Record<string, string>>(SCHEMA_TEMPLATES.Organization);
   const [generatedSchema, setGeneratedSchema] = useState<string | null>(null);
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Target page selection
+  const [pages, setPages] = useState<TargetPage[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/seo/pages")
+      .then((r) => r.json())
+      .then((d) => setPages(d.pages || []))
+      .catch((e) => console.error("Error loading pages", e));
+  }, []);
 
   const handleTypeChange = (type: SchemaType) => {
     setSelectedType(type);
@@ -46,24 +64,45 @@ export default function SchemaCenterPage() {
     if (formData.itemsJson) {
       try { data.items = JSON.parse(formData.itemsJson); } catch { data.items = []; }
     }
-    const res = await fetch("/api/seo/schema/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schemaType: selectedType, data }),
-    });
-    const result = await res.json();
-    setGeneratedSchema(result.json);
-    setValidation(result.validation);
-    setLoading(false);
+
+    const page = pages.find((p) => p.id === selectedPageId);
+
+    try {
+      const res = await fetch("/api/seo/schema/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schemaType: selectedType,
+          pageId: page?.id || undefined,
+          pageType: page?.type || undefined,
+          data
+        }),
+      });
+
+      const result = await res.json();
+      setGeneratedSchema(result.json);
+      setValidation(result.validation);
+
+      if (page) {
+        toast.success(`Schema generated and applied to page: "${page.title}"!`);
+      } else {
+        toast.success("Schema markup generated successfully!");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate schema");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const schemaTypes = Object.keys(SCHEMA_DESCRIPTIONS) as SchemaType[];
+  const schemaTypes = Object.keys(SCHEMA_TEMPLATES) as SchemaType[];
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-black text-white">Schema Center</h2>
-        <p className="text-slate-400 text-sm mt-1">Generate, validate, and manage structured data for rich search results</p>
+        <p className="text-slate-400 text-sm mt-1">Generate, validate, and apply structured JSON-LD schemas for rich search integrations</p>
       </div>
 
       {/* Schema type selector */}
@@ -78,7 +117,7 @@ export default function SchemaCenterPage() {
             >
               <div className="text-2xl mb-2">{SCHEMA_ICONS[type]}</div>
               <p className="text-sm font-black">{type}</p>
-              <p className="text-xs mt-1 opacity-70 line-clamp-2">{SCHEMA_DESCRIPTIONS[type]}</p>
+              <p className="text-xs mt-1 opacity-70 line-clamp-2">{SCHEMA_DESCRIPTIONS[type as keyof typeof SCHEMA_DESCRIPTIONS]}</p>
             </button>
           ))}
         </div>
@@ -86,11 +125,31 @@ export default function SchemaCenterPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
-        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-5">
           <h3 className="font-black text-white flex items-center gap-2">
             <Code2 className="w-4 h-4 text-[#FFC300]" />
             {selectedType} Schema Generator
           </h3>
+
+          {/* Target Page Selector */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">
+              Assign to Target Page (Optional)
+            </label>
+            <select
+              value={selectedPageId}
+              onChange={(e) => setSelectedPageId(e.target.value)}
+              className="w-full px-3 py-2.5 bg-[#1C1B1A] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#FFC300]/30"
+            >
+              <option value="">-- Do Not Assign (Sandbox Only) --</option>
+              {pages.map((p) => (
+                <option key={p.id} value={p.id}>
+                  [{p.type.toUpperCase()}] {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {Object.entries(formData).map(([key, value]) => (
             <div key={key}>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">
@@ -103,9 +162,10 @@ export default function SchemaCenterPage() {
               )}
             </div>
           ))}
+
           <button onClick={handleGenerate} disabled={loading} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black hover:bg-[#FFD60A] transition-all disabled:opacity-60">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Generating..." : `Generate ${selectedType} Schema`}
+            {loading ? "Generating..." : `Generate & Apply ${selectedType} Schema`}
           </button>
         </div>
 
@@ -114,7 +174,7 @@ export default function SchemaCenterPage() {
           {validation && (
             <div className={`flex items-center gap-2 p-4 rounded-xl border ${validation.valid ? "bg-green-500/10 border-green-500/20 text-green-300" : "bg-red-500/10 border-red-500/20 text-red-300"}`}>
               {validation.valid ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              <span className="text-sm font-bold">{validation.valid ? "Schema is valid!" : `${validation.errors.length} validation error(s)`}</span>
+              <span className="text-sm font-bold">{validation.valid ? "Schema is valid JSON-LD!" : `${validation.errors.length} validation error(s)`}</span>
             </div>
           )}
           {generatedSchema ? (
@@ -135,7 +195,7 @@ export default function SchemaCenterPage() {
           {/* Schema coverage tips */}
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
             <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Why This Schema?</h4>
-            <p className="text-sm text-slate-400">{SCHEMA_DESCRIPTIONS[selectedType]}</p>
+            <p className="text-sm text-slate-400">{SCHEMA_DESCRIPTIONS[selectedType as keyof typeof SCHEMA_DESCRIPTIONS]}</p>
           </div>
         </div>
       </div>

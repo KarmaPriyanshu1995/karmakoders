@@ -96,6 +96,58 @@ function countSyllables(word: string): number {
   return m ? m.length : 1;
 }
 
+// Recursively extracts HTML from a page section's content object
+export function extractHtmlFromSection(content: any): string {
+  if (!content) return "";
+  if (typeof content === "string") {
+    if (/<[a-z][\s\S]*>/i.test(content)) {
+      return content;
+    }
+    return `<p>${content}</p>`;
+  }
+  if (Array.isArray(content)) {
+    return content.map(item => extractHtmlFromSection(item)).join("\n");
+  }
+  if (typeof content === "object") {
+    let html = "";
+    for (const [key, value] of Object.entries(content)) {
+      if (value === null || value === undefined) continue;
+      
+      if (typeof value === "object") {
+        html += extractHtmlFromSection(value) + "\n";
+        continue;
+      }
+      
+      const strVal = String(value);
+      if (key === "heading" || key === "title") {
+        html += `<h2>${strVal}</h2>\n`;
+      } else if (key === "subheading" || key === "subtitle" || key === "tagline") {
+        html += `<h3>${strVal}</h3>\n`;
+      } else if (key === "body" || key === "description" || key === "content" || key === "text") {
+        if (/<[a-z][\s\S]*>/i.test(strVal)) {
+          html += strVal + "\n";
+        } else {
+          html += `<p>${strVal}</p>\n`;
+        }
+      } else if (key === "link" || key === "href" || key === "url") {
+        if (strVal.startsWith("/") || strVal.includes("karmakoders") || strVal.startsWith("http")) {
+          html += `<a href="${strVal}">${strVal}</a>\n`;
+        }
+      } else if (key === "imageUrl" || key === "image" || key === "src" || key === "logoUrl") {
+        html += `<img src="${strVal}" alt="" />\n`;
+      } else if (typeof value === "string" && value.length > 20) {
+        if (/<[a-z][\s\S]*>/i.test(strVal)) {
+          html += strVal + "\n";
+        } else {
+          html += `<p>${strVal}</p>\n`;
+        }
+      }
+    }
+    return html;
+  }
+  return "";
+}
+
 export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
   const html = input.content || "";
   const text = stripHtml(html);
@@ -138,6 +190,25 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
     issues.push({ type: "multiple_h1", severity: "important", description: "Page has multiple H1 headings.", suggestion: "Use only one H1 per page." });
   }
 
+  // Heading sequence hierarchy checks (e.g. H2 followed directly by H4)
+  let prevLevel = 1;
+  let headingSequenceIssue = false;
+  for (const h of headings) {
+    if (h.level > prevLevel + 1) {
+      headingSequenceIssue = true;
+      break;
+    }
+    prevLevel = h.level;
+  }
+  if (headingSequenceIssue) {
+    issues.push({
+      type: "heading_hierarchy_skipped",
+      severity: "recommended",
+      description: "Page heading levels are skipped (e.g. H2 followed directly by H4).",
+      suggestion: "Ensure heading tags follow a logical nested order (H1 -> H2 -> H3)."
+    });
+  }
+
   // Word count
   if (wordCount < 300) {
     issues.push({ type: "thin_content", severity: "critical", description: `Content is very thin (${wordCount} words).`, suggestion: "Expand content to at least 600–800 words for better ranking." });
@@ -145,10 +216,44 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
     issues.push({ type: "low_word_count", severity: "important", description: `Content has low word count (${wordCount} words).`, suggestion: "Consider expanding content to 800+ words for comprehensive coverage." });
   }
 
-  // Image ALT text
+  // Image ALT text & compression formats
+  const imgs = html.match(/<img[^>]*>/gi) || [];
+  let unoptimizedImages = 0;
+  let missingDimensions = 0;
+  for (const img of imgs) {
+    const srcMatch = img.match(/src=["']([^"']+)["']/i);
+    if (srcMatch) {
+      const src = srcMatch[1].toLowerCase();
+      if (src.endsWith(".png") || src.endsWith(".jpg") || src.endsWith(".jpeg") || src.endsWith(".gif")) {
+        unoptimizedImages++;
+      }
+    }
+    const hasWidth = /width=["'][^"']+["']/i.test(img);
+    const hasHeight = /height=["'][^"']+["']/i.test(img);
+    if (!hasWidth || !hasHeight) {
+      missingDimensions++;
+    }
+  }
+
   if (imagesCount > 0 && imagesWithAlt < imagesCount) {
     const missing = imagesCount - imagesWithAlt;
     issues.push({ type: "missing_alt_text", severity: "important", description: `${missing} image(s) are missing ALT text.`, suggestion: "Add descriptive ALT text to all images." });
+  }
+  if (unoptimizedImages > 0) {
+    issues.push({
+      type: "unoptimized_image_format",
+      severity: "important",
+      description: `${unoptimizedImages} image(s) use unoptimized formats (PNG/JPG).`,
+      suggestion: "Convert images to modern formats like WebP or AVIF to reduce file size."
+    });
+  }
+  if (missingDimensions > 0) {
+    issues.push({
+      type: "missing_image_dimensions",
+      severity: "recommended",
+      description: `${missingDimensions} image(s) are missing explicit width and height attributes.`,
+      suggestion: "Add width and height attributes to images to prevent layout shifts (CLS)."
+    });
   }
 
   // FAQ check

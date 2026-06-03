@@ -36,19 +36,47 @@ export default function AutomationPage() {
   useEffect(() => {
     fetch("/api/seo/automation/run")
       .then((r) => r.json())
-      .then((d) => setLogs(d.logs || []))
+      .then((d) => {
+        setLogs(d.logs || []);
+        if (d.rules) {
+          setEnabled(d.rules);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const runAutomation = async () => {
     setRunning(true);
-    const res = await fetch("/api/seo/automation/run", { method: "POST" });
-    const data = await res.json();
-    if (data.logs) {
-      setLogs((p) => [...data.logs, ...p].slice(0, 100));
+    try {
+      const res = await fetch("/api/seo/automation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rules: enabled })
+      });
+      const data = await res.json();
+      if (data.logs) {
+        setLogs(data.logs);
+      }
+      setLastRun(new Date().toISOString());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunning(false);
     }
-    setLastRun(new Date().toISOString());
-    setRunning(false);
+  };
+
+  const handleToggleRule = async (ruleId: string) => {
+    const updated = { ...enabled, [ruleId]: !enabled[ruleId] };
+    setEnabled(updated);
+    try {
+      await fetch("/api/seo/automation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rules: updated, saveOnly: true })
+      });
+    } catch (e) {
+      console.error("Failed to save rules state", e);
+    }
   };
 
   const successCount = logs.filter((l) => l.status === "success").length;
@@ -109,7 +137,7 @@ export default function AutomationPage() {
                   </div>
                   {/* Toggle */}
                   <button
-                    onClick={() => setEnabled((p) => ({ ...p, [rule.id]: !p[rule.id] }))}
+                    onClick={() => handleToggleRule(rule.id)}
                     className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 ${isEnabled ? "bg-[#FFC300]" : "bg-white/10"}`}
                   >
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isEnabled ? "left-5" : "left-0.5"}`} />
