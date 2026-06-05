@@ -45,39 +45,7 @@ async function main() {
 
   const { SITE_PAGES } = await import("../src/lib/sitePages");
 
-  const homePage = await prisma.page.upsert({
-    where: { slug: "home" },
-    update: {},
-    create: {
-      slug: "home",
-      title: "Home",
-      isPublished: true,
-      seoMeta: JSON.stringify({
-        title: "karmakoders – Premium AI Business Portfolio",
-        description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
-      }),
-    },
-  });
-
-  await prisma.section.upsert({
-    where: { id: "section-hero-home" },
-    update: {},
-    create: {
-      id: "section-hero-home",
-      pageId: homePage.id,
-      type: "hero",
-      order: 0,
-      content: JSON.stringify({
-        headline: "Design the Future of Your Brand",
-        subheadline:
-          "We build premium, scalable, and immersive web platforms powered by advanced AI and cutting-edge 3D technologies.",
-        ctaPrimary: "Explore Portfolio",
-        ctaSecondary: "Our Services",
-      }),
-    },
-  });
-
-  for (const sitePage of SITE_PAGES.filter((p) => p.slug !== "home")) {
+  for (const sitePage of SITE_PAGES) {
     const seoMeta = sitePage.defaultMeta
       ? JSON.stringify({
           title: sitePage.defaultMeta.title,
@@ -96,20 +64,18 @@ async function main() {
       },
     });
 
-    if (["help-center", "terms", "privacy", "cookie-policy", "contact-support"].includes(sitePage.slug)) {
+    const { getDefaultSectionsForSlug } = await import("../src/lib/sectionDefaults");
+    const defaultSections = getDefaultSectionsForSlug(sitePage.slug);
+    for (const section of defaultSections) {
       await prisma.section.upsert({
-        where: { id: `section-content-${sitePage.slug}` },
+        where: { id: section.id },
         update: {},
         create: {
-          id: `section-content-${sitePage.slug}`,
+          id: section.id,
           pageId: page.id,
-          type: "content",
-          order: 0,
-          content: JSON.stringify({
-            tagline: sitePage.title,
-            heading: sitePage.title,
-            body: `<p>This is the default content for ${sitePage.title}. You can edit this in the admin dashboard.</p>`,
-          }),
+          type: section.type,
+          order: section.order,
+          content: JSON.stringify(section.content),
         },
       });
     }
