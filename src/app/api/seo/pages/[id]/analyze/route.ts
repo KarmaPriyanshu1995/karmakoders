@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildPageUrl } from "@/lib/sitePages";
 import { analyzePage } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
 import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
@@ -34,7 +35,7 @@ export async function POST(
       pageData = { id: page.id, title: page.title, slug: page.slug, content: null, metaTitle: meta.title || null, metaDescription: meta.description || null, imageUrl: null };
     }
 
-    const url = pageType === "post" ? `/blog/${pageData.slug}` : pageType === "project" ? `/projects/${pageData.slug}` : `/${pageData.slug === "home" ? "" : pageData.slug}`;
+    const url = buildPageUrl(pageData.slug, pageType || "page");
 
     // Run analysis
     const analysis = analyzePage({

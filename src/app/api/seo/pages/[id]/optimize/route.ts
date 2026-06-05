@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildPageUrl } from "@/lib/sitePages";
 import { optimizePage } from "@/lib/seo/automationEngine";
 import { analyzePage } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
@@ -43,18 +44,18 @@ export async function POST(
       if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
       const meta = post.seoMeta ? JSON.parse(post.seoMeta) : {};
       pageData = { id: post.id, title: post.title, slug: post.slug, content: post.content, metaTitle: meta.title || null, metaDescription: meta.description || null };
-      url = `/blog/${post.slug}`;
+      url = buildPageUrl(post.slug, "post");
     } else if (pageType === "project") {
       const project = await prisma.project.findUnique({ where: { id } });
       if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
       pageData = { id: project.id, title: project.title, slug: project.slug, content: project.content, metaTitle: null, metaDescription: null };
-      url = `/projects/${project.slug}`;
+      url = buildPageUrl(project.slug, "project");
     } else {
       const page = await prisma.page.findUnique({ where: { id } });
       if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });
       const meta = page.seoMeta ? JSON.parse(page.seoMeta) : {};
       pageData = { id: page.id, title: page.title, slug: page.slug, content: null, metaTitle: meta.title || null, metaDescription: meta.description || null };
-      url = `/${page.slug === "home" ? "" : page.slug}`;
+      url = buildPageUrl(page.slug, "page");
     }
 
     // 3. Re-run analysis & calculate updated scores

@@ -43,14 +43,22 @@ async function main() {
     },
   });
 
-  // Home Page
+  const { SITE_PAGES } = await import("../src/lib/sitePages");
+
   const homePage = await prisma.page.upsert({
-    where: { slug: "/" },
+    where: { slug: "home" },
     update: {},
-    create: { slug: "/", title: "Home", isPublished: true },
+    create: {
+      slug: "home",
+      title: "Home",
+      isPublished: true,
+      seoMeta: JSON.stringify({
+        title: "karmakoders – Premium AI Business Portfolio",
+        description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
+      }),
+    },
   });
 
-  // Hero Section
   await prisma.section.upsert({
     where: { id: "section-hero-home" },
     update: {},
@@ -69,44 +77,42 @@ async function main() {
     },
   });
 
-  // About Page
-  await prisma.page.upsert({
-    where: { slug: "/about" },
-    update: {},
-    create: { slug: "/about", title: "About Us", isPublished: true },
-  });
+  for (const sitePage of SITE_PAGES.filter((p) => p.slug !== "home")) {
+    const seoMeta = sitePage.defaultMeta
+      ? JSON.stringify({
+          title: sitePage.defaultMeta.title,
+          description: sitePage.defaultMeta.description,
+        })
+      : undefined;
 
-  // Legal and Support Pages
-  const pages = [
-    { slug: "help-center", title: "Help Center", heading: "How can we help you?" },
-    { slug: "terms", title: "Terms of Service", heading: "Terms of Service" },
-    { slug: "privacy", title: "Privacy Policy", heading: "Privacy Policy" },
-    { slug: "cookie-policy", title: "Cookie Policy", heading: "Cookie Policy" },
-    { slug: "contact-support", title: "Contact Support", heading: "Contact Support" },
-  ];
-
-  for (const p of pages) {
     const page = await prisma.page.upsert({
-      where: { slug: p.slug },
-      update: {},
-      create: { slug: p.slug, title: p.title, isPublished: true },
-    });
-
-    await prisma.section.upsert({
-      where: { id: `section-content-${p.slug}` },
-      update: {},
+      where: { slug: sitePage.slug },
+      update: { title: sitePage.title, isPublished: true },
       create: {
-        id: `section-content-${p.slug}`,
-        pageId: page.id,
-        type: "content",
-        order: 0,
-        content: JSON.stringify({
-          tagline: p.title,
-          heading: p.heading,
-          body: `<p>This is the default content for ${p.title}. You can edit this in the admin dashboard.</p>`,
-        }),
+        slug: sitePage.slug,
+        title: sitePage.title,
+        isPublished: true,
+        ...(seoMeta ? { seoMeta } : {}),
       },
     });
+
+    if (["help-center", "terms", "privacy", "cookie-policy", "contact-support"].includes(sitePage.slug)) {
+      await prisma.section.upsert({
+        where: { id: `section-content-${sitePage.slug}` },
+        update: {},
+        create: {
+          id: `section-content-${sitePage.slug}`,
+          pageId: page.id,
+          type: "content",
+          order: 0,
+          content: JSON.stringify({
+            tagline: sitePage.title,
+            heading: sitePage.title,
+            body: `<p>This is the default content for ${sitePage.title}. You can edit this in the admin dashboard.</p>`,
+          }),
+        },
+      });
+    }
   }
 
   // Seed Blog Posts

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildPageUrl } from "@/lib/sitePages";
 import { generateMetaTitle, generateMetaDescription, generateImageAlt, generateInternalLinkSuggestions, generateFaqQuestions } from "./aiRecommender";
 import { generateOrganizationSchema, generateWebsiteSchema, generateArticleSchema, generateServiceSchema, generateFaqSchema } from "./schemaGenerator";
 import { analyzePage } from "./analyzer";
@@ -112,14 +113,14 @@ export async function optimizePage(
     pageContent = project.content;
     imageUrl = project.imageUrl;
     createdAt = project.createdAt;
-    pageUrl = `/projects/${project.slug}`;
+    pageUrl = buildPageUrl(project.slug, "project");
   } else {
     // page
     const page = await prisma.page.findUnique({ where: { id: pageId } });
     if (!page) throw new Error(`Page not found: ${pageId}`);
     pageTitle = page.title;
     pageSlug = page.slug;
-    pageUrl = `/${page.slug === "home" ? "" : page.slug}`;
+    pageUrl = buildPageUrl(page.slug, "page");
   }
 
   // 2. Fetch or parse existing seoMeta
@@ -375,11 +376,17 @@ export async function optimizePage(
       prisma.project.findMany({ select: { id: true, slug: true, title: true } }),
     ]);
 
-    const allPagesFlattened = [
-      ...pages.map((p) => ({ title: p.title, slug: p.slug, url: `/${p.slug === "home" ? "" : p.slug}` })),
-      ...posts.map((p) => ({ title: p.title, slug: p.slug, url: `/blog/${p.slug}` })),
-      ...projects.map((p) => ({ title: p.title, slug: p.slug, url: `/projects/${p.slug}` })),
+    const allPagesWithType = [
+      ...pages.map((p) => ({ ...p, type: "page" as const })),
+      ...posts.map((p) => ({ ...p, type: "post" as const })),
+      ...projects.map((p) => ({ ...p, type: "project" as const })),
     ];
+
+    const allPagesFlattened = allPagesWithType.map((p) => ({
+      title: p.title,
+      slug: p.slug,
+      url: buildPageUrl(p.slug, p.type),
+    }));
 
     const linkSuggestions = generateInternalLinkSuggestions(pageTitle, allPagesFlattened);
     
@@ -389,10 +396,7 @@ export async function optimizePage(
     });
 
     for (const sug of linkSuggestions) {
-      // Find matching target page in database
-      const matchPage = [...pages, ...posts, ...projects].find(
-        (p) => `/${p.slug === "home" ? "" : p.slug}` === sug.url || `/blog/${p.slug}` === sug.url || `/projects/${p.slug}` === sug.url
-      );
+      const matchPage = allPagesWithType.find((p) => buildPageUrl(p.slug, p.type) === sug.url);
 
       if (matchPage) {
         await prisma.seoInternalLink.create({

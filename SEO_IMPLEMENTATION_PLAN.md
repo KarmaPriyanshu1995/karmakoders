@@ -25,7 +25,7 @@
 
 ## Phase 3: Admin UI Component Layouts
 - [ ] SEO Dashboard (10 Macro Scores + Visual Trend Charts + Quick Win Matrices)
-- [ ] Page SEO Analyzer (Inline sidebar component with One-Click Fix triggers)
+- [x] Page SEO Analyzer (Inline sidebar component with One-Click Fix triggers)
 - [ ] Entity & Brand Authority Center (CRUD forms for brand graphs + semantic score boards)
 - [ ] Content & Topical Authority Center (Visual maps and content roadmap lists)
 - [ ] Internal Link & Schema Center (Validation reports and auto-repair logs)

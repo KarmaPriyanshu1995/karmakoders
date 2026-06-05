@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { analyzePage } from "@/lib/seo/analyzer";
-import { calcPageScores } from "@/lib/seo/scorer";
-import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
+import { syncSitePages } from "@/lib/actions";
+import { buildPageUrl } from "@/lib/sitePages";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await syncSitePages();
+
     const [pages, posts, projects] = await Promise.all([
       prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true } }),
       prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, content: true, image: true } }),
@@ -34,7 +35,9 @@ export async function GET() {
     const result = allPages.map((page) => {
       const key = `${page.type}:${page.id}`;
       const existing = seoMap.get(key);
-      const url = page.type === "post" ? `/blog/${page.slug}` : page.type === "project" ? `/projects/${page.slug}` : `/${page.slug === "home" ? "" : page.slug}`;
+      const url = buildPageUrl(page.slug, page.type as "page" | "post" | "project");
+
+      const issues = existing?.issuesJson ? JSON.parse(existing.issuesJson) : [];
 
       return {
         id: page.id,
@@ -55,7 +58,8 @@ export async function GET() {
         hasSchema: existing?.hasSchema ?? false,
         isOrphan: existing?.isOrphan ?? false,
         lastAnalyzed: existing?.lastAnalyzed ?? null,
-        issueCount: existing?.issuesJson ? JSON.parse(existing.issuesJson).length : 0,
+        issues,
+        issueCount: issues.length,
       };
     });
 

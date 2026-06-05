@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { buildPageUrl } from "@/lib/sitePages";
 
 // Technical SEO Audit Engine
 
@@ -71,9 +72,7 @@ function countMissingAlt(html: string): number {
 }
 
 function buildUrl(page: { type: string; slug: string }): string {
-  if (page.type === "post") return `/blog/${page.slug}`;
-  if (page.type === "project") return `/projects/${page.slug}`;
-  return `/${page.slug === "home" ? "" : page.slug}`;
+  return buildPageUrl(page.slug, page.type as "page" | "post" | "project");
 }
 
 // Validates an external link using HTTP HEAD/GET

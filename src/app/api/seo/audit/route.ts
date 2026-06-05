@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { syncSitePages } from "@/lib/actions";
+import { buildPageUrl } from "@/lib/sitePages";
 import { runAuditAsync, AuditPage } from "@/lib/seo/auditEngine";
 import { extractHtmlFromSection, analyzePage } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
@@ -10,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
+    await syncSitePages();
+
     const [pages, posts, projects] = await Promise.all([
       prisma.page.findMany({
         include: { sections: { orderBy: { order: "asc" } } }
@@ -134,7 +138,7 @@ export async function POST() {
     const schemaMap = new Map(dbSchemas.map((s) => [s.pageId, s]));
 
     for (const auditPage of auditPages) {
-      const url = auditPage.type === "post" ? `/blog/${auditPage.slug}` : auditPage.type === "project" ? `/projects/${auditPage.slug}` : `/${auditPage.slug === "home" ? "" : auditPage.slug}`;
+      const url = buildPageUrl(auditPage.slug, auditPage.type);
       
       const analysis = analyzePage({
         title: auditPage.title,
