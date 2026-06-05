@@ -76,7 +76,7 @@ function calcKeywordDensity(text: string): Record<string, number> {
 }
 
 // Simple Flesch-Kincaid readability approximation (0-100)
-function calcReadability(text: string): number {
+export function calcReadability(text: string): number {
   const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length || 1;
   const words = text.match(/\b\w+\b/g) || [];
   const syllables = words.reduce((acc, w) => acc + countSyllables(w), 0);
