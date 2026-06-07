@@ -65,10 +65,29 @@ export function IssueList({ issues, showFixed = false, maxItems = 50, onFix }: I
       {filtered.map((issue, i) => {
         const cfg = SEVERITY_CONFIG[issue.severity];
         const Icon = cfg.icon;
+        const isActionable = Boolean(onFix && !issue.isFixed);
+
         return (
           <div
             key={i}
-            className={`p-4 rounded-xl border ${cfg.border} ${issue.isFixed ? "opacity-50" : ""} transition-all hover:scale-[1.005]`}
+            role={isActionable ? "button" : undefined}
+            tabIndex={isActionable ? 0 : undefined}
+            onClick={isActionable ? () => onFix!(issue) : undefined}
+            onKeyDown={
+              isActionable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onFix!(issue);
+                    }
+                  }
+                : undefined
+            }
+            className={`p-4 rounded-xl border ${cfg.border} ${issue.isFixed ? "opacity-50" : ""} transition-all ${
+              isActionable
+                ? "cursor-pointer hover:scale-[1.005] hover:border-[#FFC300]/30 focus:outline-none focus:border-[#FFC300]/40"
+                : "hover:scale-[1.005]"
+            }`}
             style={{ background: issue.isFixed ? "rgba(255,255,255,0.02)" : undefined }}
           >
             <div className={`p-3.5 rounded-xl ${cfg.bg} border ${cfg.border}`}>
@@ -85,13 +104,10 @@ export function IssueList({ issues, showFixed = false, maxItems = 50, onFix }: I
                     <p className="text-xs text-slate-400 mt-1">💡 {issue.suggestion}</p>
                   )}
                 </div>
-                {onFix && !issue.isFixed && (
-                  <button
-                    onClick={() => onFix(issue)}
-                    className="text-xs font-bold text-[#FFC300] hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-[#FFC300]/10 hover:bg-[#FFC300]/20 border border-[#FFC300]/20 whitespace-nowrap"
-                  >
+                {isActionable && (
+                  <span className="text-xs font-bold text-[#FFC300] px-3 py-1.5 rounded-lg bg-[#FFC300]/10 border border-[#FFC300]/20 whitespace-nowrap flex-shrink-0">
                     Fix →
-                  </button>
+                  </span>
                 )}
               </div>
             </div>

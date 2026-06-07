@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ScoreGauge } from "@/components/admin/seo/ScoreGauge";
 import { IssueList } from "@/components/admin/seo/IssueList";
 import { IssueBadge } from "@/components/admin/seo/IssueBadge";
@@ -84,8 +85,30 @@ function getEditPageHref(page: SeoPageData): string {
   return `/admin/pages/${page.id}`;
 }
 
+const META_TITLE_ISSUES = new Set(["missing_meta_title", "short_meta_title", "long_meta_title"]);
+const META_DESC_ISSUES = new Set(["missing_meta_desc", "short_meta_desc", "long_meta_desc"]);
+const BULK_OPTIMIZER_ISSUES = new Set([
+  "weak_schema",
+  "missing_alt_text",
+  "unoptimized_image_format",
+  "missing_image_dimensions",
+  "orphan_page",
+]);
+
+function scrollToFixSection(section: HTMLElement | null, focusTarget?: HTMLElement | null) {
+  section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (focusTarget) {
+    window.setTimeout(() => focusTarget.focus(), 350);
+  }
+}
+
 export default function PageAnalyzerPage() {
+  const router = useRouter();
   const { pageData, loading, error, refetch } = useSeoPages();
+  const metadataSectionRef = useRef<HTMLDivElement>(null);
+  const bulkOptimizerRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descInputRef = useRef<HTMLTextAreaElement>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -208,6 +231,31 @@ export default function PageAnalyzerPage() {
       setSaving(false);
     }
   };
+
+  const handleIssueFix = useCallback((issue: { type: string; description: string }) => {
+    if (!selectedPage) return;
+
+    if (META_TITLE_ISSUES.has(issue.type)) {
+      scrollToFixSection(metadataSectionRef.current, titleInputRef.current);
+      toast.info("Update the meta title, then click Apply & Save to DB.");
+      return;
+    }
+
+    if (META_DESC_ISSUES.has(issue.type)) {
+      scrollToFixSection(metadataSectionRef.current, descInputRef.current);
+      toast.info("Update the meta description, then click Apply & Save to DB.");
+      return;
+    }
+
+    if (BULK_OPTIMIZER_ISSUES.has(issue.type)) {
+      scrollToFixSection(bulkOptimizerRef.current);
+      toast.info("Use One-Click Bulk Optimizer or edit the page manually to fix this issue.");
+      return;
+    }
+
+    toast.info("Opening page editor — update the content and click Save Changes to publish.");
+    router.push(getEditPageHref(selectedPage));
+  }, [selectedPage, router]);
 
   const handleBulkOptimize = async () => {
     if (!selectedPage) return;
@@ -449,7 +497,7 @@ export default function PageAnalyzerPage() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div ref={metadataSectionRef} className="space-y-4 scroll-mt-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-black text-white uppercase tracking-wider">Metadata Optimizer</h4>
                     <button
@@ -469,6 +517,7 @@ export default function PageAnalyzerPage() {
                         </span>
                       </div>
                       <input
+                        ref={titleInputRef}
                         value={customTitle}
                         onChange={(e) => setCustomTitle(e.target.value)}
                         placeholder="Page title meta tag..."
@@ -484,6 +533,7 @@ export default function PageAnalyzerPage() {
                         </span>
                       </div>
                       <textarea
+                        ref={descInputRef}
                         value={customDesc}
                         onChange={(e) => setCustomDesc(e.target.value)}
                         placeholder="Page description meta tag..."
@@ -502,7 +552,7 @@ export default function PageAnalyzerPage() {
                     </button>
                   </div>
 
-                  <div className="space-y-2 mt-4 p-4 rounded-xl bg-gradient-to-r from-violet-600/10 to-indigo-600/10 border border-indigo-500/20">
+                  <div ref={bulkOptimizerRef} className="space-y-2 mt-4 p-4 rounded-xl bg-gradient-to-r from-violet-600/10 to-indigo-600/10 border border-indigo-500/20 scroll-mt-4">
                     <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                       <Wrench className="w-3.5 h-3.5 text-indigo-400" /> One-Click Bulk Optimizer
                     </h4>
@@ -522,11 +572,15 @@ export default function PageAnalyzerPage() {
 
                 {analysis && analysis.analysis.issues.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-xs font-black text-white uppercase tracking-wider">Identified Issues</h4>
+                    <div>
+                      <h4 className="text-xs font-black text-white uppercase tracking-wider">Identified Issues</h4>
+                      <p className="text-[10px] text-slate-500 mt-1">Click an issue to jump to where you can fix it</p>
+                    </div>
                     <div className="bg-white/3 border border-white/5 p-4 rounded-xl">
                       <IssueList
                         issues={analysis.analysis.issues.map((i) => ({ ...i, severity: i.severity as "critical" | "important" | "recommended" }))}
                         maxItems={5}
+                        onFix={handleIssueFix}
                       />
                     </div>
                   </div>
