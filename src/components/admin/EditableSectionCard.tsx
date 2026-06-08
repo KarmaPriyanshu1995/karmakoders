@@ -6,6 +6,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFieldsForSectionType } from "@/lib/sectionFieldSchemas";
+import { formatSectionDisplayName } from "@/lib/sectionLibrary";
+import { SectionImageField } from "@/components/admin/SectionImageField";
+import { SectionSeoPanel } from "@/components/admin/SectionSeoPanel";
 import { calculateSectionSeoScore, getSectionScoreColor } from "@/lib/seo/sectionScorer";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -85,7 +88,7 @@ export function EditableSectionCard({
             className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
           />
           <div className="min-w-0">
-            <h4 className="text-white font-medium capitalize">{type} Section</h4>
+            <h4 className="text-white font-medium">{formatSectionDisplayName(type)} Section</h4>
             <p className="text-xs text-slate-500 truncate">ID: {id}</p>
           </div>
         </button>
@@ -124,12 +127,19 @@ export function EditableSectionCard({
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
                 {field.label}
               </label>
-              {field.input === "textarea" ? (
+              {field.input === "image" ? (
+                <SectionImageField
+                  value={(content[field.key] as string) || ""}
+                  onChange={(url) => handleFieldChange(field.key, url)}
+                  placeholder={field.placeholder}
+                />
+              ) : field.input === "textarea" ? (
                 <textarea
                   value={(content[field.key] as string) || ""}
                   onChange={(e) => handleFieldChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:border-indigo-500 outline-none resize-none"
+                  rows={field.rows ?? (field.key === "body" || field.key === "secondaryBody" ? 6 : 3)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:border-indigo-500 outline-none resize-y min-h-[6rem]"
                 />
               ) : field.input === "json" ? (
                 <textarea
@@ -153,6 +163,10 @@ export function EditableSectionCard({
               )}
             </div>
           ))}
+
+          {fields.length > 0 && (
+            <SectionSeoPanel content={content} targetKeywords={targetKeywords} />
+          )}
 
           {fields.length === 0 && (
             <textarea

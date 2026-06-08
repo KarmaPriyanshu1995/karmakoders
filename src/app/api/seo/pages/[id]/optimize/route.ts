@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildPageUrl } from "@/lib/sitePages";
 import { optimizePage } from "@/lib/seo/automationEngine";
-import { analyzePage } from "@/lib/seo/analyzer";
+import { analyzePage, extractPageHtmlFromSections } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
 import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
 import { generateAllRecommendations } from "@/lib/seo/aiRecommender";
@@ -51,10 +51,23 @@ export async function POST(
       pageData = { id: project.id, title: project.title, slug: project.slug, content: project.content, metaTitle: null, metaDescription: null };
       url = buildPageUrl(project.slug, "project");
     } else {
-      const page = await prisma.page.findUnique({ where: { id } });
+      const page = await prisma.page.findUnique({
+        where: { id },
+        include: { sections: { orderBy: { order: "asc" } } },
+      });
       if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });
       const meta = page.seoMeta ? JSON.parse(page.seoMeta) : {};
-      pageData = { id: page.id, title: page.title, slug: page.slug, content: null, metaTitle: meta.title || null, metaDescription: meta.description || null };
+      const htmlContent = extractPageHtmlFromSections(
+        page.sections.map((s) => ({ content: s.content }))
+      );
+      pageData = {
+        id: page.id,
+        title: page.title,
+        slug: page.slug,
+        content: htmlContent || null,
+        metaTitle: meta.title || null,
+        metaDescription: meta.description || null,
+      };
       url = buildPageUrl(page.slug, "page");
     }
 

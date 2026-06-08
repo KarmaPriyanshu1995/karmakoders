@@ -1,6 +1,17 @@
 import { extractHtmlFromSection, calcReadability } from "@/lib/seo/analyzer";
 import { getHealthColor } from "@/components/admin/seo/HealthProgress";
 
+/** Section SEO weights (total = 100%) */
+const WEIGHTS = {
+  wordCount: 0.2,
+  readability: 0.3,
+  headings: 0.1,
+  keywordUsage: 0.15,
+  internalLinks: 0.1,
+  imageAlt: 0.05,
+  faq: 0.1,
+} as const;
+
 const WORD_COUNT_TARGETS: Record<string, { min: number; ideal: number }> = {
   hero: { min: 30, ideal: 80 },
   pricing: { min: 100, ideal: 250 },
@@ -31,26 +42,6 @@ function extractHeadingsFromHtml(html: string): Array<{ level: number; text: str
   return headings;
 }
 
-function scoreKeywordInHeadings(
-  headings: Array<{ level: number; text: string }>,
-  keywords: string[]
-): number {
-  if (keywords.length === 0) return 70;
-  const h1h2 = headings.filter((h) => h.level <= 2).map((h) => h.text.toLowerCase());
-  if (h1h2.length === 0) return 20;
-
-  const primary = keywords[0]?.toLowerCase();
-  const secondary = keywords.slice(1).map((k) => k.toLowerCase());
-
-  const primaryHit = primary && h1h2.some((t) => t.includes(primary));
-  if (primaryHit) return 100;
-
-  const secondaryHits = secondary.filter((kw) => h1h2.some((t) => t.includes(kw))).length;
-  if (secondaryHits > 0) return 50 + Math.min(40, secondaryHits * 15);
-
-  return 15;
-}
-
 function scoreWordCount(sectionType: string, wordCount: number): number {
   const targets = WORD_COUNT_TARGETS[sectionType.toLowerCase()] ?? WORD_COUNT_TARGETS.default;
   if (wordCount >= targets.ideal) return 100;
@@ -60,10 +51,79 @@ function scoreWordCount(sectionType: string, wordCount: number): number {
     return Math.round(60 + progress * 40);
   }
   if (wordCount === 0) return 0;
+  // Soft scaling — short content is penalized but not zeroed out
   return Math.round((wordCount / targets.min) * 60);
 }
 
-function collectImageAltPairs(obj: unknown, pairs: Array<{ hasImage: boolean; alt: string }> = []): Array<{ hasImage: boolean; alt: string }> {
+function scoreHeadings(
+  headings: Array<{ level: number; text: string }>,
+  content: Record<string, unknown>
+): number {
+  const hasH1 = headings.some((h) => h.level === 1) || Boolean(content.h1);
+  const hasH2 = headings.some((h) => h.level === 2) || Boolean(content.heading);
+  const hasH3 = headings.some((h) => h.level === 3) || Boolean(content.subheading);
+  const headingCount = headings.length + (content.h1 ? 1 : 0) + (content.heading ? 1 : 0);
+
+  let score = 0;
+  if (hasH1) score += 40;
+  if (hasH2) score += 35;
+  if (hasH3) score += 15;
+  if (!hasH1 && !hasH2 && headingCount >= 2) score += 50;
+  else if (!hasH1 && headingCount >= 1) score += 30;
+
+  return Math.min(100, score || 20);
+}
+
+function scoreKeywordUsage(
+  text: string,
+  headings: Array<{ level: number; text: string }>,
+  content: Record<string, unknown>,
+  targetKeywords: string[]
+): number {
+  const focusKeyword =
+    typeof content.focusKeyword === "string" && content.focusKeyword.trim()
+      ? content.focusKeyword.trim().toLowerCase()
+      : targetKeywords[0]?.toLowerCase();
+
+  if (!focusKeyword) return 70;
+
+  const lowerText = text.toLowerCase();
+  const headingText = headings.map((h) => h.text.toLowerCase()).join(" ");
+
+  const inBody = lowerText.includes(focusKeyword);
+  const inHeading = headingText.includes(focusKeyword);
+
+  if (inHeading && inBody) return 100;
+  if (inHeading) return 85;
+  if (inBody) return 75;
+
+  return 25;
+}
+
+function scoreInternalLinks(html: string, content: Record<string, unknown>): number {
+  const anchorMatches = html.match(/<a[^>]+href=["'][^"']+["'][^>]*>/gi) || [];
+  const hasCta =
+    typeof content.ctaUrl === "string" &&
+    content.ctaUrl.trim() &&
+    typeof content.ctaText === "string" &&
+    content.ctaText.trim();
+  const hasInternal =
+    typeof content.internalLinkUrl === "string" &&
+    content.internalLinkUrl.trim() &&
+    typeof content.internalLinkText === "string" &&
+    content.internalLinkText.trim();
+
+  const linkCount = anchorMatches.length + (hasCta ? 1 : 0) + (hasInternal ? 1 : 0);
+
+  if (linkCount >= 2) return 100;
+  if (linkCount === 1) return 75;
+  return 40;
+}
+
+function collectImageAltPairs(
+  obj: unknown,
+  pairs: Array<{ hasImage: boolean; alt: string }> = []
+): Array<{ hasImage: boolean; alt: string }> {
   if (!obj || typeof obj !== "object") return pairs;
   if (Array.isArray(obj)) {
     obj.forEach((item) => collectImageAltPairs(item, pairs));
@@ -75,7 +135,12 @@ function collectImageAltPairs(obj: unknown, pairs: Array<{ hasImage: boolean; al
   const hasImageField = imageKeys.some((k) => typeof record[k] === "string" && record[k]);
 
   if (hasImageField) {
-    const alt = typeof record.alt === "string" ? record.alt : typeof record.imageAlt === "string" ? record.imageAlt : "";
+    const alt =
+      typeof record.alt === "string"
+        ? record.alt
+        : typeof record.imageAlt === "string"
+          ? record.imageAlt
+          : "";
     pairs.push({ hasImage: true, alt });
   }
 
@@ -93,13 +158,12 @@ function scoreImageAlt(content: Record<string, unknown>): number {
   return Math.round((withAlt / pairs.length) * 100);
 }
 
-function scoreReadability(text: string): number {
-  if (!text.trim()) return 0;
-  const score = calcReadability(text);
-  if (score >= 60) return 100;
-  if (score >= 40) return 70;
-  if (score >= 20) return 45;
-  return 25;
+function scoreFaq(content: Record<string, unknown>, text: string): number {
+  const faqs = content.faqs;
+  if (Array.isArray(faqs) && faqs.length >= 2) return 100;
+  if (Array.isArray(faqs) && faqs.length === 1) return 80;
+  if (/\bfaq\b|frequently asked/i.test(text)) return 75;
+  return 60;
 }
 
 export function calculateSectionSeoScore(
@@ -112,16 +176,22 @@ export function calculateSectionSeoScore(
   const headings = extractHeadingsFromHtml(html);
   const wordCount = (text.match(/\b\w+\b/g) || []).length;
 
-  const keywordScore = scoreKeywordInHeadings(headings, targetKeywords);
   const wordCountScore = scoreWordCount(sectionType, wordCount);
+  const readabilityScore = calcReadability(text, html);
+  const headingsScore = scoreHeadings(headings, content);
+  const keywordScore = scoreKeywordUsage(text, headings, content, targetKeywords);
+  const internalLinksScore = scoreInternalLinks(html, content);
   const altScore = scoreImageAlt(content);
-  const readabilityScore = scoreReadability(text);
+  const faqScore = scoreFaq(content, text);
 
   const overall =
-    keywordScore * 0.3 +
-    wordCountScore * 0.25 +
-    altScore * 0.2 +
-    readabilityScore * 0.25;
+    wordCountScore * WEIGHTS.wordCount +
+    readabilityScore * WEIGHTS.readability +
+    headingsScore * WEIGHTS.headings +
+    keywordScore * WEIGHTS.keywordUsage +
+    internalLinksScore * WEIGHTS.internalLinks +
+    altScore * WEIGHTS.imageAlt +
+    faqScore * WEIGHTS.faq;
 
   return Math.round(Math.max(0, Math.min(100, overall)));
 }

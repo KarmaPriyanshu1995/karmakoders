@@ -1,10 +1,19 @@
-export type FieldInputType = "text" | "textarea" | "json";
+import { CUSTOM_SECTION_DEFAULT_FIELDS, SEO_CONTENT_FIELDS, SEO_IMAGE_FIELDS, SEO_LINK_FIELDS } from "@/lib/sectionLibrary";
+
+const SEO_RICH_FIELDS: FieldDef[] = [
+  ...SEO_CONTENT_FIELDS,
+  ...SEO_IMAGE_FIELDS,
+  ...SEO_LINK_FIELDS,
+];
+
+export type FieldInputType = "text" | "textarea" | "json" | "image";
 
 export interface FieldDef {
   key: string;
   label: string;
   input: FieldInputType;
   placeholder?: string;
+  rows?: number;
 }
 
 export const SECTION_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
@@ -15,15 +24,18 @@ export const SECTION_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
     { key: "subheadline", label: "Subheadline", input: "textarea" },
   ],
   about: [
+    { key: "h1", label: "H1 Heading (main page title — use once per page)", input: "text", placeholder: "e.g. About KarmaKoders" },
     { key: "tagline", label: "Tagline", input: "text" },
-    { key: "heading", label: "Heading", input: "text" },
-    { key: "body", label: "Body Text", input: "textarea" },
-    { key: "imageAlt", label: "Image Alt Text", input: "text" },
+    { key: "heading", label: "H2 Subheading", input: "text" },
+    { key: "focusKeyword", label: "Focus Keyword", input: "text", placeholder: "e.g. software development agency" },
+    { key: "body", label: "Body Text", input: "textarea", rows: 6 },
+    { key: "secondaryBody", label: "Extra Content (SEO word count)", input: "textarea", rows: 4 },
+    ...SEO_IMAGE_FIELDS.slice(0, 3),
+    ...SEO_LINK_FIELDS,
   ],
   content: [
-    { key: "tagline", label: "Tagline", input: "text" },
-    { key: "heading", label: "Heading", input: "text" },
-    { key: "body", label: "Body (HTML supported)", input: "textarea" },
+    ...SEO_RICH_FIELDS,
+    { key: "faqs", label: 'FAQ Items (JSON)', input: "json" },
   ],
   pricing: [
     { key: "tagline", label: "Tagline", input: "text" },
@@ -93,5 +105,5 @@ export const SECTION_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
 };
 
 export function getFieldsForSectionType(type: string): FieldDef[] {
-  return SECTION_FIELD_SCHEMAS[type.toLowerCase()] ?? [];
+  return SECTION_FIELD_SCHEMAS[type.toLowerCase()] ?? CUSTOM_SECTION_DEFAULT_FIELDS;
 }

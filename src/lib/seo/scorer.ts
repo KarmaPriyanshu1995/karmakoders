@@ -70,8 +70,9 @@ export function calcPageScores(input: PageScoreInput): PageScores {
     if (input.hasFaq) content += 15;
     if (input.headingCount >= 5) content += 15;
     else if (input.headingCount >= 3) content += 8;
-    if (input.readabilityScore >= 60) content += 15;
-    else if (input.readabilityScore >= 40) content += 7;
+    if (input.readabilityScore >= 70) content += 15;
+    else if (input.readabilityScore >= 50) content += 10;
+    else if (input.readabilityScore >= 40) content += 5;
     content = Math.min(100, content);
   }
 

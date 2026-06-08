@@ -1,5 +1,9 @@
 // SEO Content Analyzer — Rule-based heuristic analysis
 
+import { calcReadability } from "@/lib/seo/readability";
+
+export { calcReadability, getReadabilityRating, stripHtmlForReadability } from "@/lib/seo/readability";
+
 export interface HeadingNode {
   level: number;
   text: string;
@@ -75,25 +79,13 @@ function calcKeywordDensity(text: string): Record<string, number> {
   return density;
 }
 
-// Simple Flesch-Kincaid readability approximation (0-100)
-export function calcReadability(text: string): number {
-  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length || 1;
-  const words = text.match(/\b\w+\b/g) || [];
-  const syllables = words.reduce((acc, w) => acc + countSyllables(w), 0);
-  if (words.length === 0) return 0;
-  const asl = words.length / sentences;
-  const asw = syllables / words.length;
-  const score = 206.835 - 1.015 * asl - 84.6 * asw;
-  return Math.max(0, Math.min(100, Math.round(score)));
+function escapeHtmlAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function countSyllables(word: string): number {
-  word = word.toLowerCase();
-  if (word.length <= 3) return 1;
-  word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "");
-  word = word.replace(/^y/, "");
-  const m = word.match(/[aeiouy]{1,2}/g);
-  return m ? m.length : 1;
+function appendTextBlock(html: string, strVal: string): string {
+  if (/<[a-z][\s\S]*>/i.test(strVal)) return html + strVal + "\n";
+  return html + `<p>${strVal}</p>\n`;
 }
 
 // Recursively extracts HTML from a page section's content object
@@ -106,46 +98,92 @@ export function extractHtmlFromSection(content: any): string {
     return `<p>${content}</p>`;
   }
   if (Array.isArray(content)) {
-    return content.map(item => extractHtmlFromSection(item)).join("\n");
+    return content.map((item) => extractHtmlFromSection(item)).join("\n");
   }
   if (typeof content === "object") {
     let html = "";
-    for (const [key, value] of Object.entries(content)) {
+    const record = content as Record<string, unknown>;
+    const imageAlt =
+      typeof record.imageAlt === "string"
+        ? record.imageAlt
+        : typeof record.alt === "string"
+          ? record.alt
+          : "";
+    const imageTitle = typeof record.imageTitle === "string" ? record.imageTitle : "";
+
+    for (const [key, value] of Object.entries(record)) {
       if (value === null || value === undefined) continue;
-      
+
+      if (key === "faqs" && Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === "object") {
+            const faq = item as Record<string, unknown>;
+            if (faq.question) html += `<h3>${String(faq.question)}</h3>\n`;
+            if (faq.answer) html = appendTextBlock(html, String(faq.answer));
+          }
+        }
+        continue;
+      }
+
       if (typeof value === "object") {
         html += extractHtmlFromSection(value) + "\n";
         continue;
       }
-      
+
       const strVal = String(value);
-      if (key === "heading" || key === "title") {
+      if (!strVal.trim()) continue;
+
+      if (key === "h1" || key === "headline") {
+        html += `<h1>${strVal}</h1>\n`;
+      } else if (key === "heading" || key === "title") {
         html += `<h2>${strVal}</h2>\n`;
-      } else if (key === "subheading" || key === "subtitle" || key === "tagline") {
+      } else if (key === "subheading" || key === "subtitle") {
         html += `<h3>${strVal}</h3>\n`;
-      } else if (key === "body" || key === "description" || key === "content" || key === "text") {
-        if (/<[a-z][\s\S]*>/i.test(strVal)) {
-          html += strVal + "\n";
-        } else {
-          html += `<p>${strVal}</p>\n`;
-        }
-      } else if (key === "link" || key === "href" || key === "url") {
-        if (strVal.startsWith("/") || strVal.includes("karmakoders") || strVal.startsWith("http")) {
-          html += `<a href="${strVal}">${strVal}</a>\n`;
-        }
+      } else if (key === "tagline") {
+        html += `<p><strong>${strVal}</strong></p>\n`;
+      } else if (key === "body" || key === "secondaryBody" || key === "description" || key === "content" || key === "text") {
+        html = appendTextBlock(html, strVal);
+      } else if (key === "ctaText" && typeof record.ctaUrl === "string" && record.ctaUrl) {
+        html += `<a href="${escapeHtmlAttr(record.ctaUrl)}">${strVal}</a>\n`;
+      } else if (key === "internalLinkText" && typeof record.internalLinkUrl === "string" && record.internalLinkUrl) {
+        html += `<a href="${escapeHtmlAttr(record.internalLinkUrl)}">${strVal}</a>\n`;
       } else if (key === "imageUrl" || key === "image" || key === "src" || key === "logoUrl") {
-        html += `<img src="${strVal}" alt="" />\n`;
-      } else if (typeof value === "string" && value.length > 20) {
-        if (/<[a-z][\s\S]*>/i.test(strVal)) {
-          html += strVal + "\n";
-        } else {
-          html += `<p>${strVal}</p>\n`;
+        const titleAttr = imageTitle ? ` title="${escapeHtmlAttr(imageTitle)}"` : "";
+        html += `<img src="${escapeHtmlAttr(strVal)}" alt="${escapeHtmlAttr(imageAlt)}"${titleAttr} />\n`;
+      } else if (
+        key !== "ctaUrl" &&
+        key !== "internalLinkUrl" &&
+        key !== "imageAlt" &&
+        key !== "imageTitle" &&
+        key !== "focusKeyword" &&
+        (key === "link" || key === "href" || key === "url")
+      ) {
+        if (strVal.startsWith("/") || strVal.includes("karmakoders") || strVal.startsWith("http")) {
+          html += `<a href="${escapeHtmlAttr(strVal)}">${strVal}</a>\n`;
         }
+      } else if (typeof value === "string" && value.length > 20) {
+        html = appendTextBlock(html, strVal);
       }
     }
     return html;
   }
   return "";
+}
+
+export function extractPageHtmlFromSections(
+  sections: Array<{ content: string | Record<string, unknown> }>
+): string {
+  return sections
+    .map((section) => {
+      try {
+        const parsed =
+          typeof section.content === "string" ? JSON.parse(section.content) : section.content;
+        return extractHtmlFromSection(parsed);
+      } catch {
+        return "";
+      }
+    })
+    .join("\n");
 }
 
 export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
@@ -157,7 +195,7 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
   const wordCount = (text.match(/\b\w+\b/g) || []).length;
   const hasFaq = hasFaqContent(text);
   const keywordDensity = calcKeywordDensity(text);
-  const readabilityScore = calcReadability(text);
+  const readabilityScore = calcReadability(text, html);
 
   const issues: PageAnalysisResult["issues"] = [];
   const recommendations: string[] = [];
@@ -263,8 +301,13 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
   }
 
   // Readability
-  if (readabilityScore < 40) {
-    issues.push({ type: "low_readability", severity: "recommended", description: `Readability score is low (${readabilityScore}/100).`, suggestion: "Use shorter sentences and simpler words to improve readability." });
+  if (readabilityScore < 50) {
+    issues.push({
+      type: "low_readability",
+      severity: "recommended",
+      description: `Readability score is low (${readabilityScore}/100).`,
+      suggestion: "Use shorter sentences (under 20 words), break content into paragraphs, and use simpler words.",
+    });
   }
 
   // Heading structure

@@ -105,7 +105,7 @@ export function generateContentImprovements(ctx: PageContext): string[] {
   if ((ctx.internalLinksCount || 0) < 3) {
     suggestions.push("Add 3–5 internal links to related pages on your site to distribute link equity.");
   }
-  if ((ctx.readabilityScore || 0) < 50) {
+  if ((ctx.readabilityScore || 0) < 60) {
     suggestions.push("Improve readability: use shorter sentences, bullet points, and simpler language (target Grade 8 reading level).");
   }
   if (!ctx.hasSchema) {
