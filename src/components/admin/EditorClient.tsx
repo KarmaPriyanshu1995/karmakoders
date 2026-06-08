@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Plus } from "lucide-react";
+import { ArrowLeft, Save, Plus, Layers } from "lucide-react";
+import {
+  BUILTIN_SECTION_TYPES,
+  formatSectionDisplayName,
+  getDefaultCustomSectionContent,
+  isBuiltinSectionType,
+  normalizeSectionType,
+} from "@/lib/sectionLibrary";
 import { Button } from "@/components/ui/button";
 import { EditableSectionCard } from "@/components/admin/EditableSectionCard";
 import { calculateSectionSeoScore } from "@/lib/seo/sectionScorer";
@@ -44,6 +51,7 @@ export function EditorClient({ pageId, pageSlug, pageTitle, initialSections }: E
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [customSectionName, setCustomSectionName] = useState("");
 
   const fetchSections = useCallback(async () => {
     setIsLoading(true);
@@ -95,16 +103,41 @@ export function EditorClient({ pageId, pageSlug, pageTitle, initialSections }: E
     }
   }
 
-  const addSection = (type: string) => {
+  const addSection = (type: string, content: Record<string, unknown> = {}) => {
     const newId = `sec-${Math.random().toString(36).substr(2, 9)}`;
     const newSection: Section = {
       id: newId,
       type: type.toLowerCase(),
-      content: {},
+      content,
       order: sections.length,
     };
     setSections([...sections, newSection]);
     setExpandedId(newId);
+  };
+
+  const addCustomSection = () => {
+    const displayName = customSectionName.trim();
+    if (!displayName) {
+      toast.error("Enter a section name first");
+      return;
+    }
+
+    const type = normalizeSectionType(displayName);
+    if (!type) {
+      toast.error("Section name must include letters or numbers");
+      return;
+    }
+
+    if (isBuiltinSectionType(type)) {
+      toast.info(`"${formatSectionDisplayName(type)}" is in the library — added as a built-in section`);
+      addSection(type);
+      setCustomSectionName("");
+      return;
+    }
+
+    addSection(type, getDefaultCustomSectionContent(displayName));
+    setCustomSectionName("");
+    toast.success(`Custom "${displayName}" section added — edit the content and save`);
   };
 
   const removeSection = (id: string) => {
@@ -209,9 +242,11 @@ export function EditorClient({ pageId, pageSlug, pageTitle, initialSections }: E
         </div>
 
         <div className="glass-card rounded-xl p-6 h-fit sticky top-24">
-          <h3 className="text-lg font-semibold text-white mb-6">Section Library</h3>
-          <div className="space-y-3">
-            {["Hero", "About", "Services", "Projects", "Testimonials", "Pricing", "Blog", "Contact", "FAQ", "Careers", "CaseStudies", "Newsletter", "Content"].map((type) => (
+          <h3 className="text-lg font-semibold text-white mb-2">Section Library</h3>
+          <p className="text-xs text-slate-500 mb-6">Built-in sections for your site, or create a new custom one below.</p>
+
+          <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 mb-6">
+            {BUILTIN_SECTION_TYPES.map((type) => (
               <div key={type} className="flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-lg">
                 <span className="text-slate-300 font-medium">{type}</span>
                 <Button variant="ghost" size="sm" className="h-8 text-indigo-400 hover:text-indigo-300" onClick={() => addSection(type)}>
@@ -219,6 +254,31 @@ export function EditorClient({ pageId, pageSlug, pageTitle, initialSections }: E
                 </Button>
               </div>
             ))}
+          </div>
+
+          <div className="pt-5 border-t border-slate-800 space-y-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#FFC300]" />
+              <h4 className="text-sm font-semibold text-white">Add Custom Section</h4>
+            </div>
+            <p className="text-xs text-slate-500">
+              Create a new section type that is not in the library. It will appear on your live page after you save.
+            </p>
+            <input
+              value={customSectionName}
+              onChange={(e) => setCustomSectionName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomSection()}
+              placeholder="e.g. Gallery, Stats, Timeline..."
+              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-white placeholder:text-slate-600 focus:border-[#FFC300]/50 outline-none"
+            />
+            <Button
+              onClick={addCustomSection}
+              disabled={!customSectionName.trim()}
+              className="w-full bg-[#FFC300] hover:bg-[#FFD60A] text-[#1C1B1A] font-bold disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Section
+            </Button>
           </div>
         </div>
       </div>
