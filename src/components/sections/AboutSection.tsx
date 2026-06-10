@@ -26,7 +26,7 @@ export function AboutSection({
   features = defaultFeatures,
 }: AboutProps) {
   return (
-    <section id="about" className="relative py-32 px-8 md:px-24 overflow-hidden">
+    <section id="about" aria-label="About us" className="relative py-20 sm:py-32 px-4 sm:px-6 md:px-12 overflow-hidden">
       {/* bg glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500 opacity-[0.02] blur-[200px] pointer-events-none" />
 

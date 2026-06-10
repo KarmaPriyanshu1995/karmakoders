@@ -14,6 +14,7 @@ export default function ContactPage() {
       <Navbar />
       <div className="pt-20">
         <ContactSection 
+          isSpace={true}
           tagline="Start Your Journey"
           heading="Ready to Build Something Amazing?"
           description="Fill out the form below and our team will get back to you within 24 hours to discuss your project idea."

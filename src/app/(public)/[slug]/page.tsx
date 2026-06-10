@@ -46,7 +46,7 @@ export default async function DynamicPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
-      <div className="pt-20">
+      <div className="">
         <DynamicRenderer sections={sections} />
       </div>
       <Footer />

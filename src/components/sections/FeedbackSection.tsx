@@ -66,7 +66,7 @@ export function FeedbackSection() {
   const current = testimonials[active];
 
   return (
-    <section id="testimonials" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
+    <section id="testimonials" aria-label="Client testimonials" className="pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.03] blur-[180px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -168,24 +168,29 @@ export function FeedbackSection() {
                   <div className="flex gap-3">
                     <button
                       onClick={prev}
+                      aria-label="Previous testimonial"
                       className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:shadow-indigo-500/20 transition-all"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                     </button>
                     <button
                       onClick={next}
+                      aria-label="Next testimonial"
                       className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:shadow-indigo-500/20 transition-all"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="w-5 h-5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
 
                 {/* Progress dots */}
-                <div className="flex gap-2 mt-8">
-                  {testimonials.map((_, i) => (
+                <div className="flex gap-2 mt-8" role="tablist" aria-label="Testimonial navigation">
+                  {testimonials.map((t, i) => (
                     <button
                       key={i}
+                      role="tab"
+                      aria-selected={i === active}
+                      aria-label={`Testimonial from ${t.name}`}
                       onClick={() => setActive(i)}
                       className={`h-1.5 rounded-full transition-all duration-300 ${i === active ? "w-8 bg-indigo-500" : "w-4 bg-white/20 hover:bg-white/40"}`}
                     />

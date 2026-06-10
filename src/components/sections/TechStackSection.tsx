@@ -25,7 +25,7 @@ const categories = ["All", "Framework", "Language", "AI", "Database", "DevOps", 
 
 export function TechStackSection() {
   return (
-    <section id="tech-stack" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
+    <section id="tech-stack" aria-label="Technology stack" className="pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-500 opacity-[0.025] blur-[150px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -60,7 +60,7 @@ export function TechStackSection() {
         </div>
 
         {/* Tech Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
           {techStack.map((tech, i) => (
             <motion.div
               key={tech.name}

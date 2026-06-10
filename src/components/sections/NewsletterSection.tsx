@@ -14,7 +14,7 @@ export function NewsletterSection({
   description = "Get the latest insights on AI, web design, and digital trends delivered straight to your inbox.",
 }: NewsletterProps) {
   return (
-    <section className="py-24 px-8 md:px-24 bg-slate-950">
+    <section aria-label="Newsletter signup" className="py-16 sm:py-24 px-4 sm:px-6 md:px-12 bg-slate-950">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -35,14 +35,18 @@ export function NewsletterSection({
             </p>
             
             <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+              <label htmlFor="newsletter-email" className="sr-only">Email address</label>
               <input
+                id="newsletter-email"
                 type="email"
                 placeholder="Enter your email"
+                required
+                autoComplete="email"
                 className="flex-1 h-14 bg-white/10 border border-white/20 rounded-2xl px-6 text-white placeholder:text-indigo-200 outline-none focus:bg-white/20 transition-all"
               />
-              <Button className="h-14 bg-white text-indigo-600 hover:bg-indigo-50 px-8 rounded-2xl font-bold flex items-center justify-center gap-2 group shadow-xl">
+              <Button type="submit" className="h-14 bg-white text-indigo-600 hover:bg-indigo-50 px-8 rounded-2xl font-bold flex items-center justify-center gap-2 group shadow-xl">
                 Subscribe Now
-                <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" aria-hidden="true" />
               </Button>
             </form>
             
