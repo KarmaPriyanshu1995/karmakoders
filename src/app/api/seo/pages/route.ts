@@ -57,6 +57,7 @@ export async function GET() {
         hasFaq: existing?.hasFaq ?? false,
         hasSchema: existing?.hasSchema ?? false,
         isOrphan: existing?.isOrphan ?? false,
+        internalLinksCount: existing?.internalLinksCount ?? 0,
         lastAnalyzed: existing?.lastAnalyzed ?? null,
         issues,
         issueCount: issues.length,

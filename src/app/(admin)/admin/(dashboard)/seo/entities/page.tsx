@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2, Plus, Trash2, Tag, Globe, Briefcase,
   MapPin, Hash, Search, BookOpen, Share2, GitCommit
@@ -36,37 +36,75 @@ export default function EntitySeoPage() {
   const [saving, setSaving] = useState(false);
   const [brand, setBrand] = useState<{ brandName: string; schemaJson: string } | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  const fetchData = () => {
-    Promise.all([
-      fetch("/api/seo/entities").then((r) => r.json()),
-      fetch("/api/seo/brand").then((r) => r.json()),
-    ]).then(([entData, brandData]) => {
+  const fetchData = async () => {
+    try {
+      const [entRes, brandRes] = await Promise.all([
+        fetch("/api/seo/entities"),
+        fetch("/api/seo/brand"),
+      ]);
+
+      const entData = await entRes.json();
+      const brandData = await brandRes.json();
+
+      if (!entRes.ok) {
+        throw new Error(entData.error || "Failed to load entities");
+      }
+
       setEntities(entData.entities || []);
-      setBrand(brandData.brand);
-    }).finally(() => setLoading(false));
+      setBrand(brandData.brand ?? null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load entities");
+      setEntities([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  const openAddForm = () => {
+    setShowForm(true);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleAdd = async () => {
-    if (!form.name) return;
+    const name = form.name.trim();
+    if (!name) {
+      toast.error("Entity name is required");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/seo/entities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          type: form.type,
+          name,
+          description: form.description.trim() || null,
+          aliases: form.aliases.trim() || null,
+          sitewide: form.sitewide,
+        }),
       });
       const data = await res.json();
+
+      if (!res.ok || !data.entity) {
+        throw new Error(data.error || "Failed to create entity");
+      }
+
       setEntities((p) => [data.entity, ...p]);
       setForm({ type: "brand", name: "", description: "", aliases: "", sitewide: true });
       setShowForm(false);
       toast.success("Entity added successfully");
-    } catch (e) {
-      toast.error("Failed to add entity");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add entity");
     } finally {
       setSaving(false);
     }
@@ -74,11 +112,17 @@ export default function EntitySeoPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/seo/entities?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/seo/entities?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete entity");
+      }
+
       setEntities((p) => p.filter((e) => e.id !== id));
       toast.success("Entity deleted");
-    } catch (e) {
-      toast.error("Failed to delete entity");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete entity");
     }
   };
 
@@ -119,7 +163,8 @@ export default function EntitySeoPage() {
           <p className="text-slate-400 text-sm mt-1">Help search engines map brand connections via a semantic knowledge graph</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          type="button"
+          onClick={openAddForm}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all"
         >
           <Plus className="w-4 h-4" /> Add Entity
@@ -235,7 +280,7 @@ export default function EntitySeoPage() {
 
       {/* Add entity form */}
       {showForm && (
-        <div className="p-6 rounded-2xl bg-white/5 border border-[#FFC300]/20 space-y-4">
+        <div ref={formRef} className="p-6 rounded-2xl bg-white/5 border border-[#FFC300]/20 space-y-4">
           <h3 className="font-black text-white">Add New Entity</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -246,7 +291,13 @@ export default function EntitySeoPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Entity Name *</label>
-              <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Karmakoders, React Development" className="w-full px-3 py-2.5 bg-[#1C1B1A] border border-white/10 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-[#FFC300]/30" />
+              <input
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                placeholder="e.g. Karmakoders, React Development"
+                className="w-full px-3 py-2.5 bg-[#1C1B1A] border border-white/10 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-[#FFC300]/30"
+              />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Description</label>
@@ -258,10 +309,10 @@ export default function EntitySeoPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleAdd} disabled={saving || !form.name} className="px-5 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all disabled:opacity-50">
+            <button type="button" onClick={handleAdd} disabled={saving || !form.name.trim()} className="px-5 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all disabled:opacity-50">
               {saving ? "Saving..." : "Add Entity"}
             </button>
-            <button onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-xl border border-white/10 text-slate-400 font-bold text-sm hover:text-white transition-all">
+            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-xl border border-white/10 text-slate-400 font-bold text-sm hover:text-white transition-all">
               Cancel
             </button>
           </div>
@@ -291,6 +342,13 @@ export default function EntitySeoPage() {
           <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
           <p className="text-white font-bold">No entities yet</p>
           <p className="text-slate-500 text-sm mt-1">Add entities to enrich your brand Knowledge Graph</p>
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all"
+          >
+            <Plus className="w-4 h-4" /> Add Entity
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
