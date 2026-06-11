@@ -27,6 +27,7 @@ export interface SeoPageData {
   hasFaq: boolean;
   hasSchema: boolean;
   isOrphan: boolean;
+  internalLinksCount: number;
   lastAnalyzed: string | null;
   issueCount: number;
   issues: SeoIssue[];
