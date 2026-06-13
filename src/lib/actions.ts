@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
-import { LEGACY_PAGE_SLUGS, SITE_PAGES, normalizePageSlug } from "@/lib/sitePages";
+import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -54,27 +54,6 @@ export async function getPages() {
     include: { sections: { orderBy: { order: "asc" } } },
     orderBy: { title: "asc" },
   });
-}
-
-export async function getPageBySlug(slug: string) {
-  const normalized = normalizePageSlug(slug);
-  const candidates = normalized === "home" ? ["home", "/"] : [normalized, slug];
-
-  const page = await prisma.page.findFirst({
-    where: { slug: { in: [...new Set(candidates)] } },
-    include: { sections: { orderBy: { order: "asc" } } },
-  });
-
-  if (page && page.sections.length === 0) {
-    const { bootstrapPageSections } = await import("@/lib/pageSectionsApi");
-    await bootstrapPageSections(page.id, page.slug);
-    return prisma.page.findFirst({
-      where: { id: page.id },
-      include: { sections: { orderBy: { order: "asc" } } },
-    });
-  }
-
-  return page;
 }
 
 export async function createPage(data: { slug: string; title: string }) {
