@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 export const metadata = {
   title: "About Us | karmakoders",
   description: "Learn more about the minds behind karmakoders and our mission.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {

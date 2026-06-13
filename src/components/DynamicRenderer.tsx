@@ -1,21 +1,39 @@
-import { HeroSection } from "@/components/sections/HeroSection";
+import dynamic from "next/dynamic";
 import { AboutSection } from "@/components/sections/AboutSection";
 import { ServicesSection } from "@/components/sections/ServicesSection";
 import { ProjectsSection } from "@/components/sections/ProjectsSection";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 import { TeamSection } from "@/components/sections/TeamSection";
-import { PricingSection } from "@/components/sections/PricingSection";
 import { BlogSection } from "@/components/sections/BlogSection";
-import { ContactSection } from "@/components/sections/ContactSection";
 import { FAQSection } from "@/components/sections/FAQSection";
 import { CareersSection } from "@/components/sections/CareersSection";
 import { CaseStudiesSection } from "@/components/sections/CaseStudiesSection";
 import { NewsletterSection } from "@/components/sections/NewsletterSection";
 import { ContentSection } from "@/components/sections/ContentSection";
-import { HeroScrollSection } from "@/components/sections/HeroScrollSection";
 import { TechStackSection } from "@/components/sections/TechStackSection";
-import { FeedbackSection } from "@/components/sections/FeedbackSection";
 import { PartnersSection } from "@/components/sections/PartnersSection";
+
+const HeroSection = dynamic(
+  () => import("@/components/sections/HeroSection").then((m) => m.HeroSection),
+  { loading: () => <div className="min-h-[100svh] bg-slate-950" aria-hidden /> }
+);
+
+const HeroScrollSection = dynamic(
+  () => import("@/components/sections/HeroScrollSection").then((m) => m.HeroScrollSection),
+  { loading: () => <div className="min-h-[40rem] bg-slate-950" aria-hidden /> }
+);
+
+const ContactSection = dynamic(
+  () => import("@/components/sections/ContactSection").then((m) => m.ContactSection)
+);
+
+const PricingSection = dynamic(
+  () => import("@/components/sections/PricingSection").then((m) => m.PricingSection)
+);
+
+const FeedbackSection = dynamic(
+  () => import("@/components/sections/FeedbackSection").then((m) => m.FeedbackSection)
+);
 
 // Map section types to their corresponding React components
 const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> = {

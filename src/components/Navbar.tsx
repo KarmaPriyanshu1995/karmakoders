@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -10,11 +10,14 @@ import { cn } from "@/lib/utils";
 export function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
@@ -33,15 +36,15 @@ export function Navbar() {
 
   return (
     <motion.header 
-      initial={{ y: -100 }}
+      initial={{ y: 0 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b",
-        scrolled ? "py-4 bg-slate-950/80 backdrop-blur-xl border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]" : "py-6 bg-transparent border-transparent"
+        "fixed top-0 left-0 right-0 z-50 h-[72px] sm:h-[80px] flex items-center overflow-visible transition-all duration-500 border-b",
+        scrolled ? "bg-slate-950/80 backdrop-blur-xl border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]" : "bg-transparent border-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between w-full">
         <Link href="/" className="text-2xl font-bold tracking-tighter text-white flex items-center gap-1 group">
           Karmakoders
           {/* <span className="text-indigo-500 transition-transform group-hover:scale-110 inline-block">.ai</span> */}

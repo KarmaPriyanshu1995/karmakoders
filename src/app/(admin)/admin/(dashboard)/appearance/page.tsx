@@ -165,10 +165,7 @@ export default function AppearancePage() {
                 className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-white focus:border-indigo-500 outline-none"
               >
                 <option value="var(--font-inter)">Inter (Modern Sans)</option>
-                <option value="var(--font-roboto)">Roboto (Clean Sans)</option>
-                <option value="var(--font-poppins)">Poppins (Geometric)</option>
                 <option value="var(--font-outfit)">Outfit (Tech)</option>
-                <option value="var(--font-playfair)">Playfair Display (Serif)</option>
               </select>
             </div>
 

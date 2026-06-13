@@ -3,11 +3,12 @@ import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/Navbar";
 import { getPosts } from "@/lib/actions";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Blog | karmakoders",
   description: "Latest insights, trends, and tutorials in AI and web development.",
+  alternates: { canonical: "/blog" },
 };
 
 export default async function BlogPage() {

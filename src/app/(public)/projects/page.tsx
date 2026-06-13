@@ -4,11 +4,12 @@ import { ProjectsSection } from "@/components/sections/ProjectsSection";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "All Projects | karmakoders",
   description: "A complete list of our digital transformations and successful projects.",
+  alternates: { canonical: "/projects" },
 };
 
 export default async function ProjectsPage() {

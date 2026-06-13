@@ -1,15 +1,16 @@
-import { getPageBySlug } from "@/lib/actions";
+import { getPageBySlug } from "@/lib/data";
 import { DynamicRenderer } from "@/components/DynamicRenderer";
 import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/Navbar";
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "karmakoders – Premium AI Business Portfolio",
     description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
+    alternates: { canonical: "/" },
     openGraph: {
       title: "karmakoders – Premium AI Business Portfolio",
       type: "website",

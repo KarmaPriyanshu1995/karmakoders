@@ -8,6 +8,7 @@ import { Footer } from "@/components/sections/Footer";
 export const metadata: Metadata = {
   title: "Careers | Join Our Team",
   description: "Explore career opportunities and join our team of innovators.",
+  alternates: { canonical: "/careers" },
 };
 
 export default async function CareersPage() {

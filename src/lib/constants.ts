@@ -84,7 +84,7 @@ export const DEFAULT_PROJECTS: ProjectData[] = [
     slug: "quantum-pay",
     category: "Fintech",
     description: "A secure, blockchain-powered payment gateway for modern e-commerce.",
-    image: "https://images.unsplash.com/photo-1551288049-bbbda536339a?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800",
     tags: "Next.js, TailwindCSS, Solidity, Ethers.js",
     link: "https://quantum-pay.example.com",
     content: "Quantum Pay is a next-generation payment gateway that leverages blockchain technology to provide near-instant, low-fee transactions for merchants worldwide. Our platform features enterprise-grade security, a customizable checkout experience, and a robust API for developers.\n\nKey Features:\n- Instant Settlement: Get paid in seconds, not days.\n- Fraud Protection: Advanced AI-driven monitoring to prevent fraudulent transactions.\n- Global Reach: Support for over 150 currencies and major cryptocurrencies."
@@ -104,7 +104,7 @@ export const DEFAULT_PROJECTS: ProjectData[] = [
     slug: "evo-stream",
     category: "Entertainment",
     description: "A high-fidelity music and video streaming service with spatial audio support.",
-    image: "https://images.unsplash.com/photo-1593784991095-a205039475fe?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
     tags: "Next.js, AWS S3, CloudFront, Dolby Atmos",
     link: "https://evo-stream.example.com",
     content: "Evo Stream delivers studio-quality audio and 4K video to any device. Our proprietary compression algorithm ensures a buffer-free experience even on limited bandwidth, while our support for spatial audio provides an immersive listening experience like no other.\n\nKey Features:\n- Lossless Audio: Hear every detail exactly as the artist intended.\n- Multi-Device Sync: Start watching on your phone and continue on your TV.\n- Social Listening: Listen along with friends in real-time."
