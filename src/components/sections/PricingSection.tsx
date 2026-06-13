@@ -47,7 +47,7 @@ export function PricingSection({
   const [isYearly, setIsYearly] = useState(false);
 
   return (
-    <section id="pricing" className="py-32 px-6 md:px-12 bg-[#252422] relative overflow-hidden">
+    <section id="pricing" aria-label="Pricing plans" className="py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-[#252422] relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.03] blur-[120px] -mr-64 -mt-64 rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.02] blur-[150px] -ml-64 -mb-64 rounded-full pointer-events-none" />
@@ -79,18 +79,22 @@ export function PricingSection({
             transition={{ delay: 0.2 }}
             className="mt-12 flex items-center justify-center gap-4"
           >
-            <span className={cn("text-lg font-bold transition-colors", !isYearly ? "text-white" : "text-[#D6D6D6]")}>Monthly</span>
+            <span id="billing-monthly" className={cn("text-lg font-bold transition-colors", !isYearly ? "text-white" : "text-[#D6D6D6]")}>Monthly</span>
             <button 
               onClick={() => setIsYearly(!isYearly)}
-              className="relative w-16 h-8 rounded-full bg-white/10 border border-white/20 p-1 transition-colors hover:border-[#FFC300]/50"
+              role="switch"
+              aria-checked={isYearly}
+              aria-label="Toggle between monthly and yearly billing"
+              className="relative w-16 h-8 rounded-full bg-white/10 border border-white/20 p-1 transition-colors hover:border-[#FFC300]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFC300]"
             >
               <motion.div 
                 className="w-6 h-6 rounded-full bg-[#FFC300] shadow-[0_0_10px_rgba(255,195,0,0.5)]"
                 animate={{ x: isYearly ? 32 : 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                aria-hidden="true"
               />
             </button>
-            <span className={cn("text-lg font-bold transition-colors flex items-center gap-2", isYearly ? "text-white" : "text-[#D6D6D6]")}>
+            <span id="billing-yearly" className={cn("text-lg font-bold transition-colors flex items-center gap-2", isYearly ? "text-white" : "text-[#D6D6D6]")}>
               Yearly <span className="text-xs px-2 py-1 bg-[#FFC300]/20 text-[#FFC300] rounded-full uppercase tracking-wider font-bold">Save 20%</span>
             </span>
           </motion.div>

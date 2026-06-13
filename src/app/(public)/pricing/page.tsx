@@ -15,7 +15,7 @@ export default function PricingPage() {
 
       <div className="pt-20">
         <PricingSection />
-        <FAQSection />
+        <FAQSection isSpace={true} />
       </div>
 
       <Footer />

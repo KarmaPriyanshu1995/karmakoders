@@ -19,11 +19,13 @@ export default async function PortfolioPage() {
 
       <div className="pt-20">
         <ProjectsSection 
+          isCentered={true}
           projects={projects.length > 0 ? projects : undefined} 
           limit={4}
           showViewAll={true}
         />
         <CaseStudiesSection 
+          isCentered={true}
           cases={cases.length > 0 ? cases : undefined}
           limit={2}
           showViewAll={true}

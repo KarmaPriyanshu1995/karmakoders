@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { X, Globe, Code2 } from "lucide-react";
+import Image from "next/image";
 
 const defaultTeam = [
   {
@@ -12,20 +13,22 @@ const defaultTeam = [
 ];
 
 interface TeamProps {
+  isSpace?: boolean;
   tagline?: string;
   heading?: string;
   team?: typeof defaultTeam;
 }
 
 export function TeamSection({
+  isSpace = false,
   tagline = "Our Team",
   heading = "The Minds Behind karmakoders",
   team = defaultTeam,
 }: TeamProps) {
   return (
-    <section id="team" className="py-32 px-8 md:px-24 bg-slate-950 relative overflow-hidden">
+    <section id="team" aria-label="Our team" className={`${isSpace ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
-      <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
+      <div className="absolute top-1/2 left-0 w-[600px] h-[400px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -64,22 +67,25 @@ export function TeamSection({
               className="group p-4 rounded-[2rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 flex flex-col"
             >
               <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-6">
-                <img
+                <Image
                   src={member.image}
                   alt={member.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <X className="w-5 h-5" />
+                  <a href="#" aria-label={`${member.name} on Twitter`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
+                    <X className="w-5 h-5" aria-hidden="true" />
                   </a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <Globe className="w-5 h-5" />
+                  <a href="#" aria-label={`${member.name}'s website`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
+                    <Globe className="w-5 h-5" aria-hidden="true" />
                   </a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <Code2 className="w-5 h-5" />
+                  <a href="#" aria-label={`${member.name} on GitHub`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
+                    <Code2 className="w-5 h-5" aria-hidden="true" />
                   </a>
                 </div>
               </div>

@@ -16,7 +16,7 @@ export default function AboutPage() {
 
       <div className="pt-20">
         <AboutSection />
-        <TeamSection />
+        <TeamSection isSpace={true} />
         <TestimonialsSection />
       </div>
 

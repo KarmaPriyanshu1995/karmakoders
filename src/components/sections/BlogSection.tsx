@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Calendar, User, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { DEFAULT_POSTS, type PostData } from "@/lib/constants";
 
@@ -20,14 +21,14 @@ export function BlogSection({
   showViewAll = true,
 }: BlogProps) {
   return (
-    <section id="blog" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
+    <section id="blog" aria-label="Latest blog posts" className="py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-          <div className="max-w-2xl">
+        <div className="flex flex-col md:flex-row md:items-end items-center justify-between mb-20 gap-8">
+          <div className="text-center max-w-2xl">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -72,10 +73,13 @@ export function BlogSection({
             >
               <Link href={`/blog/${post.slug || '#'}`}>
                 <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
-                  <img
+                  <Image
                     src={post.image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"}
                     alt={post.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
                   <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">

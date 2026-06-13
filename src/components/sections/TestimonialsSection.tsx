@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Quote, Star } from "lucide-react";
+import Image from "next/image";
 
 const defaultTestimonials = [
   {
@@ -36,7 +37,7 @@ export function TestimonialsSection({
   testimonials = defaultTestimonials,
 }: TestimonialsProps) {
   return (
-    <section id="testimonials" className="py-32 px-8 md:px-24 bg-slate-900/20">
+    <section id="testimonials" aria-label="Client testimonials" className="py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-slate-900/20">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-20">
           <motion.span
@@ -81,10 +82,13 @@ export function TestimonialsSection({
               </div>
               
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src={testimonial.avatar}
                   alt={testimonial.author}
+                  width={56}
+                  height={56}
                   className="w-14 h-14 rounded-full object-cover border-2 border-indigo-500/20"
+                  loading="lazy"
                 />
                 <div>
                   <h4 className="text-white font-bold">{testimonial.author}</h4>
