@@ -23,11 +23,10 @@ export default async function PageEditor({ params }: { params: Promise<{ id: str
   }));
 
   return (
-    <EditorClient
-      pageId={page.id}
-      pageSlug={page.slug}
-      pageTitle={page.title}
-      initialSections={initialSections}
+    <EditorClient 
+      pageId={page.id} 
+      pageTitle={page.title} 
+      initialSections={initialSections} 
     />
   );
 }

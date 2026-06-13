@@ -3,53 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
-import { LEGACY_PAGE_SLUGS, SITE_PAGES, normalizePageSlug } from "@/lib/sitePages";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
-export async function syncSitePages() {
-  for (const [legacySlug, canonicalSlug] of Object.entries(LEGACY_PAGE_SLUGS)) {
-    const legacyPage = await prisma.page.findUnique({ where: { slug: legacySlug } });
-    if (!legacyPage) continue;
-
-    const canonicalPage = await prisma.page.findUnique({ where: { slug: canonicalSlug } });
-    if (canonicalPage) {
-      await prisma.section.updateMany({
-        where: { pageId: legacyPage.id },
-        data: { pageId: canonicalPage.id },
-      });
-      await prisma.page.delete({ where: { id: legacyPage.id } });
-    } else {
-      await prisma.page.update({
-        where: { id: legacyPage.id },
-        data: { slug: canonicalSlug, title: legacyPage.title || canonicalSlug },
-      });
-    }
-  }
-
-  for (const sitePage of SITE_PAGES) {
-    const seoMeta = sitePage.defaultMeta
-      ? JSON.stringify({
-          title: sitePage.defaultMeta.title,
-          description: sitePage.defaultMeta.description,
-        })
-      : undefined;
-
-    await prisma.page.upsert({
-      where: { slug: sitePage.slug },
-      update: { title: sitePage.title, isPublished: true },
-      create: {
-        slug: sitePage.slug,
-        title: sitePage.title,
-        isPublished: true,
-        ...(seoMeta ? { seoMeta } : {}),
-      },
-    });
-  }
-}
-
 export async function getPages() {
-  await syncSitePages();
   return prisma.page.findMany({
     include: { sections: { orderBy: { order: "asc" } } },
     orderBy: { title: "asc" },
@@ -57,24 +14,10 @@ export async function getPages() {
 }
 
 export async function getPageBySlug(slug: string) {
-  const normalized = normalizePageSlug(slug);
-  const candidates = normalized === "home" ? ["home", "/"] : [normalized, slug];
-
-  const page = await prisma.page.findFirst({
-    where: { slug: { in: [...new Set(candidates)] } },
+  return prisma.page.findUnique({
+    where: { slug },
     include: { sections: { orderBy: { order: "asc" } } },
   });
-
-  if (page && page.sections.length === 0) {
-    const { bootstrapPageSections } = await import("@/lib/pageSectionsApi");
-    await bootstrapPageSections(page.id, page.slug);
-    return prisma.page.findFirst({
-      where: { id: page.id },
-      include: { sections: { orderBy: { order: "asc" } } },
-    });
-  }
-
-  return page;
 }
 
 export async function createPage(data: { slug: string; title: string }) {
