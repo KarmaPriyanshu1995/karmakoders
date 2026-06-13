@@ -1,5 +1,5 @@
 import { CmsPageView, generateCmsMetadata } from "@/components/CmsPageView";
-import { getPageBySlug } from "@/lib/actions";
+import { getPageBySlug } from "@/lib/pageQueries";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
