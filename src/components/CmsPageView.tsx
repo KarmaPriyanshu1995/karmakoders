@@ -1,4 +1,4 @@
-import { getPageBySlug } from "@/lib/pageQueries";
+import { getPageBySlug } from "@/lib/actions";
 import { DynamicRenderer } from "@/components/DynamicRenderer";
 import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/Navbar";

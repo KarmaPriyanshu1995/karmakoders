@@ -48,16 +48,19 @@ export async function bootstrapPageSections(pageId: string, slug: string): Promi
   const defaults = cloneDefaultSections(slug);
   if (defaults.length === 0) return [];
 
-  await prisma.section.createMany({
-    data: defaults.map((section) => ({
-      id: section.id,
-      pageId,
-      type: section.type,
-      content: JSON.stringify(section.content),
-      order: section.order,
-    })),
-    skipDuplicates: true,
-  });
+  for (const section of defaults) {
+    await prisma.section.upsert({
+      where: { id: section.id },
+      update: {},
+      create: {
+        id: section.id,
+        pageId,
+        type: section.type,
+        content: JSON.stringify(section.content),
+        order: section.order,
+      },
+    });
+  }
 
   const sections = await prisma.section.findMany({
     where: { pageId },
