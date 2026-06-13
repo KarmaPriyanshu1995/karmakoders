@@ -56,12 +56,7 @@ export function DynamicRenderer({ sections }: DynamicRendererProps) {
         const Component = sectionMap[section.type];
         
         if (!Component) {
-          // Fallback for missing components in development
-          return (
-            <div key={section.id} className="py-20 text-center border-y border-dashed border-slate-800 text-slate-500">
-              [Missing Component: {section.type}]
-            </div>
-          );
+          return <ContentSection key={section.id} {...section.content} />;
         }
 
         return <Component key={section.id} {...section.content} />;

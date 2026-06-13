@@ -43,70 +43,42 @@ async function main() {
     },
   });
 
-  // Home Page
-  const homePage = await prisma.page.upsert({
-    where: { slug: "/" },
-    update: {},
-    create: { slug: "/", title: "Home", isPublished: true },
-  });
+  const { SITE_PAGES } = await import("../src/lib/sitePages");
 
-  // Hero Section
-  await prisma.section.upsert({
-    where: { id: "section-hero-home" },
-    update: {},
-    create: {
-      id: "section-hero-home",
-      pageId: homePage.id,
-      type: "hero",
-      order: 0,
-      content: JSON.stringify({
-        headline: "Design the Future of Your Brand",
-        subheadline:
-          "We build premium, scalable, and immersive web platforms powered by advanced AI and cutting-edge 3D technologies.",
-        ctaPrimary: "Explore Portfolio",
-        ctaSecondary: "Our Services",
-      }),
-    },
-  });
+  for (const sitePage of SITE_PAGES) {
+    const seoMeta = sitePage.defaultMeta
+      ? JSON.stringify({
+          title: sitePage.defaultMeta.title,
+          description: sitePage.defaultMeta.description,
+        })
+      : undefined;
 
-  // About Page
-  await prisma.page.upsert({
-    where: { slug: "/about" },
-    update: {},
-    create: { slug: "/about", title: "About Us", isPublished: true },
-  });
-
-  // Legal and Support Pages
-  const pages = [
-    { slug: "help-center", title: "Help Center", heading: "How can we help you?" },
-    { slug: "terms", title: "Terms of Service", heading: "Terms of Service" },
-    { slug: "privacy", title: "Privacy Policy", heading: "Privacy Policy" },
-    { slug: "cookie-policy", title: "Cookie Policy", heading: "Cookie Policy" },
-    { slug: "contact-support", title: "Contact Support", heading: "Contact Support" },
-  ];
-
-  for (const p of pages) {
     const page = await prisma.page.upsert({
-      where: { slug: p.slug },
-      update: {},
-      create: { slug: p.slug, title: p.title, isPublished: true },
-    });
-
-    await prisma.section.upsert({
-      where: { id: `section-content-${p.slug}` },
-      update: {},
+      where: { slug: sitePage.slug },
+      update: { title: sitePage.title, isPublished: true },
       create: {
-        id: `section-content-${p.slug}`,
-        pageId: page.id,
-        type: "content",
-        order: 0,
-        content: JSON.stringify({
-          tagline: p.title,
-          heading: p.heading,
-          body: `<p>This is the default content for ${p.title}. You can edit this in the admin dashboard.</p>`,
-        }),
+        slug: sitePage.slug,
+        title: sitePage.title,
+        isPublished: true,
+        ...(seoMeta ? { seoMeta } : {}),
       },
     });
+
+    const { getDefaultSectionsForSlug } = await import("../src/lib/sectionDefaults");
+    const defaultSections = getDefaultSectionsForSlug(sitePage.slug);
+    for (const section of defaultSections) {
+      await prisma.section.upsert({
+        where: { id: section.id },
+        update: {},
+        create: {
+          id: section.id,
+          pageId: page.id,
+          type: section.type,
+          order: section.order,
+          content: JSON.stringify(section.content),
+        },
+      });
+    }
   }
 
   // Seed Blog Posts
