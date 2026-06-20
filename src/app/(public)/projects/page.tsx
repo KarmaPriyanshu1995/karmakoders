@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
-      <div className="pt-20">
+      <div>
         <ProjectsSection 
           tagline="Full Portfolio"
           heading="Every Vision We've Brought to Life"
