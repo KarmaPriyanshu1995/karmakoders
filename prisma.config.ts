@@ -4,12 +4,10 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { defineConfig } from "prisma/config";
 
-// Match Next.js: dev-only DB overrides live in .env.development.local, not .env.local
-if (process.env.NODE_ENV !== "production") {
-  const devLocalPath = path.resolve(process.cwd(), ".env.development.local");
-  if (fs.existsSync(devLocalPath)) {
-    dotenv.config({ path: devLocalPath, override: true });
-  }
+// Manually load .env.local if it exists (Next.js standard)
+const envLocalPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath, override: true });
 }
 
 export default defineConfig({
