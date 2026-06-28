@@ -13,7 +13,7 @@ export default function ServicesPage() {
       <Navbar />
 
       <div>
-        <ServicesSection />
+        <ServicesSection isSpace={true} />  
       </div>
 
       <Footer />

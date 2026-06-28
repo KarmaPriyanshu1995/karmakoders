@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "karmakoders – Premium AI Business Portfolio",
+    title: "Karmakoders - Software business Solution",
     description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
     openGraph: {
-      title: "karmakoders – Premium AI Business Portfolio",
+      title: "Karmakoders - Software business Solution",
       type: "website",
     },
   };

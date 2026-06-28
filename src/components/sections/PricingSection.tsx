@@ -47,7 +47,7 @@ export function PricingSection({
   const [isYearly, setIsYearly] = useState(false);
 
   return (
-    <section id="pricing" aria-label="Pricing plans" className="py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-[#252422] relative overflow-hidden">
+    <section id="pricing" aria-label="Pricing plans" className="pt-28 sm:pt-32 pb-16 px-4 sm:px-6 md:px-12 bg-[#252422] relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.03] blur-[120px] -mr-64 -mt-64 rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#FFC300] opacity-[0.02] blur-[150px] -ml-64 -mb-64 rounded-full pointer-events-none" />

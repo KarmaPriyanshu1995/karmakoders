@@ -41,7 +41,7 @@ export function CaseStudiesSection({
 }: CaseStudiesProps) {
   const displayCases = (limit && limit > 0) ? cases.slice(0, limit) : cases;
   return (
-    <section id="case-studies" aria-label="Case studies" className={`${isCentered ? "pb-20 sm:pb-32" : "py-20 sm:py-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="case-studies" aria-label="Case studies" className={`${!isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
@@ -53,7 +53,7 @@ export function CaseStudiesSection({
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)]"
             >
               {tagline}
             </motion.div>
