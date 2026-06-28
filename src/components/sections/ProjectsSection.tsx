@@ -41,7 +41,7 @@ export function ProjectsSection({
   };
 
   return (
-    <section id="portfolio" aria-label="Selected projects" className={`${isCentered ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="portfolio" aria-label="Selected projects" className={`${isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glow */}
       <div className={`${isCentered ? "h-[400px] w-[400px]" : "h-[600px] w-[600px]"} absolute bottom-0 right-0 bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none`} />
 

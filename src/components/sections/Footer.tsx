@@ -117,7 +117,7 @@ export function Footer() {
                     autoComplete="email"
                     className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all outline-none"
                   />
-                  <button type="submit" aria-label="Subscribe to newsletter" className="h-12 w-12 flex items-center justify-center bg-indigo-500 text-slate-950 rounded-xl hover:bg-indigo-500/90 hover:shadow-[0_0_15px_var(--color-indigo-500)] transition-all shrink-0">
+                  <button type="submit" aria-label="Subscribe to newsletter" className="h-12 w-12 flex items-center justify-center bg-indigo-500 text-slate-950 rounded-xl hover:bg-indigo-500/90 hover:shadow-[0_0_15px_var(--color-indigo-500)] transition-all shrink-0 cursor-pointer">
                     <Mail className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </form>
@@ -155,7 +155,7 @@ export function Footer() {
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Phone</p>
-                <a href="tel:+917627056875" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 76270 56875</a>
+                <a href="tel:+918690071861" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 86900 71861</a>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Office</p>
@@ -163,7 +163,7 @@ export function Footer() {
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Hours</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 9AM – 7PM IST</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 10AM – 7PM IST</p>
               </li>
             </ul>
           </div>

@@ -20,6 +20,7 @@ export default async function ProjectsPage() {
 
       <div>
         <ProjectsSection 
+          isCentered={true}
           tagline="Full Portfolio"
           heading="Every Vision We've Brought to Life"
           projects={projects.length > 0 ? projects : undefined}

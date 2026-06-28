@@ -51,6 +51,7 @@ const defaultServices = [
 ];
 
 interface ServicesProps {
+  isSpace?: boolean;
   tagline?: string;
   heading?: string;
   description?: string;
@@ -58,13 +59,14 @@ interface ServicesProps {
 }
 
 export function ServicesSection({
+  isSpace = false,
   tagline = "Our Expertise",
   heading = "Comprehensive Solutions for Your Business",
   description = "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
   services = defaultServices,
 }: ServicesProps) {
   return (
-    <section id="services" aria-label="Our services" className="relative py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-slate-950">
+    <section id="services" aria-label="Our services" className={`relative ${isSpace ? "pt-28 sm:pt-32" : "mt-24"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950`}>
       {/* Background glow effects */}
       <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-indigo-500 opacity-5 blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/2" />
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none" />

@@ -21,7 +21,7 @@ export function BlogSection({
   showViewAll = true,
 }: BlogProps) {
   return (
-    <section id="blog" aria-label="Latest blog posts" className="py-20 sm:py-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
+    <section id="blog" aria-label="Latest blog posts" className="pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
@@ -82,7 +82,7 @@ export function BlogSection({
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
-                  <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                  <div className="absolute top-4 left-4 right-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
                     {post.category || "Design"}
                   </div>
                 </div>
