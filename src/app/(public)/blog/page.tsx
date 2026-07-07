@@ -23,6 +23,7 @@ export default async function BlogPage() {
           heading="Explore Our Latest Thinking"
           posts={posts.length > 0 ? posts : undefined}
           showViewAll={false}
+          postsPerPage={9}
         />
       </div>
       
