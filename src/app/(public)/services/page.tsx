@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 export const metadata = {
   title: "Services | karmakoders",
   description: "Comprehensive solutions for your business - UI/UX, Web Dev, AI, and more.",
+  alternates: { canonical: "/services" },
 };
 
 export default function ServicesPage() {

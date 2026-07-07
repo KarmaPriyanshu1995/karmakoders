@@ -6,6 +6,7 @@ import { Footer } from "@/components/sections/Footer";
 export const metadata = {
   title: "Contact Us | karmakoders",
   description: "Get in touch with us to start your next digital project.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {

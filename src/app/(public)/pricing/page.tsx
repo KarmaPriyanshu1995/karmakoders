@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 export const metadata = {
   title: "Pricing | karmakoders",
   description: "Explore our flexible pricing plans tailored for your digital success.",
+  alternates: { canonical: "/pricing" },
 };
 
 export default function PricingPage() {

@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { Code2, Globe } from "lucide-react";
 import { DEFAULT_PROJECTS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

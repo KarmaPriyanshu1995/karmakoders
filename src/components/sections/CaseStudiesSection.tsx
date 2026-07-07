@@ -17,7 +17,7 @@ const defaultCases = [
     title: "AI-Driven Health Diagnostics",
     client: "Nova Health",
     result: "99.9% Accuracy",
-    image: "https://images.unsplash.com/photo-1504868584819-f8eec0421d50?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=800",
     color: "from-emerald-600 to-teal-600",
   },
 ];

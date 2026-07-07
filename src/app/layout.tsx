@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Roboto, Poppins, Outfit, Playfair_Display } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-import "@uploadthing/react/styles.css";
-
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
-const poppins = Poppins({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-poppins" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
-const fontVariables = `${inter.variable} ${roboto.variable} ${poppins.variable} ${outfit.variable} ${playfair.variable}`;
+const fontVariables = `${inter.variable} ${outfit.variable}`;
 
 export const metadata: Metadata = {
   title: "AI Business Portfolio",
@@ -36,8 +31,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
-import { getSiteConfig } from "@/lib/actions";
-import CanonicalURL from "@/components/CanonicalURL";
+import { getSiteConfig } from "@/lib/data";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
 export default async function RootLayout({
@@ -54,7 +48,13 @@ export default async function RootLayout({
   const bgColor = config?.bgColor || (isDark ? "#252422" : "#f8fafc");
   const textColor = config?.textColor || (isDark ? "#ffffff" : "#0f172a");
   const primaryColor = config?.primaryColor || "#FFC300";
-  const fontFamily = config?.fontFamily || "var(--font-inter)";
+  const fontFamilyRaw = config?.fontFamily || "var(--font-inter)";
+  const fontFamily =
+    {
+      "var(--font-roboto)": "var(--font-inter)",
+      "var(--font-poppins)": "var(--font-outfit)",
+      "var(--font-playfair)": "var(--font-outfit)",
+    }[fontFamilyRaw as string] ?? fontFamilyRaw;
   const borderRadius = config?.borderRadius || "0.5rem";
 
   const isDarkTheme = isDark;
@@ -148,15 +148,14 @@ export default async function RootLayout({
     <html lang="en" className={htmlClass} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: customStyles }} suppressHydrationWarning />
-        <CanonicalURL />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
         <ThemeProvider initialConfig={config}>
           {children}
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
+        <GoogleAnalytics gaId="G-NG3CPDVF6F" />
       </body>
-      <GoogleAnalytics gaId="G-NG3CPDVF6F" />
     </html>
   );
 }

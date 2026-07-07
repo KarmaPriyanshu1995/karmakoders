@@ -1,8 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { UTApi } from "uploadthing/server";
+import { getPageBySlug as getPageBySlugCached, getSiteConfig as getSiteConfigCached } from "@/lib/data";
+
+export async function getPageBySlug(slug: string) {
+  return getPageBySlugCached(slug);
+}
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -10,13 +15,6 @@ export async function getPages() {
   return prisma.page.findMany({
     include: { sections: { orderBy: { order: "asc" } } },
     orderBy: { title: "asc" },
-  });
-}
-
-export async function getPageBySlug(slug: string) {
-  return prisma.page.findUnique({
-    where: { slug },
-    include: { sections: { orderBy: { order: "asc" } } },
   });
 }
 
@@ -62,15 +60,18 @@ export async function upsertSections(
       },
     });
   }
+  const page = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
   revalidatePath(`/admin/pages/${pageId}`);
   revalidatePath("/");
+  if (page?.slug) {
+    updateTag(`page-${page.slug}`);
+  }
 }
 
 // ─── SiteConfig Actions ────────────────────────────────────────────────────────
 
 export async function getSiteConfig(key: string) {
-  const record = await prisma.siteConfig.findUnique({ where: { key } });
-  return record ? JSON.parse(record.value) : null;
+  return getSiteConfigCached(key);
 }
 
 export async function setSiteConfig(key: string, value: object) {
@@ -79,6 +80,7 @@ export async function setSiteConfig(key: string, value: object) {
     update: { value: JSON.stringify(value) },
     create: { key, value: JSON.stringify(value) },
   });
+  updateTag(`site-config-${key}`);
   revalidatePath("/");
   revalidatePath("/admin");
 }
@@ -499,7 +501,7 @@ export async function seedDatabase(type: "sections" | "all") {
         excerpt: "Connecting patients with specialists in under 60 seconds with an integrated 99.9% accurate AI symptoms triage.",
         category: "Healthcare",
         author: "Alex Rivera",
-        image: "https://images.unsplash.com/photo-1504868584819-f8eec0421d50?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=800",
         type: "case-study",
         published: true,
         content: "Comprehensive overview of how we engineered a custom WebRTC platform for Nova Health featuring client-side TensorFlow models that securely triage health alerts before routing to matching practitioners.",

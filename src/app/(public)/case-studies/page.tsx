@@ -4,11 +4,12 @@ import { CaseStudiesSection } from "@/components/sections/CaseStudiesSection";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Success Stories | karmakoders",
   description: "Detailed case studies and success stories of our transformative digital solutions.",
+  alternates: { canonical: "/case-studies" },
 };
 
 export default async function CaseStudiesPage() {

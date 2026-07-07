@@ -1,11 +1,11 @@
-import { getPageBySlug } from "@/lib/actions";
+import { getPageBySlug } from "@/lib/data";
 import { DynamicRenderer } from "@/components/DynamicRenderer";
 import { Footer } from "@/components/sections/Footer";
 import { Navbar } from "@/components/Navbar";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${page.title} | karmakoders`,
     description: seoMeta.description || `Read about ${page.title} on karmakoders`,
+    alternates: { canonical: `/${slug}` },
     openGraph: {
       title: `${page.title} | karmakoders`,
       description: seoMeta.description,

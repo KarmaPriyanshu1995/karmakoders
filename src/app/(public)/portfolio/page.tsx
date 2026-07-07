@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 export const metadata = {
   title: "Portfolio | karmakoders",
   description: "Transforming visions into digital reality - our selected works and case studies.",
+  alternates: { canonical: "/portfolio" },
 };
 
 export default async function PortfolioPage() {

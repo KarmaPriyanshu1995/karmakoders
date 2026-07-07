@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 
 import { DEFAULT_POSTS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BlogPostDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
