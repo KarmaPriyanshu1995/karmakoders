@@ -17,7 +17,7 @@ export default async function PortfolioPage() {
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
-      <div className="pt-20">
+      <div>
         <ProjectsSection 
           isCentered={true}
           projects={projects.length > 0 ? projects : undefined} 

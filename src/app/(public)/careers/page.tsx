@@ -19,15 +19,15 @@ export default async function CareersPage() {
   return (
     <>
     <Navbar />
-    <div className="pt-44 pb-20">
+    <div className="pt-28 sm:pt-32 pb-20 sm:pb-32">
       <div className="max-w-5xl mx-auto px-6">
         
         {/* Header */}
         <div className="text-center space-y-6 mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-semibold mb-0">
             <Briefcase className="w-4 h-4" /> Careers
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+          <h1 className="mt-6 text-4xl md:text-5xl font-bold text-white tracking-tight">
             Join Our Team
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">

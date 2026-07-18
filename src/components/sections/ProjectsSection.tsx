@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 import { DEFAULT_PROJECTS } from "@/lib/constants";
+import { getProjects } from "@/lib/actions";
 
 interface ProjectsProps {
   isCentered?: boolean;
@@ -22,10 +23,30 @@ export function ProjectsSection({
   isCentered = false,
   tagline = "Selected Works",
   heading = "Transforming Visions into Digital Reality",
-  projects = DEFAULT_PROJECTS,
+  projects: propProjects,
   limit = 6,
   showViewAll = true,
 }: ProjectsProps) {
+  const [liveProjects, setLiveProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!propProjects) {
+      getProjects()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLiveProjects(data);
+          } else {
+            setLiveProjects(DEFAULT_PROJECTS);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live projects:", err);
+          setLiveProjects(DEFAULT_PROJECTS);
+        });
+    }
+  }, [propProjects]);
+
+  const projects = propProjects || (liveProjects.length > 0 ? liveProjects : DEFAULT_PROJECTS);
   const displayProjects = (limit && limit > 0) ? projects.slice(0, limit) : projects;
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +62,7 @@ export function ProjectsSection({
   };
 
   return (
-    <section id="portfolio" aria-label="Selected projects" className={`${isCentered ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="portfolio" aria-label="Selected projects" className={`${isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glow */}
       <div className={`${isCentered ? "h-[400px] w-[400px]" : "h-[600px] w-[600px]"} absolute bottom-0 right-0 bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none`} />
 

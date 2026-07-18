@@ -13,9 +13,11 @@ export default function PricingPage() {
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
-      <div className="pt-20">
+      <div>
         <PricingSection />
-        <FAQSection isSpace={true} />
+        <div className="mt-16">
+          <FAQSection />
+        </div>
       </div>
 
       <Footer />

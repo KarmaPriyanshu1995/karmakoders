@@ -88,21 +88,23 @@ export function FAQSection({
                 <h3>
                   <button
                     id={headingId}
-                    onClick={() => setOpenIndex(isExpanded ? null : i)}
                     aria-expanded={isExpanded}
                     aria-controls={panelId}
                     className="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors outline-none group"
                   >
                     <span className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors duration-300 pr-4">{faq.question}</span>
                     <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 cursor-pointer",
                       isExpanded ? "bg-indigo-500 text-slate-950 shadow-indigo-500/30 shadow-[0_0_15px_var(--color-indigo-500)]" : "bg-white/5 text-white border border-white/10"
-                    )} aria-hidden="true">
+                    )}
+                      aria-hidden="true"
+                      onClick={() => setOpenIndex(isExpanded ? null : i)}
+                    >
                       <ChevronDown className={cn("w-5 h-5 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
                     </div>
                   </button>
                 </h3>
-                
+
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div

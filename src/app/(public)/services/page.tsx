@@ -12,8 +12,8 @@ export default function ServicesPage() {
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
-      <div className="pt-20">
-        <ServicesSection />
+      <div>
+        <ServicesSection isSpace={true} />  
       </div>
 
       <Footer />

@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [form, setForm] = useState({
     businessName: "karmakoders",
     email: "karmakoders@gmail.com",
-    phone: "7627056875",
+    phone: "8690071861",
     address: "JLN marg malvinagar",
     currentPassword: "",
     newPassword: "",

@@ -49,7 +49,7 @@ export function ContactSection({
   };
 
   return (
-    <section id="contact" aria-label="Contact us" className={`${isSpace ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="contact" aria-label="Contact us" className={`${isSpace && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-indigo-500 opacity-[0.02] blur-[200px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
 
@@ -88,7 +88,7 @@ export function ContactSection({
             <div className="mt-16 space-y-10">
               {[
                 { icon: Mail, label: "Email Us", value: "info@karmakoders.com" },
-                { icon: Phone, label: "Call Us", value: "+91 76270 56875" },
+                { icon: Phone, label: "Call Us", value: "+91 86900 71861" },
                 { icon: MapPin, label: "Visit Us", value: "JLN Marg, Malviya Nagar, Jaipur" },
               ].map((item, i) => (
                 <motion.div 
@@ -209,7 +209,7 @@ export function ContactSection({
               <button 
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-16 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-lg flex items-center justify-center gap-2 group shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="w-full h-16 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-lg flex items-center justify-center gap-2 group shadow-indigo-500/30 cursor-pointer hover:shadow-indigo-500/50 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {isSubmitting ? "Sending Transmission..." : "Send Message"}
                 {!isSubmitting && <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
