@@ -43,11 +43,12 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold tracking-tighter text-white flex items-center gap-1 group">
-          karmakoders<span className="text-indigo-500 transition-transform group-hover:scale-110 inline-block">.ai</span>
+          Karmakoders
+          {/* <span className="text-indigo-500 transition-transform group-hover:scale-110 inline-block">.ai</span> */}
         </Link>
         
         {/* Desktop Navigation */}
-        <nav className="flex max-lg:hidden gap-8 text-sm font-medium text-slate-300">
+        <nav className="[display:none] lg:[display:flex] gap-8 text-sm font-medium text-slate-300">
           {navLinks.map((link) => {
             const isActive = mounted && pathname === link.href;
             return (
@@ -78,7 +79,7 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           <Link
             href="/contact"
-            className="inline-flex max-sm:hidden px-6 py-2.5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-sm font-bold rounded-xl transition-all duration-300 shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-95"
+            className="inline-flex max-lg:hidden px-6 py-2.5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-sm font-bold rounded-xl transition-all duration-300 shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-95"
           >
             Start Project
           </Link>
@@ -86,7 +87,7 @@ export function Navbar() {
           {/* Hamburger Toggle Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="hidden max-lg:inline-flex p-2 text-[#D6D6D6] hover:text-indigo-500 transition-colors rounded-xl border border-white/10 bg-white/5 backdrop-blur-md"
+            className="[display:inline-flex] lg:[display:none] p-2 text-[#D6D6D6] hover:text-indigo-500 transition-colors rounded-xl border border-white/10 bg-white/5 backdrop-blur-md"
             aria-label="Toggle navigation menu"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -102,9 +103,9 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 right-0 bg-slate-950/95 border-b border-white/10 backdrop-blur-2xl p-8 flex flex-col gap-6 max-lg:flex hidden shadow-2xl z-40"
+            className="absolute top-full left-0 right-0 bg-slate-950/95 border-b border-white/10 backdrop-blur-2xl p-8 flex flex-col gap-6 shadow-2xl z-40"
           >
-            <nav className="flex flex-col gap-5">
+            <nav className="flex flex-col gap-5 items-center">
               {navLinks.map((link) => {
                 const isActive = mounted && pathname === link.href;
                 return (
@@ -127,7 +128,7 @@ export function Navbar() {
             <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
-              className="sm:hidden w-full text-center py-4 mt-4 bg-indigo-500 text-slate-950 font-bold rounded-xl shadow-indigo-500/30 active:scale-95 transition-all"
+              className="w-full text-center py-4 mt-4 bg-indigo-500 text-slate-950 font-bold rounded-xl shadow-indigo-500/30 active:scale-95 transition-all"
             >
               Start Project
             </Link>

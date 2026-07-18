@@ -1,100 +1,152 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://karmakoders.xyz/</loc>
+    <loc>https://karmakoders.com/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/services</loc>
+    <loc>https://karmakoders.com/services</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/portfolio</loc>
+    <loc>https://karmakoders.com/portfolio</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/pricing</loc>
+    <loc>https://karmakoders.com/pricing</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/about</loc>
+    <loc>https://karmakoders.com/about</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/blog</loc>
+    <loc>https://karmakoders.com/blog</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/careers</loc>
+    <loc>https://karmakoders.com/careers</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/projects</loc>
+    <loc>https://karmakoders.com/projects</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/case-studies</loc>
+    <loc>https://karmakoders.com/case-studies</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/contact</loc>
+    <loc>https://karmakoders.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <!-- Dynamic Blog Posts -->
   <url>
-    <loc>https://karmakoders.xyz/blog/flutter-vs-react</loc>
+    <loc>https://karmakoders.com/blog/flutter-vs-react</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/blog/leverage-3d-experiences</loc>
+    <loc>https://karmakoders.com/blog/leverage-3d-experiences</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/blog/scaling-modern-applications</loc>
+    <loc>https://karmakoders.com/blog/scaling-modern-applications</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/blog/future-of-web-design</loc>
+    <loc>https://karmakoders.com/blog/future-of-web-design</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <!-- Dynamic Projects -->
   <url>
-    <loc>https://karmakoders.xyz/portfolio/Haven</loc>
+    <loc>https://karmakoders.com/portfolio/Haven</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/portfolio/aura-home</loc>
+    <loc>https://karmakoders.com/portfolio/aura-home</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/portfolio/evo-stream</loc>
+    <loc>https://karmakoders.com/portfolio/evo-stream</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/portfolio/nova-health</loc>
+    <loc>https://karmakoders.com/portfolio/nova-health</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://karmakoders.xyz/portfolio/quantum-pay</loc>
+    <loc>https://karmakoders.com/portfolio/quantum-pay</loc>
     <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Essential SEO Pages -->
+  <url>
+    <loc>https://karmakoders.com/saas-development-company</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/ai-app-development</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/react-native-development</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/startup-mvp-development</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/web-development-services</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- SEO Blogs -->
+  <url>
+    <loc>https://karmakoders.com/blog/how-to-build-a-saas-mvp-for-startup</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/blog/react-native-saas-app-development-company</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/blog/ai-saas-development-services</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/blog/startup-mvp-development-agency</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://karmakoders.com/blog/mvp-development-checklist</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 </urlset>

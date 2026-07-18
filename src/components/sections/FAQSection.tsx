@@ -29,12 +29,14 @@ const defaultFaqs = [
 ];
 
 interface FaqProps {
+  isSpace?: boolean;
   tagline?: string;
   heading?: string;
   faqs?: typeof defaultFaqs;
 }
 
 export function FAQSection({
+  isSpace = false,
   tagline = "FAQ",
   heading = "Common Questions",
   faqs = defaultFaqs,
@@ -42,9 +44,9 @@ export function FAQSection({
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="py-32 px-8 md:px-24 bg-slate-950 relative overflow-hidden">
+    <section id="faq" aria-label="Frequently asked questions" className={`${isSpace ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
-      <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
+      <div className="absolute top-1/2 right-0 w-[600px] h-[400px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.01] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10">
@@ -68,45 +70,61 @@ export function FAQSection({
           </motion.h2>
         </div>
 
-        <div className="space-y-4">
-          {faqs.map((faq, i) => (
-            <motion.div
-              key={faq.question}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="rounded-[2rem] border border-white/10 bg-white/5 hover:border-indigo-500/30 transition-all duration-500 overflow-hidden"
-            >
-              <button
-                onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors outline-none group"
+        <div className="space-y-4" role="list">
+          {faqs.map((faq, i) => {
+            const isExpanded = openIndex === i;
+            const panelId = `faq-panel-${i}`;
+            const headingId = `faq-heading-${i}`;
+            return (
+              <motion.div
+                key={faq.question}
+                role="listitem"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="rounded-[2rem] border border-white/10 bg-white/5 hover:border-indigo-500/30 transition-all duration-500 overflow-hidden"
               >
-                <span className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors duration-300 pr-4">{faq.question}</span>
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
-                  openIndex === i ? "bg-indigo-500 text-slate-950 shadow-indigo-500/30 shadow-[0_0_15px_var(--color-indigo-500)]" : "bg-white/5 text-white border border-white/10"
-                )}>
-                  <ChevronDown className={cn("w-5 h-5 transition-transform duration-300", openIndex === i ? "rotate-180" : "")} />
-                </div>
-              </button>
-              
-              <AnimatePresence>
-                {openIndex === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
+                <h3>
+                  <button
+                    id={headingId}
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    className="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors outline-none group"
                   >
-                    <div className="p-6 pt-0 text-[#D6D6D6] leading-relaxed border-t border-white/10 font-medium">
-                      {faq.answer}
+                    <span className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors duration-300 pr-4">{faq.question}</span>
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 cursor-pointer",
+                      isExpanded ? "bg-indigo-500 text-slate-950 shadow-indigo-500/30 shadow-[0_0_15px_var(--color-indigo-500)]" : "bg-white/5 text-white border border-white/10"
+                    )}
+                      aria-hidden="true"
+                      onClick={() => setOpenIndex(isExpanded ? null : i)}
+                    >
+                      <ChevronDown className={cn("w-5 h-5 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
+                  </button>
+                </h3>
+
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={headingId}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="p-6 text-[#D6D6D6] leading-relaxed border-t border-white/10 font-medium">
+                        {faq.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

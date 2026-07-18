@@ -4,6 +4,8 @@ import { Building, MapPin, Briefcase, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { ApplicationForm } from "@/components/careers/ApplicationForm";
 import type { Metadata } from "next";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/sections/Footer";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -24,7 +26,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ slug
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20">
+    <>
+    <Navbar />
+    <div className="pt-44 pb-20">
       <div className="max-w-5xl mx-auto px-6">
         
         <Link href="/careers" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-8 transition-colors">
@@ -67,5 +71,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ slug
 
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, BarChart } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { getCaseStudies } from "@/lib/actions";
 
 const defaultCases = [
   {
@@ -22,6 +25,7 @@ const defaultCases = [
 ];
 
 interface CaseStudiesProps {
+  isCentered?: boolean;
   tagline?: string;
   heading?: string;
   cases?: any[];
@@ -30,27 +34,48 @@ interface CaseStudiesProps {
 }
 
 export function CaseStudiesSection({
+  isCentered = false,
   tagline = "Case Studies",
   heading = "Real Results for Real Businesses",
-  cases = defaultCases,
+  cases: propCases,
   limit = 2,
   showViewAll = true,
 }: CaseStudiesProps) {
+  const [liveCases, setLiveCases] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!propCases) {
+      getCaseStudies()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLiveCases(data);
+          } else {
+            setLiveCases(defaultCases);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live case studies:", err);
+          setLiveCases(defaultCases);
+        });
+    }
+  }, [propCases]);
+
+  const cases = propCases || (liveCases.length > 0 ? liveCases : defaultCases);
   const displayCases = (limit && limit > 0) ? cases.slice(0, limit) : cases;
   return (
-    <section id="case-studies" className="py-32 px-8 md:px-24 bg-slate-950 relative overflow-hidden">
+    <section id="case-studies" aria-label="Case studies" className={`${!isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-          <div className="max-w-2xl">
+        <div className={`flex flex-col md:flex-row md:items-end justify-between items-center mb-20 gap-8`}>
+          <div className={`text-center max-w-2xl`}>
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)]"
             >
               {tagline}
             </motion.div>
@@ -91,14 +116,17 @@ export function CaseStudiesSection({
             >
               <Link href={`/blog/${item.slug || "#"}`}>
                 <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
-                  <img
+                  <Image
                     src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800"}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
                   />
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.color || "from-indigo-600 to-purple-600"} opacity-40 mix-blend-multiply`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                  
+
                   <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between">
                     <div>
                       <div className="text-white/60 text-sm font-bold uppercase tracking-widest mb-1">{item.category || item.client || "Success Story"}</div>
@@ -110,7 +138,7 @@ export function CaseStudiesSection({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between px-4">
                   <div className="flex items-center gap-2 text-slate-400 font-bold group-hover:text-indigo-400 transition-colors">
                     <BarChart className="w-5 h-5 text-indigo-500" />

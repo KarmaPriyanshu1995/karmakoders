@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@source "../**/*.{js,ts,jsx,tsx}";
+@source "./(admin)/admin/login/page.tsx";
+@source "./(admin)/admin/(dashboard)/page.tsx";
+@source "./(admin)/admin/(dashboard)/layout.tsx";
 @plugin "@tailwindcss/typography";
 
 @theme {

@@ -9,3 +9,4 @@ export async function generateMetadata() {
 export default function CareersPage() {
   return <CmsPageView slug="careers" />;
 }
+

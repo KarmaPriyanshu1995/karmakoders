@@ -7,7 +7,7 @@ export default function CanonicalURL() {
   
   // Clean up potential trailing slashes except for root
   const cleanPathname = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
-  const canonicalUrl = `https://karmakoders.xyz${cleanPathname}`;
+  const canonicalUrl = `https://karmakoders.com${cleanPathname}`;
 
   return (
     <>

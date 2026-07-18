@@ -44,7 +44,7 @@ export function AboutSection({
   features = defaultFeatures,
 }: AboutProps) {
   return (
-    <section id="about" className="relative py-32 px-8 md:px-24 overflow-hidden">
+    <section id="about" aria-label="About us" className="relative pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 overflow-hidden">
       {/* bg glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500 opacity-[0.02] blur-[200px] pointer-events-none" />
 
@@ -88,7 +88,7 @@ export function AboutSection({
                 {ctaText}
               </a>
             ) : (
-              <a href="#contact" className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
+              <a href="/contact" className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
                 Work With Us
               </a>
             )}
@@ -97,7 +97,7 @@ export function AboutSection({
                 {internalLinkText}
               </a>
             ) : (
-              <a href="#case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
+              <a href="/case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
                 View Case Studies
               </a>
             )}
