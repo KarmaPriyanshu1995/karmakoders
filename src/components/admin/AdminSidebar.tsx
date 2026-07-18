@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -17,11 +17,40 @@ import {
   Building,
   Menu,
   X,
+  Activity,
+  ChevronDown,
+  Search,
+  Building2,
+  Map,
+  Link2,
+  Code2,
+  Wrench,
+  BarChart3,
+  TrendingUp,
+  MousePointerClick,
+  PieChart,
+  Star,
+  Bot,
+  Zap,
+  Settings2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  exact?: boolean;
+  children?: {
+    href: string;
+    label: string;
+    icon: any;
+    exact?: boolean;
+  }[];
+}
+
+const navItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/pages", label: "Pages & Sections", icon: Layers },
   { href: "/admin/blog", label: "Blog Posts", icon: FileText },
@@ -31,12 +60,48 @@ const navItems = [
   { href: "/admin/media", label: "Media Library", icon: ImageIcon },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/appearance", label: "Appearance", icon: Palette },
+  {
+    href: "/admin/seo",
+    label: "SEO Intelligence",
+    icon: Activity,
+    children: [
+      { href: "/admin/seo", label: "SEO Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/admin/seo/analyzer", label: "Page Analyzer", icon: Search },
+      { href: "/admin/seo/entities", label: "Entity Center", icon: Building2 },
+      { href: "/admin/seo/content", label: "Content Intelligence", icon: FileText },
+      { href: "/admin/seo/authority", label: "Topical Authority", icon: Map },
+      { href: "/admin/seo/internal-links", label: "Internal Links", icon: Link2 },
+      { href: "/admin/seo/schema", label: "Schema Center", icon: Code2 },
+      { href: "/admin/seo/technical", label: "Technical SEO", icon: Wrench },
+      { href: "/admin/seo/search-console", label: "Search Console", icon: BarChart3 },
+      { href: "/admin/seo/keywords", label: "Keyword Opportunities", icon: TrendingUp },
+      { href: "/admin/seo/ctr", label: "CTR Optimization", icon: MousePointerClick },
+      { href: "/admin/seo/content-gap", label: "Content Gap", icon: PieChart },
+      { href: "/admin/seo/competitors", label: "Competitor Intel", icon: Users },
+      { href: "/admin/seo/brand", label: "Brand Authority", icon: Star },
+      { href: "/admin/seo/ai-assistant", label: "AI SEO Assistant", icon: Bot },
+      { href: "/admin/seo/automation", label: "SEO Automation", icon: Zap },
+      { href: "/admin/seo/settings", label: "Settings", icon: Settings2 },
+    ],
+  },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  // Auto-expand parent items when on a sub-route
+  useEffect(() => {
+    const initialExpanded: Record<string, boolean> = {};
+    navItems.forEach((item) => {
+      if (item.children && pathname.startsWith(item.href)) {
+        initialExpanded[item.href] = true;
+      }
+    });
+    setExpandedItems((prev) => ({ ...prev, ...initialExpanded }));
+  }, [pathname]);
 
   const isActive = (item: { href: string; exact?: boolean }) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
@@ -74,28 +139,101 @@ export function AdminSidebar() {
         </div>
         <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
-            const active = isActive(item);
+            const hasChildren = !!item.children;
+            const isExpanded = !!expandedItems[item.href];
+            
+            const isExactActive = pathname === item.href;
+            const isChildActive = hasChildren && pathname.startsWith(item.href) && !isExactActive;
+            
+            const parentHighlight = isExactActive
+              ? "bg-[#FFC300]/10 text-[#FFC300] border-[#FFC300]/20 shadow-[0_0_15px_rgba(255,195,0,0.05)]"
+              : isChildActive
+                ? "text-white bg-white/5 border-white/10"
+                : "text-[#D6D6D6] border-transparent hover:text-white hover:bg-white/5 hover:border-white/10";
+
+            const parentIconColor = (isExactActive || isChildActive)
+              ? "text-[#FFC300]"
+              : "text-slate-400 group-hover:text-white";
+
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={cn(
-                  "flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 group",
-                  active
-                    ? "bg-[#FFC300]/10 text-[#FFC300] border border-[#FFC300]/20 shadow-[0_0_15px_rgba(255,195,0,0.05)]"
-                    : "text-[#D6D6D6] border border-transparent hover:text-white hover:bg-white/5 hover:border-white/10"
+              <div key={item.href} className="space-y-1">
+                {hasChildren ? (
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl font-bold transition-all duration-300 border group",
+                      parentHighlight
+                    )}
+                  >
+                    <Link
+                      href={item.href}
+                      onClick={() => {
+                        setIsOpen(false);
+                        setExpandedItems((prev) => ({ ...prev, [item.href]: true }));
+                      }}
+                      className="flex-1 flex items-center px-4 py-3"
+                    >
+                      <item.icon className={cn("w-5 h-5 mr-3 flex-shrink-0 transition-colors", parentIconColor)} />
+                      {item.label}
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setExpandedItems((prev) => ({ ...prev, [item.href]: !prev[item.href] }));
+                      }}
+                      className="px-4 py-3.5 text-slate-400 hover:text-white transition-all flex items-center justify-center rounded-r-xl hover:bg-white/5"
+                      aria-label={isExpanded ? "Collapse section" : "Expand section"}
+                    >
+                      <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isExpanded && "rotate-180")} />
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 border group",
+                      parentHighlight
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5 mr-3 flex-shrink-0 transition-colors", parentIconColor)} />
+                    {item.label}
+                    {isExactActive && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FFC300] shadow-[0_0_5px_#FFC300]" />
+                    )}
+                  </Link>
                 )}
-              >
-                <item.icon className={cn(
-                  "w-5 h-5 mr-3 flex-shrink-0 transition-colors",
-                  active ? "text-[#FFC300]" : "text-slate-400 group-hover:text-white"
-                )} />
-                {item.label}
-                {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FFC300] shadow-[0_0_5px_#FFC300]" />
+
+                {hasChildren && isExpanded && item.children && (
+                  <div className="pl-6 space-y-1 mt-1 border-l border-white/5 ml-6 animate-in slide-in-from-top-1 duration-200">
+                    {item.children.map((child) => {
+                      const childActive = isActive(child);
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "flex items-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 border group",
+                            childActive
+                              ? "text-[#FFC300] bg-[#FFC300]/10 border-[#FFC300]/20"
+                              : "text-slate-400 border-transparent hover:text-white hover:bg-white/5"
+                          )}
+                        >
+                          <child.icon className={cn(
+                            "w-4 h-4 mr-2.5 flex-shrink-0 transition-colors",
+                            childActive ? "text-[#FFC300]" : "text-slate-500 group-hover:text-white"
+                          )} />
+                          <span className="truncate">{child.label}</span>
+                          {childActive && (
+                            <span className="ml-auto w-1 h-1 rounded-full bg-[#FFC300] shadow-[0_0_4px_#FFC300]" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>

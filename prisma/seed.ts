@@ -51,6 +51,7 @@ async function main() {
           title: sitePage.defaultMeta.title,
           description: sitePage.defaultMeta.description,
         })
+      : undefined;
     const page = await prisma.page.upsert({
       where: { slug: sitePage.slug },
       update: { title: sitePage.title, isPublished: true },
