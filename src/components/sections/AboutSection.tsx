@@ -13,16 +13,34 @@ const defaultFeatures = [
 ];
 
 interface AboutProps {
+  h1?: string;
   tagline?: string;
   heading?: string;
   body?: string;
+  secondaryBody?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  imageTitle?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  internalLinkText?: string;
+  internalLinkUrl?: string;
   features?: typeof defaultFeatures;
 }
 
 export function AboutSection({
+  h1,
   tagline = "Who We Are",
   heading = "We Build Digital Experiences That Captivate",
   body = "karmakoders is a premier digital agency at the intersection of design, engineering, and artificial intelligence. Founded by technologists and designers who believe the web should feel alive, we craft immersive platforms that convert visitors into loyal advocates.",
+  secondaryBody,
+  imageUrl,
+  imageAlt,
+  imageTitle,
+  ctaText,
+  ctaUrl,
+  internalLinkText,
+  internalLinkUrl,
   features = defaultFeatures,
 }: AboutProps) {
   return (
@@ -41,15 +59,48 @@ export function AboutSection({
           >
             {tagline}
           </motion.div>
-          <h2 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{heading}</h2>
+          {h1 ? (
+            <h1 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{h1}</h1>
+          ) : (
+            <h2 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{heading}</h2>
+          )}
+          {h1 && heading && (
+            <h2 className="mt-3 text-2xl md:text-3xl font-semibold text-slate-200">{heading}</h2>
+          )}
           <p className="mt-6 text-slate-300 text-lg leading-relaxed font-medium">{body}</p>
+          {secondaryBody && (
+            <p className="mt-4 text-slate-400 text-base leading-relaxed">{secondaryBody}</p>
+          )}
+          {imageUrl && (
+            <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt={imageAlt || h1 || heading || "About section image"}
+                title={imageTitle}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          )}
           <div className="mt-10 flex flex-wrap gap-4">
-            <a href="/contact" className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
-              Work With Us
-            </a>
-            <a href="/case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
-              View Case Studies
-            </a>
+            {ctaText && ctaUrl ? (
+              <a href={ctaUrl} className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
+                {ctaText}
+              </a>
+            ) : (
+              <a href="/contact" className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 font-black rounded-xl transition-all shadow-[0_0_20px_var(--color-indigo-500)]/30 hover:shadow-[0_0_30px_var(--color-indigo-500)] hover:-translate-y-1">
+                Work With Us
+              </a>
+            )}
+            {internalLinkText && internalLinkUrl ? (
+              <a href={internalLinkUrl} className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
+                {internalLinkText}
+              </a>
+            ) : (
+              <a href="/case-studies" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all shadow-indigo-500/5 hover:shadow-indigo-500/20">
+                View Case Studies
+              </a>
+            )}
           </div>
         </motion.div>
 

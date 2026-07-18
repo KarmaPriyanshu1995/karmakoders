@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { DEFAULT_POSTS, type PostData } from "@/lib/constants";
+import { getPosts } from "@/lib/actions";
 
 interface BlogProps {
   tagline?: string;
@@ -19,10 +20,30 @@ interface BlogProps {
 export function BlogSection({
   tagline = "Our Blog",
   heading = "Latest Insights & Digital Trends",
-  posts = DEFAULT_POSTS,
+  posts: propPosts,
   showViewAll = true,
-  postsPerPage,
+  postsPerPage = 9,
 }: BlogProps) {
+  const [livePosts, setLivePosts] = useState<PostData[]>([]);
+
+  useEffect(() => {
+    if (!propPosts) {
+      getPosts()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLivePosts(data as unknown as PostData[]);
+          } else {
+            setLivePosts(DEFAULT_POSTS);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live posts:", err);
+          setLivePosts(DEFAULT_POSTS);
+        });
+    }
+  }, [propPosts]);
+
+  const posts = propPosts || (livePosts.length > 0 ? livePosts : DEFAULT_POSTS);
   const [currentPage, setCurrentPage] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = postsPerPage || 9;

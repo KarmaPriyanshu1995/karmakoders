@@ -1,22 +1,11 @@
-import { ServicesSection } from "@/components/sections/ServicesSection";
-import { Footer } from "@/components/sections/Footer";
-import { Navbar } from "@/components/Navbar";
+import { CmsPageView, generateCmsMetadata } from "@/components/CmsPageView";
 
-export const metadata = {
-  title: "Services | karmakoders",
-  description: "Comprehensive solutions for your business - UI/UX, Web Dev, AI, and more.",
-};
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  return generateCmsMetadata("services");
+}
 
 export default function ServicesPage() {
-  return (
-    <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
-      <Navbar />
-
-      <div>
-        <ServicesSection isSpace={true} />  
-      </div>
-
-      <Footer />
-    </main>
-  );
+  return <CmsPageView slug="services" />;
 }

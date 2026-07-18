@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Briefcase, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getJobs } from "@/lib/actions";
+import Link from "next/link";
 
 const defaultJobs = [
   {
@@ -10,24 +13,28 @@ const defaultJobs = [
     location: "Remote / SF",
     type: "Full-time",
     department: "Engineering",
+    slug: "senior-ai-engineer",
   },
   {
     title: "Lead UI Designer",
     location: "Remote / NY",
     type: "Full-time",
     department: "Design",
+    slug: "lead-ui-designer",
   },
   {
     title: "Full Stack Developer",
     location: "Remote",
     type: "Full-time",
     department: "Engineering",
+    slug: "full-stack-developer",
   },
   {
     title: "Product Manager",
     location: "London",
     type: "Full-time",
     department: "Product",
+    slug: "product-manager",
   },
 ];
 
@@ -35,15 +42,36 @@ interface CareersProps {
   tagline?: string;
   heading?: string;
   description?: string;
-  jobs?: typeof defaultJobs;
+  jobs?: any[];
 }
 
 export function CareersSection({
   tagline = "Join Our Team",
   heading = "Shape the Future of AI & Design",
   description = "We're always looking for visionary talent passionate about design, engineering, and artificial intelligence.",
-  jobs = defaultJobs,
+  jobs: propJobs,
 }: CareersProps) {
+  const [liveJobs, setLiveJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!propJobs) {
+      getJobs()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLiveJobs(data);
+          } else {
+            setLiveJobs(defaultJobs);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live jobs:", err);
+          setLiveJobs(defaultJobs);
+        });
+    }
+  }, [propJobs]);
+
+  const jobs = propJobs || (liveJobs.length > 0 ? liveJobs : defaultJobs);
+
   return (
     <section id="careers" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       {/* Glow background */}
@@ -92,33 +120,34 @@ export function CareersSection({
           
           <div className="lg:w-2/3 w-full space-y-6">
             {jobs.map((job, i) => (
-              <motion.div
-                key={job.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="group p-8 md:p-10 rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-indigo-500/10 transition-all duration-500 flex flex-col sm:flex-row sm:items-center justify-between gap-6 cursor-pointer"
-              >
-                <div>
-                  <div className="text-indigo-500 text-xs font-bold uppercase tracking-widest mb-3">{job.department}</div>
-                  <h3 className="text-3xl font-bold text-white mb-5 group-hover:text-indigo-400 transition-colors duration-300">{job.title}</h3>
-                  <div className="flex flex-wrap gap-6 text-[#D6D6D6] text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-indigo-500" />
-                      {job.location}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-indigo-500" />
-                      {job.type}
+              <Link href={`/careers/${job.slug || "#"}`} key={job.title} className="block">
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                  className="group p-8 md:p-10 rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-indigo-500/10 transition-all duration-500 flex flex-col sm:flex-row sm:items-center justify-between gap-6 cursor-pointer"
+                >
+                  <div>
+                    <div className="text-indigo-500 text-xs font-bold uppercase tracking-widest mb-3">{job.department}</div>
+                    <h3 className="text-3xl font-bold text-white mb-5 group-hover:text-indigo-400 transition-colors duration-300">{job.title}</h3>
+                    <div className="flex flex-wrap gap-6 text-[#D6D6D6] text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-indigo-500" />
+                        {job.location}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-500" />
+                        {job.type}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="w-14 h-14 rounded-full border border-white/20 flex items-center justify-center text-white group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-all duration-300 shadow-lg group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]">
-                  <ArrowRight className="w-6 h-6 group-hover:-rotate-45 transition-transform duration-300" />
-                </div>
-              </motion.div>
+                  
+                  <div className="w-14 h-14 rounded-full border border-white/20 flex items-center justify-center text-white group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-all duration-300 shadow-lg group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                    <ArrowRight className="w-6 h-6 group-hover:-rotate-45 transition-transform duration-300" />
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>

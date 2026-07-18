@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
+import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -10,13 +11,6 @@ export async function getPages() {
   return prisma.page.findMany({
     include: { sections: { orderBy: { order: "asc" } } },
     orderBy: { title: "asc" },
-  });
-}
-
-export async function getPageBySlug(slug: string) {
-  return prisma.page.findUnique({
-    where: { slug },
-    include: { sections: { orderBy: { order: "asc" } } },
   });
 }
 

@@ -1,38 +1,11 @@
-import { getProjects, getCaseStudies } from "@/lib/actions";
-import { ProjectsSection } from "@/components/sections/ProjectsSection";
-import { CaseStudiesSection } from "@/components/sections/CaseStudiesSection";
-import { Footer } from "@/components/sections/Footer";
-import { Navbar } from "@/components/Navbar";
+import { CmsPageView, generateCmsMetadata } from "@/components/CmsPageView";
 
-export const metadata = {
-  title: "Portfolio | karmakoders",
-  description: "Transforming visions into digital reality - our selected works and case studies.",
-};
+export const dynamic = "force-dynamic";
 
-export default async function PortfolioPage() {
-  const projects = await getProjects();
-  const cases = await getCaseStudies();
+export async function generateMetadata() {
+  return generateCmsMetadata("portfolio");
+}
 
-  return (
-    <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
-      <Navbar />
-
-      <div>
-        <ProjectsSection 
-          isCentered={true}
-          projects={projects.length > 0 ? projects : undefined} 
-          limit={4}
-          showViewAll={true}
-        />
-        <CaseStudiesSection 
-          isCentered={true}
-          cases={cases.length > 0 ? cases : undefined}
-          limit={2}
-          showViewAll={true}
-        />
-      </div>
-
-      <Footer />
-    </main>
-  );
+export default function PortfolioPage() {
+  return <CmsPageView slug="portfolio" />;
 }

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, BarChart } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getCaseStudies } from "@/lib/actions";
 
 const defaultCases = [
   {
@@ -35,10 +37,30 @@ export function CaseStudiesSection({
   isCentered = false,
   tagline = "Case Studies",
   heading = "Real Results for Real Businesses",
-  cases = defaultCases,
+  cases: propCases,
   limit = 2,
   showViewAll = true,
 }: CaseStudiesProps) {
+  const [liveCases, setLiveCases] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!propCases) {
+      getCaseStudies()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLiveCases(data);
+          } else {
+            setLiveCases(defaultCases);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live case studies:", err);
+          setLiveCases(defaultCases);
+        });
+    }
+  }, [propCases]);
+
+  const cases = propCases || (liveCases.length > 0 ? liveCases : defaultCases);
   const displayCases = (limit && limit > 0) ? cases.slice(0, limit) : cases;
   return (
     <section id="case-studies" aria-label="Case studies" className={`${!isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
