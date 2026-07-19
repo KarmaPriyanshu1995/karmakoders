@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { runAudit, AuditPage } from "@/lib/seo/auditEngine";
 import { calcSiteScores } from "@/lib/seo/scorer";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     // Fetch all content
-    const [pages, posts, projects, seoPages, latestAudit, issues, brand, searchConsole, keywords] = await Promise.all([
+    const [pages, posts, projects, seoPages, latestAudit, issues, brand, searchConsole, keywords] = await withDbRetry(() => Promise.all([
       prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, isPublished: true } }),
       prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, published: true, content: true, image: true } }),
       prisma.project.findMany({ select: { id: true, slug: true, title: true, content: true } }),
@@ -18,7 +18,7 @@ export async function GET() {
       prisma.seoBrand.findFirst(),
       prisma.seoSearchConsole.findFirst({ orderBy: { fetchedAt: "desc" } }),
       prisma.seoKeywordOpportunity.findMany({ orderBy: { opportunityScore: "desc" }, take: 10 }),
-    ]);
+    ]));
 
     // Build audit pages from DB content
     const auditPages: AuditPage[] = [

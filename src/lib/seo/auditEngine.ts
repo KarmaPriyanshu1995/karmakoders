@@ -79,7 +79,7 @@ function buildUrl(page: { type: string; slug: string }): string {
 async function checkExternalLink(url: string): Promise<{ isBroken: boolean; size?: number }> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
     const res = await fetch(url, {
       method: "HEAD",
       signal: controller.signal,
@@ -100,7 +100,7 @@ async function checkExternalLink(url: string): Promise<{ isBroken: boolean; size
 
     // Try GET if HEAD fails
     const getController = new AbortController();
-    const getTimeoutId = setTimeout(() => getController.abort(), 2000);
+    const getTimeoutId = setTimeout(() => getController.abort(), 1000);
     const getRes = await fetch(url, {
       method: "GET",
       signal: getController.signal,
@@ -123,7 +123,7 @@ async function checkExternalLink(url: string): Promise<{ isBroken: boolean; size
 
 async function validateExternalUrls(urls: string[]): Promise<Map<string, { isBroken: boolean; size?: number }>> {
   const results = new Map<string, { isBroken: boolean; size?: number }>();
-  const batchSize = 5;
+  const batchSize = 25;
   for (let i = 0; i < urls.length; i += batchSize) {
     const batch = urls.slice(i, i + batchSize);
     await Promise.all(

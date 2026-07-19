@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { clearRemoteEntityCache } from "@/lib/seo/entityDetector";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const entities = await prisma.seoEntity.findMany({ orderBy: { createdAt: "desc" } });
+    let entities = await withDbRetry(() => prisma.seoEntity.findMany({ orderBy: { createdAt: "desc" } }));
+    
+    if (entities.length === 0) {
+      const defaultEntities = [
+        { type: "brand", name: "karmakoders", description: "Premium Next-gen Web & AI engineering agency", sitewide: true },
+        { type: "person", name: "Priyanshu Singh", description: "Founder and Chief Architect at karmakoders", sitewide: true },
+        { type: "technology", name: "Next.js", description: "React Framework for Production", sitewide: true },
+        { type: "technology", name: "React", description: "JavaScript library for user interfaces", sitewide: true },
+        { type: "technology", name: "TypeScript", description: "Typed superset of JavaScript", sitewide: true },
+        { type: "technology", name: "Prisma", description: "Next-generation Node.js & TypeScript ORM", sitewide: true },
+        { type: "service", name: "Web Engineering", description: "Custom web development using React & Next.js", sitewide: true },
+        { type: "service", name: "AI Automation", description: "Custom AI integrations and business process agents", sitewide: true },
+        { type: "service", name: "UI/UX Design", description: "Futuristic, premium design systems", sitewide: true }
+      ];
+      
+      await withDbRetry(() =>
+        prisma.seoEntity.createMany({ data: defaultEntities })
+      );
+      
+      entities = await withDbRetry(() => prisma.seoEntity.findMany({ orderBy: { createdAt: "desc" } }));
+    }
+    
     return NextResponse.json({ entities });
   } catch (error) {
+    console.error("[SEO Entities GET]", error);
     return NextResponse.json({ error: "Failed to load entities" }, { status: 500 });
   }
 }
@@ -30,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A valid entity type is required" }, { status: 400 });
     }
 
-    const entity = await prisma.seoEntity.create({
+    const entity = await withDbRetry(() => prisma.seoEntity.create({
       data: {
         type,
         name,
@@ -38,7 +60,7 @@ export async function POST(req: NextRequest) {
         aliases: typeof body.aliases === "string" && body.aliases.trim() ? body.aliases.trim() : null,
         sitewide: body.sitewide ?? true,
       },
-    });
+    }));
     clearRemoteEntityCache();
     return NextResponse.json({ entity }, { status: 201 });
   } catch (error) {
@@ -52,7 +74,7 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
-    await prisma.seoEntity.delete({ where: { id } });
+    await withDbRetry(() => prisma.seoEntity.delete({ where: { id } }));
     clearRemoteEntityCache();
     return NextResponse.json({ success: true });
   } catch (error) {

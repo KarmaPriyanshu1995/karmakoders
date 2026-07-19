@@ -22,11 +22,46 @@ export const SITE_PAGES: SitePageDefinition[] = [
   { slug: "contact", title: "Contact", defaultMeta: { title: "Contact | karmakoders", description: "Get in touch with karmakoders for your next project." } },
   { slug: "services", title: "Services", defaultMeta: { title: "Services | karmakoders", description: "Explore our full range of design and development services." } },
   { slug: "case-studies", title: "Case Studies", defaultMeta: { title: "Case Studies | karmakoders", description: "Real-world results from our client partnerships." } },
-  { slug: "help-center", title: "Help Center" },
-  { slug: "terms", title: "Terms of Service" },
-  { slug: "privacy", title: "Privacy Policy" },
-  { slug: "cookie-policy", title: "Cookie Policy" },
-  { slug: "contact-support", title: "Contact Support" },
+  {
+    slug: "help-center",
+    title: "Help Center",
+    defaultMeta: {
+      title: "Help Center | karmakoders",
+      description: "Need help? Search our help center for tutorials, documentation, and answers to frequently asked questions about karmakoders.",
+    },
+  },
+  {
+    slug: "terms",
+    title: "Terms of Service",
+    defaultMeta: {
+      title: "Terms of Service | karmakoders",
+      description: "Read our terms of service to understand the rules, guidelines, and agreements for using the karmakoders platform and services.",
+    },
+  },
+  {
+    slug: "privacy",
+    title: "Privacy Policy",
+    defaultMeta: {
+      title: "Privacy Policy | karmakoders",
+      description: "Your privacy is important to us. Read our privacy policy to learn how karmakoders collects, uses, and protects your personal information.",
+    },
+  },
+  {
+    slug: "cookie-policy",
+    title: "Cookie Policy",
+    defaultMeta: {
+      title: "Cookie Policy | karmakoders",
+      description: "Learn about how we use cookies and tracking technologies to improve your experience on the karmakoders website.",
+    },
+  },
+  {
+    slug: "contact-support",
+    title: "Contact Support",
+    defaultMeta: {
+      title: "Contact Support | karmakoders",
+      description: "Get in touch with the karmakoders support team for technical assistance, troubleshooting, or billing inquiries.",
+    },
+  },
 ];
 
 /** Legacy slugs from older seeds that should be migrated to the canonical slug. */

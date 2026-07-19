@@ -20,6 +20,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "karmakoders",
     url: "https://www.karmakoders.com",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "karmakoders – Premium AI Web Platforms",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

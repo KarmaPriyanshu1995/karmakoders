@@ -43,6 +43,7 @@ interface CareersProps {
   heading?: string;
   description?: string;
   jobs?: any[];
+  isFirstSection?: boolean;
 }
 
 export function CareersSection({
@@ -50,6 +51,7 @@ export function CareersSection({
   heading = "Shape the Future of AI & Design",
   description = "We're always looking for visionary talent passionate about design, engineering, and artificial intelligence.",
   jobs: propJobs,
+  isFirstSection = false,
 }: CareersProps) {
   const [liveJobs, setLiveJobs] = useState<any[]>([]);
 
@@ -88,15 +90,27 @@ export function CareersSection({
             >
               {tagline}
             </motion.div>
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
-            >
-              {heading}
-            </motion.h2>
+            {isFirstSection ? (
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h1>
+            ) : (
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h2>
+            )}
             <motion.p
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}

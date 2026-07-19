@@ -54,7 +54,7 @@ async function main() {
       : undefined;
     const page = await prisma.page.upsert({
       where: { slug: sitePage.slug },
-      update: { title: sitePage.title, isPublished: true },
+      update: { title: sitePage.title, isPublished: true, ...(seoMeta ? { seoMeta } : {}) },
       create: {
         slug: sitePage.slug,
         title: sitePage.title,
@@ -87,9 +87,13 @@ async function main() {
   console.log("📝 Seeding blog posts...");
   const { DEFAULT_POSTS, DEFAULT_PROJECTS } = await import("../src/lib/constants");
   for (const post of DEFAULT_POSTS) {
+    const defaultPostMeta = JSON.stringify({
+      title: `${post.title} | karmakoders Blog`,
+      description: post.excerpt || `${post.title} - Read the latest articles and insights from the team at karmakoders.`,
+    });
     await prisma.post.upsert({
       where: { slug: post.slug },
-      update: {},
+      update: { seoMeta: defaultPostMeta },
       create: {
         title: post.title,
         slug: post.slug,
@@ -99,6 +103,7 @@ async function main() {
         category: post.category,
         author: post.author,
         published: true,
+        seoMeta: defaultPostMeta,
       },
     });
   }
@@ -119,6 +124,114 @@ async function main() {
         link: project.link,
       },
     });
+  }
+
+  // Seed schemas
+  console.log("🧩 Seeding default SEO schemas...");
+  const homePage = await prisma.page.findUnique({ where: { slug: "home" } });
+  const servicesPage = await prisma.page.findUnique({ where: { slug: "services" } });
+
+  if (homePage) {
+    const existingOrg = await prisma.seoSchema.findFirst({
+      where: { pageId: homePage.id, schemaType: "Organization" }
+    });
+    const orgData = {
+      pageType: "page",
+      pageId: homePage.id,
+      schemaType: "Organization",
+      schemaJson: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://www.karmakoders.com/#organization",
+        "name": "karmakoders",
+        "url": "https://www.karmakoders.com",
+        "logo": "https://www.karmakoders.com/logo.png",
+        "email": "info@karmakoders.com",
+        "sameAs": [
+          "https://github.com/karmakoders",
+          "https://twitter.com/karmakoders"
+        ]
+      }),
+      isApplied: true,
+    };
+    if (existingOrg) {
+      await prisma.seoSchema.update({ where: { id: existingOrg.id }, data: orgData });
+    } else {
+      await prisma.seoSchema.create({ data: orgData });
+    }
+
+    const existingFaq = await prisma.seoSchema.findFirst({
+      where: { pageId: homePage.id, schemaType: "FAQPage" }
+    });
+    const faqData = {
+      pageType: "page",
+      pageId: homePage.id,
+      schemaType: "FAQPage",
+      schemaJson: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How long does a typical project take?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Project timelines vary depending on complexity. A standard landing page takes about 2-3 weeks, while complex platforms can take 2-4 months."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What industries do you specialize in?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We have experience across fintech, healthcare, e-commerce, real estate, and entertainment."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do you offer post-launch support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, we provide tiered maintenance and support packages to ensure your platform remains secure and up-to-date."
+            }
+          }
+        ]
+      }),
+      isApplied: true,
+    };
+    if (existingFaq) {
+      await prisma.seoSchema.update({ where: { id: existingFaq.id }, data: faqData });
+    } else {
+      await prisma.seoSchema.create({ data: faqData });
+    }
+  }
+
+  if (servicesPage) {
+    const existingService = await prisma.seoSchema.findFirst({
+      where: { pageId: servicesPage.id, schemaType: "Service" }
+    });
+    const serviceData = {
+      pageType: "page",
+      pageId: servicesPage.id,
+      schemaType: "Service",
+      schemaJson: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "Web and Mobile Development Services",
+        "provider": {
+          "@type": "Organization",
+          "name": "karmakoders",
+          "url": "https://www.karmakoders.com"
+        },
+        "description": "Premium Next.js web design, custom software development, mobile apps, and SEO optimization."
+      }),
+      isApplied: true,
+    };
+    if (existingService) {
+      await prisma.seoSchema.update({ where: { id: existingService.id }, data: serviceData });
+    } else {
+      await prisma.seoSchema.create({ data: serviceData });
+    }
   }
 
   console.log("✅ Seeding complete.");

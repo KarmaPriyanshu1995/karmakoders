@@ -134,20 +134,7 @@ function computeRelevanceScore(
   return Math.min(100, Math.max(10, score));
 }
 
-async function getSeoPageMeta(pageType: string, pageId: string) {
-  return prisma.seoPage.findFirst({
-    where: { pageType, pageId },
-    select: { isOrphan: true, internalLinksCount: true },
-  });
-}
-
-async function getOutgoingLinkCount(fromPageId: string): Promise<number> {
-  return prisma.seoInternalLink.count({
-    where: { fromPageId, isSuggested: false },
-  });
-}
-
-async function mapLinkToRecommendation(
+function mapLinkToRecommendationSync(
   link: {
     id: string;
     fromPageId: string;
@@ -156,16 +143,19 @@ async function mapLinkToRecommendation(
     url: string;
     isSuggested: boolean;
   },
-  pageMap: Map<string, PageRecord>
-): Promise<InternalLinkRecommendation | null> {
+  pageMap: Map<string, PageRecord>,
+  seoPageMap: Map<string, { isOrphan: boolean; internalLinksCount: number }>,
+  outgoingLinkCountMap: Map<string, number>
+): InternalLinkRecommendation | null {
   const source = pageMap.get(link.fromPageId);
   const target = pageMap.get(link.toPageId);
   if (!source || !target) return null;
 
-  const targetSeo = await getSeoPageMeta(target.type, target.id);
+  const targetSeoKey = `${target.type}:${target.id}`;
+  const targetSeo = seoPageMap.get(targetSeoKey);
   const targetIsOrphan =
     targetSeo?.isOrphan === true || (targetSeo?.internalLinksCount ?? 0) === 0;
-  const sourceOutgoingCount = await getOutgoingLinkCount(source.id);
+  const sourceOutgoingCount = outgoingLinkCountMap.get(source.id) ?? 0;
   const overlapWords = countWordOverlap(source.title, target.title);
 
   const recommendationType = deriveRecommendationType(
@@ -271,9 +261,35 @@ export async function getRecommendations(): Promise<{
   const allPages = await loadAllPages();
   const pageMap = new Map(allPages.map((p) => [p.id, p]));
 
+  // Pre-fetch seoPages meta in a single query to eliminate N+1 queries
+  const seoPages = await prisma.seoPage.findMany({
+    select: { pageType: true, pageId: true, isOrphan: true, internalLinksCount: true },
+  });
+  const seoPageMap = new Map(
+    seoPages.map((sp) => [
+      `${sp.pageType}:${sp.pageId}`,
+      { isOrphan: sp.isOrphan, internalLinksCount: sp.internalLinksCount },
+    ])
+  );
+
+  // Pre-fetch outgoing link counts in a single query
+  const linkCounts = await prisma.seoInternalLink.groupBy({
+    by: ["fromPageId"],
+    where: { isSuggested: false },
+    _count: { id: true },
+  });
+  const outgoingLinkCountMap = new Map(
+    linkCounts.map((lc) => [lc.fromPageId, lc._count.id])
+  );
+
   const recommendations: InternalLinkRecommendation[] = [];
   for (const link of suggestedLinks) {
-    const rec = await mapLinkToRecommendation(link, pageMap);
+    const rec = mapLinkToRecommendationSync(
+      link,
+      pageMap,
+      seoPageMap,
+      outgoingLinkCountMap
+    );
     if (rec) recommendations.push(rec);
   }
 

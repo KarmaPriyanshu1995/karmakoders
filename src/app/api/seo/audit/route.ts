@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { syncSitePages } from "@/lib/actions";
 import { buildPageUrl } from "@/lib/sitePages";
 import { runAuditAsync, AuditPage } from "@/lib/seo/auditEngine";
@@ -12,15 +12,15 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    await syncSitePages();
+    await withDbRetry(() => syncSitePages());
 
-    const [pages, posts, projects] = await Promise.all([
+    const [pages, posts, projects] = await withDbRetry(() => Promise.all([
       prisma.page.findMany({
         include: { sections: { orderBy: { order: "asc" } } }
       }),
       prisma.post.findMany(),
       prisma.project.findMany(),
-    ]);
+    ]));
 
     const auditPages: AuditPage[] = [
       ...pages.map((p) => {
@@ -103,10 +103,10 @@ export async function POST() {
       where: { isFixed: false }
     });
 
-    // Upsert issues
-    for (const issue of result.issues) {
-      await prisma.seoIssue.create({
-        data: {
+    // Bulk insert issues using createMany
+    if (result.issues.length > 0) {
+      await prisma.seoIssue.createMany({
+        data: result.issues.map((issue) => ({
           pageId: issue.pageId || null,
           pageType: issue.pageType || null,
           url: issue.url || null,
@@ -114,22 +114,22 @@ export async function POST() {
           severity: issue.severity,
           description: issue.description,
           suggestion: issue.suggestion,
-        },
+        })),
       });
     }
 
-    // Save links to seo_internal_links
+    // Save links to seo_internal_links in bulk
     await prisma.seoInternalLink.deleteMany();
-    for (const link of result.internalLinks) {
-      await prisma.seoInternalLink.create({
-        data: {
+    if (result.internalLinks.length > 0) {
+      await prisma.seoInternalLink.createMany({
+        data: result.internalLinks.map((link) => ({
           fromPageId: link.fromPageId,
           toPageId: link.toPageId || "",
           url: link.url,
           anchorText: link.anchorText,
           isBroken: link.isBroken,
           isSuggested: false,
-        }
+        })),
       });
     }
 
@@ -137,135 +137,141 @@ export async function POST() {
     const dbSchemas = await prisma.seoSchema.findMany({ where: { isApplied: true } });
     const schemaMap = new Map(dbSchemas.map((s) => [s.pageId, s]));
 
-    for (const auditPage of auditPages) {
-      const url = buildPageUrl(auditPage.slug, auditPage.type);
-      
-      const analysis = analyzePage({
-        title: auditPage.title,
-        metaTitle: auditPage.metaTitle,
-        metaDescription: auditPage.metaDescription,
-        content: auditPage.content || "",
-        slug: auditPage.slug,
-      });
+    // Run all upserts in parallel
+    await Promise.all(
+      auditPages.map(async (auditPage) => {
+        const url = buildPageUrl(auditPage.slug, auditPage.type);
 
-      const entities = detectEntities((auditPage.content || "") + " " + (auditPage.title || ""));
-      const entityScore = calcEntityScore(entities.length, 10);
+        const analysis = analyzePage({
+          title: auditPage.title,
+          metaTitle: auditPage.metaTitle,
+          metaDescription: auditPage.metaDescription,
+          content: auditPage.content || "",
+          slug: auditPage.slug,
+        });
 
-      const incomingLinks = result.internalLinks.filter(l => l.toPageId === auditPage.id);
-      const incomingLinksCount = incomingLinks.length;
-      
-      const outgoingLinks = result.internalLinks.filter(l => l.fromPageId === auditPage.id);
+        const entities = detectEntities((auditPage.content || "") + " " + (auditPage.title || ""));
+        const entityScore = calcEntityScore(entities.length, 10);
 
-      const isOrphan = auditPage.slug !== "home" && incomingLinksCount === 0;
+        const incomingLinks = result.internalLinks.filter((l) => l.toPageId === auditPage.id);
+        const incomingLinksCount = incomingLinks.length;
 
-      const pageSchema = schemaMap.get(auditPage.id);
-      const hasSchema = !!pageSchema;
-      const schemaTypes = pageSchema?.schemaType ? [pageSchema.schemaType] : [];
+        const outgoingLinks = result.internalLinks.filter((l) => l.fromPageId === auditPage.id);
 
-      const pageIssues = result.issues.filter(i => i.pageId === auditPage.id);
+        const isOrphan = auditPage.slug !== "home" && incomingLinksCount === 0;
 
-      const scores = calcPageScores({
-        hasMetaTitle: !!analysis.metaTitle,
-        hasMetaDescription: !!analysis.metaDescription,
-        hasH1: !!analysis.h1,
-        multipleH1: analysis.headings.filter((h) => h.level === 1).length > 1,
-        wordCount: analysis.wordCount,
-        readabilityScore: analysis.readabilityScore,
-        imagesCount: analysis.imagesCount,
-        imagesWithAlt: analysis.imagesWithAlt,
-        isIndexed: auditPage.isIndexed !== false,
-        hasFaq: analysis.hasFaq,
-        headingCount: analysis.headings.length,
-        entityScore,
-        internalLinksCount: incomingLinksCount,
-        isOrphan,
-        hasSchema,
-        schemaTypes,
-        hasOptimizedTitle: (analysis.metaTitle?.length || 0) >= 50 && (analysis.metaTitle?.length || 0) <= 60,
-        hasOptimizedDesc: (analysis.metaDescription?.length || 0) >= 140 && (analysis.metaDescription?.length || 0) <= 160,
-      });
+        const pageSchema = schemaMap.get(auditPage.id);
+        const hasSchema = !!pageSchema;
+        const schemaTypes = pageSchema?.schemaType ? [pageSchema.schemaType] : [];
 
-      const recommendations = generateAllRecommendations({
-        url,
-        title: auditPage.title,
-        metaTitle: analysis.metaTitle,
-        metaDescription: analysis.metaDescription,
-        h1: analysis.h1,
-        wordCount: analysis.wordCount,
-        primaryKeyword: Object.keys(analysis.keywordDensity)[0] || "",
-        pageType: auditPage.type,
-        topKeywords: Object.keys(analysis.keywordDensity).slice(0, 5),
-        hasFaq: analysis.hasFaq,
-        hasSchema,
-        internalLinksCount: incomingLinksCount,
-        readabilityScore: analysis.readabilityScore,
-        issues: pageIssues,
-      });
+        const pageIssues = result.issues.filter((i) => i.pageId === auditPage.id);
 
-      await prisma.seoPage.upsert({
-        where: { pageType_pageId: { pageType: auditPage.type, pageId: auditPage.id } },
-        create: {
-          pageType: auditPage.type,
-          pageId: auditPage.id,
+        const scores = calcPageScores({
+          hasMetaTitle: !!analysis.metaTitle,
+          hasMetaDescription: !!analysis.metaDescription,
+          hasH1: !!analysis.h1,
+          multipleH1: analysis.headings.filter((h) => h.level === 1).length > 1,
+          wordCount: analysis.wordCount,
+          readabilityScore: analysis.readabilityScore,
+          imagesCount: analysis.imagesCount,
+          imagesWithAlt: analysis.imagesWithAlt,
+          isIndexed: auditPage.isIndexed !== false,
+          hasFaq: analysis.hasFaq,
+          headingCount: analysis.headings.length,
+          entityScore,
+          internalLinksCount: incomingLinksCount,
+          isOrphan,
+          hasSchema,
+          schemaTypes,
+          hasOptimizedTitle:
+            (analysis.metaTitle?.length || 0) >= 50 && (analysis.metaTitle?.length || 0) <= 60,
+          hasOptimizedDesc:
+            (analysis.metaDescription?.length || 0) >= 140 &&
+            (analysis.metaDescription?.length || 0) <= 160,
+        });
+
+        const recommendations = generateAllRecommendations({
           url,
           title: auditPage.title,
           metaTitle: analysis.metaTitle,
           metaDescription: analysis.metaDescription,
           h1: analysis.h1,
-          headingsJson: JSON.stringify(analysis.headings),
           wordCount: analysis.wordCount,
-          readabilityScore: analysis.readabilityScore,
-          keywordDensityJson: JSON.stringify(analysis.keywordDensity),
-          imagesCount: analysis.imagesCount,
-          imagesWithAlt: analysis.imagesWithAlt,
+          primaryKeyword: Object.keys(analysis.keywordDensity)[0] || "",
+          pageType: auditPage.type,
+          topKeywords: Object.keys(analysis.keywordDensity).slice(0, 5),
           hasFaq: analysis.hasFaq,
           hasSchema,
-          schemaTypes: schemaTypes.join(","),
           internalLinksCount: incomingLinksCount,
-          externalLinksCount: outgoingLinks.filter(l => l.isExternal).length,
-          contentScore: scores.content,
-          technicalScore: scores.technical,
-          entityScore: scores.entity,
-          internalLinkScore: scores.internalLink,
-          schemaScore: scores.schema,
-          ctrScore: scores.ctr,
-          overallScore: scores.overall,
-          issuesJson: JSON.stringify(pageIssues),
-          recommendationsJson: JSON.stringify(recommendations),
-          isIndexed: auditPage.isIndexed !== false,
-          isOrphan,
-        },
-        update: {
-          title: auditPage.title,
-          metaTitle: analysis.metaTitle,
-          metaDescription: analysis.metaDescription,
-          h1: analysis.h1,
-          headingsJson: JSON.stringify(analysis.headings),
-          wordCount: analysis.wordCount,
           readabilityScore: analysis.readabilityScore,
-          keywordDensityJson: JSON.stringify(analysis.keywordDensity),
-          imagesCount: analysis.imagesCount,
-          imagesWithAlt: analysis.imagesWithAlt,
-          hasFaq: analysis.hasFaq,
-          hasSchema,
-          schemaTypes: schemaTypes.join(","),
-          internalLinksCount: incomingLinksCount,
-          externalLinksCount: outgoingLinks.filter(l => l.isExternal).length,
-          contentScore: scores.content,
-          technicalScore: scores.technical,
-          entityScore: scores.entity,
-          internalLinkScore: scores.internalLink,
-          schemaScore: scores.schema,
-          ctrScore: scores.ctr,
-          overallScore: scores.overall,
-          issuesJson: JSON.stringify(pageIssues),
-          recommendationsJson: JSON.stringify(recommendations),
-          isIndexed: auditPage.isIndexed !== false,
-          isOrphan,
-          lastAnalyzed: new Date(),
-        },
-      });
-    }
+          issues: pageIssues,
+        });
+
+        await prisma.seoPage.upsert({
+          where: { pageType_pageId: { pageType: auditPage.type, pageId: auditPage.id } },
+          create: {
+            pageType: auditPage.type,
+            pageId: auditPage.id,
+            url,
+            title: auditPage.title,
+            metaTitle: analysis.metaTitle,
+            metaDescription: analysis.metaDescription,
+            h1: analysis.h1,
+            headingsJson: JSON.stringify(analysis.headings),
+            wordCount: analysis.wordCount,
+            readabilityScore: analysis.readabilityScore,
+            keywordDensityJson: JSON.stringify(analysis.keywordDensity),
+            imagesCount: analysis.imagesCount,
+            imagesWithAlt: analysis.imagesWithAlt,
+            hasFaq: analysis.hasFaq,
+            hasSchema,
+            schemaTypes: schemaTypes.join(","),
+            internalLinksCount: incomingLinksCount,
+            externalLinksCount: outgoingLinks.filter((l) => l.isExternal).length,
+            contentScore: scores.content,
+            technicalScore: scores.technical,
+            entityScore: scores.entity,
+            internalLinkScore: scores.internalLink,
+            schemaScore: scores.schema,
+            ctrScore: scores.ctr,
+            overallScore: scores.overall,
+            issuesJson: JSON.stringify(pageIssues),
+            recommendationsJson: JSON.stringify(recommendations),
+            isIndexed: auditPage.isIndexed !== false,
+            isOrphan,
+          },
+          update: {
+            title: auditPage.title,
+            metaTitle: analysis.metaTitle,
+            metaDescription: analysis.metaDescription,
+            h1: analysis.h1,
+            headingsJson: JSON.stringify(analysis.headings),
+            wordCount: analysis.wordCount,
+            readabilityScore: analysis.readabilityScore,
+            keywordDensityJson: JSON.stringify(analysis.keywordDensity),
+            imagesCount: analysis.imagesCount,
+            imagesWithAlt: analysis.imagesWithAlt,
+            hasFaq: analysis.hasFaq,
+            hasSchema,
+            schemaTypes: schemaTypes.join(","),
+            internalLinksCount: incomingLinksCount,
+            externalLinksCount: outgoingLinks.filter((l) => l.isExternal).length,
+            contentScore: scores.content,
+            technicalScore: scores.technical,
+            entityScore: scores.entity,
+            internalLinkScore: scores.internalLink,
+            schemaScore: scores.schema,
+            ctrScore: scores.ctr,
+            overallScore: scores.overall,
+            issuesJson: JSON.stringify(pageIssues),
+            recommendationsJson: JSON.stringify(recommendations),
+            isIndexed: auditPage.isIndexed !== false,
+            isOrphan,
+            lastAnalyzed: new Date(),
+          },
+        });
+      })
+    );
 
     return NextResponse.json({ success: true, audit: { id: audit.id, ...result } });
   } catch (error) {
@@ -276,7 +282,7 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const audits = await prisma.seoAudit.findMany({ orderBy: { runAt: "desc" }, take: 10 });
+    const audits = await withDbRetry(() => prisma.seoAudit.findMany({ orderBy: { runAt: "desc" }, take: 10 }));
     return NextResponse.json({ audits });
   } catch (error) {
     return NextResponse.json({ error: "Failed to load audits" }, { status: 500 });

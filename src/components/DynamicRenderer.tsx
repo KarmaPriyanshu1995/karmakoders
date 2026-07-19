@@ -52,14 +52,14 @@ interface DynamicRendererProps {
 export function DynamicRenderer({ sections }: DynamicRendererProps) {
   return (
     <>
-      {sections.map((section) => {
+      {sections.map((section, idx) => {
         const Component = sectionMap[section.type];
         
         if (!Component) {
-          return <ContentSection key={section.id} {...section.content} />;
+          return <ContentSection key={section.id} {...section.content} isFirstSection={idx === 0} />;
         }
 
-        return <Component key={section.id} {...section.content} />;
+        return <Component key={section.id} {...section.content} isFirstSection={idx === 0} />;
       })}
     </>
   );

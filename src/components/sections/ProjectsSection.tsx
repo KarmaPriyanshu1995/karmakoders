@@ -17,6 +17,7 @@ interface ProjectsProps {
   projects?: any[];
   limit?: number;
   showViewAll?: boolean;
+  isFirstSection?: boolean;
 }
 
 export function ProjectsSection({
@@ -26,6 +27,7 @@ export function ProjectsSection({
   projects: propProjects,
   limit = 6,
   showViewAll = true,
+  isFirstSection = false,
 }: ProjectsProps) {
   const [liveProjects, setLiveProjects] = useState<any[]>([]);
 
@@ -61,6 +63,8 @@ export function ProjectsSection({
     }
   };
 
+  const showAsFirst = isFirstSection || isCentered;
+
   return (
     <section id="portfolio" aria-label="Selected projects" className={`${isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glow */}
@@ -77,15 +81,27 @@ export function ProjectsSection({
             >
               {tagline}
             </motion.div>
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
-            >
-              {heading}
-            </motion.h2>
+            {showAsFirst ? (
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
+              >
+                {heading}
+              </motion.h1>
+            ) : (
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
+              >
+                {heading}
+              </motion.h2>
+            )}
           </div>
           
           <div className="flex items-center gap-4">

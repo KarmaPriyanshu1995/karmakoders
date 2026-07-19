@@ -26,6 +26,7 @@ interface AboutProps {
   internalLinkText?: string;
   internalLinkUrl?: string;
   features?: typeof defaultFeatures;
+  isFirstSection?: boolean;
 }
 
 export function AboutSection({
@@ -42,6 +43,7 @@ export function AboutSection({
   internalLinkText,
   internalLinkUrl,
   features = defaultFeatures,
+  isFirstSection = false,
 }: AboutProps) {
   return (
     <section id="about" aria-label="About us" className="relative pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 overflow-hidden">
@@ -59,12 +61,12 @@ export function AboutSection({
           >
             {tagline}
           </motion.div>
-          {h1 ? (
-            <h1 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{h1}</h1>
+          {(h1 || isFirstSection) ? (
+            <h1 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{h1 || heading}</h1>
           ) : (
             <h2 className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">{heading}</h2>
           )}
-          {h1 && heading && (
+          {h1 && heading && !isFirstSection && (
             <h2 className="mt-3 text-2xl md:text-3xl font-semibold text-slate-200">{heading}</h2>
           )}
           <p className="mt-6 text-slate-300 text-lg leading-relaxed font-medium">{body}</p>

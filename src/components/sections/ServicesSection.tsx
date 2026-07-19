@@ -56,6 +56,7 @@ interface ServicesProps {
   heading?: string;
   description?: string;
   services?: typeof defaultServices;
+  isFirstSection?: boolean;
 }
 
 export function ServicesSection({
@@ -64,7 +65,10 @@ export function ServicesSection({
   heading = "Comprehensive Solutions for Your Business",
   description = "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
   services = defaultServices,
+  isFirstSection = false,
 }: ServicesProps) {
+  const showAsFirst = isFirstSection || isSpace;
+
   return (
     <section id="services" aria-label="Our services" className={`relative ${isSpace ? "pt-28 sm:pt-32" : "mt-24"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950`}>
       {/* Background glow effects */}
@@ -81,15 +85,27 @@ export function ServicesSection({
           >
             {tagline}
           </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
-          >
-            {heading}
-          </motion.h2>
+          {showAsFirst ? (
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
+            >
+              {heading}
+            </motion.h1>
+          ) : (
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="mt-6 text-5xl md:text-6xl font-black text-white tracking-tight"
+            >
+              {heading}
+            </motion.h2>
+          )}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

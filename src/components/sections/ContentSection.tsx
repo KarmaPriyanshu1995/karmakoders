@@ -23,6 +23,7 @@ interface ContentSectionProps {
   internalLinkUrl?: string;
   faqs?: FaqItem[];
   className?: string;
+  isFirstSection?: boolean;
 }
 
 export function ContentSection({
@@ -41,6 +42,7 @@ export function ContentSection({
   internalLinkUrl,
   faqs = [],
   className = "",
+  isFirstSection = false,
 }: ContentSectionProps) {
   const mainTitle = h1 || heading;
 
@@ -59,7 +61,7 @@ export function ContentSection({
                 {tagline}
               </motion.span>
             )}
-            {h1 ? (
+            {(h1 || isFirstSection) ? (
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -67,7 +69,7 @@ export function ContentSection({
                 transition={{ delay: 0.1 }}
                 className="mt-4 text-4xl md:text-5xl font-bold text-white"
               >
-                {h1}
+                {h1 || heading}
               </motion.h1>
             ) : heading ? (
               <motion.h2
@@ -80,7 +82,7 @@ export function ContentSection({
                 {heading}
               </motion.h2>
             ) : null}
-            {h1 && heading && (
+            {h1 && heading && !isFirstSection && (
               <motion.h2
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}

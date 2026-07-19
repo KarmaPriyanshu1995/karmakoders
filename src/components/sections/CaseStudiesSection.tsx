@@ -31,6 +31,7 @@ interface CaseStudiesProps {
   cases?: any[];
   limit?: number;
   showViewAll?: boolean;
+  isFirstSection?: boolean;
 }
 
 export function CaseStudiesSection({
@@ -40,6 +41,7 @@ export function CaseStudiesSection({
   cases: propCases,
   limit = 2,
   showViewAll = true,
+  isFirstSection = false,
 }: CaseStudiesProps) {
   const [liveCases, setLiveCases] = useState<any[]>([]);
 
@@ -63,7 +65,7 @@ export function CaseStudiesSection({
   const cases = propCases || (liveCases.length > 0 ? liveCases : defaultCases);
   const displayCases = (limit && limit > 0) ? cases.slice(0, limit) : cases;
   return (
-    <section id="case-studies" aria-label="Case studies" className={`${!isCentered && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="case-studies" aria-label="Case studies" className={`${(isFirstSection || !isCentered) && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
@@ -79,15 +81,27 @@ export function CaseStudiesSection({
             >
               {tagline}
             </motion.div>
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight"
-            >
-              {heading}
-            </motion.h2>
+            {isFirstSection ? (
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h1>
+            ) : (
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="mt-4 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h2>
+            )}
           </div>
           {showViewAll && (
             <motion.div

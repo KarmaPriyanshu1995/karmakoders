@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SITE_PAGES } from "@/lib/sitePages";
+import { prisma } from "@/lib/prisma";
 
 interface CmsPageViewProps {
   slug: string;
@@ -40,6 +41,11 @@ export async function CmsPageView({ slug, withTopPadding = true }: CmsPageViewPr
     notFound();
   }
 
+  // Fetch custom schema markup applied to this page in the DB
+  const schemas = await prisma.seoSchema.findMany({
+    where: { pageId: page.id, isApplied: true },
+  });
+
   const sections = page.sections.map((s) => ({
     id: s.id,
     type: s.type,
@@ -49,6 +55,13 @@ export async function CmsPageView({ slug, withTopPadding = true }: CmsPageViewPr
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
+      {schemas.map((s) => (
+        <script
+          key={s.id}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: s.schemaJson }}
+        />
+      ))}
       <div className={withTopPadding ? "pt-20" : undefined}>
         <DynamicRenderer sections={sections} />
       </div>

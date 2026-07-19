@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { syncSitePages } from "@/lib/actions";
 import { buildPageUrl } from "@/lib/sitePages";
 
@@ -7,15 +7,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await syncSitePages();
+    await withDbRetry(() => syncSitePages());
 
-    const [pages, posts, projects] = await Promise.all([
+    const [pages, posts, projects] = await withDbRetry(() => Promise.all([
       prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true } }),
       prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, content: true, image: true } }),
       prisma.project.findMany({ select: { id: true, slug: true, title: true, content: true } }),
-    ]);
+    ]));
 
-    const seoPages = await prisma.seoPage.findMany();
+    const seoPages = await withDbRetry(() => prisma.seoPage.findMany());
     const seoMap = new Map(seoPages.map((sp) => [`${sp.pageType}:${sp.pageId}`, sp]));
 
     const allPages = [
@@ -78,35 +78,37 @@ export async function PUT(req: Request) {
 
     const seoMeta = JSON.stringify({ title: metaTitle, description: metaDescription });
 
-    if (type === "post") {
-      await prisma.post.update({ where: { id }, data: { seoMeta } });
-    } else if (type === "page") {
-      await prisma.page.update({ where: { id }, data: { seoMeta } });
-    } else if (type === "project") {
-      // Project table does not store seoMeta column in prisma.prisma directly
-    }
+    await withDbRetry(async () => {
+      if (type === "post") {
+        await prisma.post.update({ where: { id }, data: { seoMeta } });
+      } else if (type === "page") {
+        await prisma.page.update({ where: { id }, data: { seoMeta } });
+      } else if (type === "project") {
+        // Project table does not store seoMeta column in prisma.prisma directly
+      }
 
-    // Update in seo_pages table if it exists
-    await prisma.seoPage.updateMany({
-      where: { pageType: type, pageId: id },
-      data: {
-        metaTitle,
-        metaDescription,
-        lastAnalyzed: new Date(),
-      },
-    });
+      // Update in seo_pages table if it exists
+      await prisma.seoPage.updateMany({
+        where: { pageType: type, pageId: id },
+        data: {
+          metaTitle,
+          metaDescription,
+          lastAnalyzed: new Date(),
+        },
+      });
 
-    // Create an automation log entry
-    await prisma.seoAutomationLog.create({
-      data: {
-        action: `Optimized metadata for ${type}: ${id}`,
-        pageId: id,
-        pageType: type,
-        before: "Old metadata",
-        after: `Title: ${metaTitle} | Desc: ${metaDescription}`,
-        status: "success",
-        triggeredBy: "user",
-      },
+      // Create an automation log entry
+      await prisma.seoAutomationLog.create({
+        data: {
+          action: `Optimized metadata for ${type}: ${id}`,
+          pageId: id,
+          pageType: type,
+          before: "Old metadata",
+          after: `Title: ${metaTitle} | Desc: ${metaDescription}`,
+          status: "success",
+          triggeredBy: "user",
+        },
+      });
     });
 
     return NextResponse.json({ success: true });

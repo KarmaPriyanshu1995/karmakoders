@@ -15,6 +15,7 @@ interface BlogProps {
   posts?: PostData[];
   showViewAll?: boolean;
   postsPerPage?: number;
+  isFirstSection?: boolean;
 }
 
 export function BlogSection({
@@ -23,6 +24,7 @@ export function BlogSection({
   posts: propPosts,
   showViewAll = true,
   postsPerPage = 9,
+  isFirstSection = false,
 }: BlogProps) {
   const [livePosts, setLivePosts] = useState<PostData[]>([]);
 
@@ -80,15 +82,27 @@ export function BlogSection({
             >
               {tagline}
             </motion.div>
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-6xl font-black text-white tracking-tight"
-            >
-              {heading}
-            </motion.h2>
+            {isFirstSection ? (
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white tracking-tight"
+              >
+                {heading}
+              </motion.h1>
+            ) : (
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white tracking-tight"
+              >
+                {heading}
+              </motion.h2>
+            )}
           </div>
           {showViewAll && (
             <motion.div

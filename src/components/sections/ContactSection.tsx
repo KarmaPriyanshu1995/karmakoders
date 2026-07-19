@@ -12,6 +12,7 @@ interface ContactProps {
   tagline?: string;
   heading?: string;
   description?: string;
+  isFirstSection?: boolean;
 }
 
 export function ContactSection({
@@ -19,6 +20,7 @@ export function ContactSection({
   tagline = "Get In Touch",
   heading = "Let's Start Your Next Digital Project",
   description = "Ready to transform your vision into reality? Our team is standing by to help you navigate your digital journey.",
+  isFirstSection = false,
 }: ContactProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -48,6 +50,8 @@ export function ContactSection({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const showAsFirst = isFirstSection || isSpace;
+
   return (
     <section id="contact" aria-label="Contact us" className={`${isSpace && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
@@ -66,15 +70,27 @@ export function ContactSection({
             >
               {tagline}
             </motion.div>
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
-            >
-              {heading}
-            </motion.h2>
+            {showAsFirst ? (
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h1>
+            ) : (
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
+              >
+                {heading}
+              </motion.h2>
+            )}
             <motion.p
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}

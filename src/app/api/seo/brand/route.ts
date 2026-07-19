@@ -1,14 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { generateOrganizationSchema, generatePersonSchema, generateWebsiteSchema } from "@/lib/seo/schemaGenerator";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const brand = await prisma.seoBrand.findFirst();
+    let brand = await withDbRetry(() => prisma.seoBrand.findFirst());
+    
+    if (!brand) {
+      const defaultBrandData = {
+        brandName: "karmakoders",
+        businessName: "karmakoders Private Limited",
+        tagline: "Architecting the Future of Web & AI Platforms",
+        logoUrl: "/logo.png",
+        websiteUrl: "https://www.karmakoders.com",
+        founderName: "Priyanshu Singh",
+        founderTitle: "Founder & Chief Architect",
+        founderBio: "Priyanshu is a technology architect specializing in AI integrations and next-gen web platforms.",
+        founderImage: "/founder.jpg",
+        servicesJson: JSON.stringify(["Web Engineering", "AI Automation", "UI/UX Design"]),
+        locationsJson: JSON.stringify(["Delhi, India", "Bengaluru, India"]),
+        socialProfilesJson: JSON.stringify({
+          github: "https://github.com/karmakoders",
+          twitter: "https://twitter.com/karmakoders"
+        }),
+        brandScore: 90,
+        consistencyScore: 90,
+        schemaJson: JSON.stringify([
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://www.karmakoders.com/#organization",
+            "name": "karmakoders",
+            "url": "https://www.karmakoders.com",
+            "logo": "https://www.karmakoders.com/logo.png",
+            "email": "info@karmakoders.com"
+          }
+        ])
+      };
+      
+      brand = await withDbRetry(() => prisma.seoBrand.create({ data: defaultBrandData }));
+    }
+    
     return NextResponse.json({ brand });
   } catch (error) {
+    console.error("[SEO Brand GET]", error);
     return NextResponse.json({ error: "Failed to load brand" }, { status: 500 });
   }
 }
@@ -67,8 +104,6 @@ export async function POST(req: NextRequest) {
     if (locations.length >= 1) brandScore += 5;
     brandScore = Math.min(100, brandScore);
 
-    const existing = await prisma.seoBrand.findFirst();
-
     const data = {
       brandName: body.brandName,
       businessName: body.businessName || null,
@@ -90,9 +125,12 @@ export async function POST(req: NextRequest) {
       schemaJson: JSON.stringify(schemaBundle),
     };
 
-    const brand = existing
-      ? await prisma.seoBrand.update({ where: { id: existing.id }, data })
-      : await prisma.seoBrand.create({ data });
+    const brand = await withDbRetry(async () => {
+      const existing = await prisma.seoBrand.findFirst();
+      return existing
+        ? await prisma.seoBrand.update({ where: { id: existing.id }, data })
+        : await prisma.seoBrand.create({ data });
+    });
 
     return NextResponse.json({ brand, schema: schemaBundle });
   } catch (error) {

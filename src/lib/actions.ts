@@ -8,11 +8,16 @@ import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
 export async function syncSitePages() {
+  const existingPages = await prisma.page.findMany({
+    select: { id: true, slug: true, title: true }
+  });
+  const existingMap = new Map(existingPages.map((p) => [p.slug, p]));
+
   for (const [legacySlug, canonicalSlug] of Object.entries(LEGACY_PAGE_SLUGS)) {
-    const legacyPage = await prisma.page.findUnique({ where: { slug: legacySlug } });
+    const legacyPage = existingMap.get(legacySlug);
     if (!legacyPage) continue;
 
-    const canonicalPage = await prisma.page.findUnique({ where: { slug: canonicalSlug } });
+    const canonicalPage = existingMap.get(canonicalSlug);
     if (canonicalPage) {
       await prisma.section.updateMany({
         where: { pageId: legacyPage.id },
@@ -28,23 +33,30 @@ export async function syncSitePages() {
   }
 
   for (const sitePage of SITE_PAGES) {
-    const seoMeta = sitePage.defaultMeta
-      ? JSON.stringify({
-          title: sitePage.defaultMeta.title,
-          description: sitePage.defaultMeta.description,
-        })
-      : undefined;
+    const existing = existingMap.get(sitePage.slug);
 
-    await prisma.page.upsert({
-      where: { slug: sitePage.slug },
-      update: { title: sitePage.title, isPublished: true },
-      create: {
-        slug: sitePage.slug,
-        title: sitePage.title,
-        isPublished: true,
-        ...(seoMeta ? { seoMeta } : {}),
-      },
-    });
+    if (!existing) {
+      const seoMeta = sitePage.defaultMeta
+        ? JSON.stringify({
+            title: sitePage.defaultMeta.title,
+            description: sitePage.defaultMeta.description,
+          })
+        : undefined;
+
+      await prisma.page.create({
+        data: {
+          slug: sitePage.slug,
+          title: sitePage.title,
+          isPublished: true,
+          ...(seoMeta ? { seoMeta } : {}),
+        },
+      });
+    } else if (existing.title !== sitePage.title) {
+      await prisma.page.update({
+        where: { id: existing.id },
+        data: { title: sitePage.title },
+      });
+    }
   }
 }
 

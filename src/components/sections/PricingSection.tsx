@@ -37,12 +37,14 @@ interface PricingProps {
   tagline?: string;
   heading?: string;
   plans?: typeof defaultPlans;
+  isFirstSection?: boolean;
 }
 
 export function PricingSection({
   tagline = "Pricing Architecture",
   heading = "Invest in Your Digital Dominance",
   plans = defaultPlans,
+  isFirstSection = false,
 }: PricingProps) {
   const [isYearly, setIsYearly] = useState(false);
 
@@ -62,15 +64,27 @@ export function PricingSection({
           >
             {tagline}
           </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="mt-4 text-5xl md:text-6xl font-black text-white max-w-2xl mx-auto tracking-tight"
-          >
-            {heading}
-          </motion.h2>
+          {isFirstSection ? (
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="mt-4 text-5xl md:text-6xl font-black text-white max-w-2xl mx-auto tracking-tight"
+            >
+              {heading}
+            </motion.h1>
+          ) : (
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="mt-4 text-5xl md:text-6xl font-black text-white max-w-2xl mx-auto tracking-tight"
+            >
+              {heading}
+            </motion.h2>
+          )}
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
