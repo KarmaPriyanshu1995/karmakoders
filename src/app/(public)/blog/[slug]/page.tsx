@@ -4,26 +4,95 @@ import { Footer } from "@/components/sections/Footer";
 import { notFound } from "next/navigation";
 import { Calendar, User, Tag } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Metadata } from "next";
 
 import { DEFAULT_POSTS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export default async function BlogPostDetail({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  let post: any = await getPostBySlug(slug);
+const SITE_URL = "https://www.karmakoders.com";
 
+async function resolvePost(slug: string) {
+  let post: any = await getPostBySlug(slug);
   if (!post) {
     post = DEFAULT_POSTS.find((p) => p.slug === slug);
   }
+  return post;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await resolvePost(slug);
+
+  if (!post) {
+    return { title: "Post Not Found | karmakoders" };
+  }
+
+  const seoMeta = post.seoMeta ? JSON.parse(post.seoMeta) : {};
+  const title = seoMeta.title || `${post.title} | karmakoders Blog`;
+  const description = seoMeta.description || post.excerpt || post.title;
+  const url = `${SITE_URL}/blog/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "article",
+      ...(post.image && { images: [{ url: post.image }] }),
+    },
+  };
+}
+
+export default async function BlogPostDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await resolvePost(slug);
 
   if (!post) {
     notFound();
   }
 
   const postDate = post.createdAt ? new Date(post.createdAt) : new Date(post.date);
+  const postUrl = `${SITE_URL}/blog/${slug}`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": `${postUrl}#article`,
+        headline: post.title,
+        url: postUrl,
+        mainEntityOfPage: postUrl,
+        description: post.excerpt || post.title,
+        ...(post.image && { image: post.image }),
+        datePublished: postDate.toISOString(),
+        author: {
+          "@type": "Person",
+          name: post.author || "karmakoders Team",
+        },
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+          { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
+        ],
+      },
+    ],
+  };
 
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
@@ -71,5 +140,6 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
 
       <Footer />
     </main>
+    </>
   );
 }

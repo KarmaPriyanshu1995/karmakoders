@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://karmakoders.com/sitemap.xml
+Sitemap: https://www.karmakoders.com/sitemap.xml

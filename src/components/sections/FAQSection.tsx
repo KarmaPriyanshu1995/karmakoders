@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -105,23 +105,24 @@ export function FAQSection({
                   </button>
                 </h3>
 
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      id={panelId}
-                      role="region"
-                      aria-labelledby={headingId}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="p-6 text-[#D6D6D6] leading-relaxed border-t border-white/10 font-medium">
-                        {faq.answer}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={headingId}
+                  aria-hidden={!isExpanded}
+                  style={{
+                    display: "grid",
+                    gridTemplateRows: isExpanded ? "1fr" : "0fr",
+                    opacity: isExpanded ? 1 : 0,
+                    transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
+                  }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="p-6 text-[#D6D6D6] leading-relaxed border-t border-white/10 font-medium">
+                      {faq.answer}
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             );
           })}

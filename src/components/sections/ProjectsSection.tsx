@@ -144,7 +144,7 @@ export function ProjectsSection({
                   fill
                   sizes="(max-width: 640px) 85vw, (max-width: 768px) 450px, (max-width: 1024px) 500px, 550px"
                   className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                  loading="lazy"
+                  {...(i === 0 ? { priority: true } : { loading: "lazy" as const })}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-85 group-hover:opacity-90 transition-opacity duration-500" />
                 

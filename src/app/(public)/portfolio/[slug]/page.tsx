@@ -5,24 +5,88 @@ import { Footer } from "@/components/sections/Footer";
 import { notFound } from "next/navigation";
 import { Code2, Globe } from "lucide-react";
 import { DEFAULT_PROJECTS } from "@/lib/constants";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  let project: any = await getProjectBySlug(slug);
+const SITE_URL = "https://www.karmakoders.com";
 
+async function resolveProject(slug: string) {
+  let project: any = await getProjectBySlug(slug);
   if (!project) {
     project = DEFAULT_PROJECTS.find((p) => p.slug === slug);
   }
+  return project;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const project = await resolveProject(slug);
+
+  if (!project) {
+    return { title: "Project Not Found | karmakoders" };
+  }
+
+  const title = `${project.title} | karmakoders Portfolio`;
+  const description = project.description;
+  const url = `${SITE_URL}/portfolio/${slug}`;
+  const image = project.imageUrl || project.image;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      ...(image && { images: [{ url: image }] }),
+    },
+  };
+}
+
+export default async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const project = await resolveProject(slug);
 
   if (!project) {
     notFound();
   }
 
   const tags = project.tags.split(',').map((tag: string) => tag.trim());
+  const projectUrl = `${SITE_URL}/portfolio/${slug}`;
+  const projectImage = project.imageUrl || project.image;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CreativeWork",
+        "@id": `${projectUrl}#project`,
+        name: project.title,
+        url: projectUrl,
+        description: project.description,
+        ...(projectImage && { image: projectImage }),
+        creator: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Portfolio", item: `${SITE_URL}/portfolio` },
+          { "@type": "ListItem", position: 3, name: project.title, item: projectUrl },
+        ],
+      },
+    ],
+  };
 
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
       <Navbar />
 
@@ -97,5 +161,6 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
 
       <Footer />
     </main>
+    </>
   );
 }

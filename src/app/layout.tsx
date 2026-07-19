@@ -15,7 +15,15 @@ const fontVariables = `${inter.variable} ${roboto.variable} ${poppins.variable} 
 export const metadata: Metadata = {
   title: "AI Business Portfolio",
   description: "Premium AI-powered business portfolio platform",
-  metadataBase: new URL("https://karmakoders.com"),
+  metadataBase: new URL("https://www.karmakoders.com"),
+  openGraph: {
+    type: "website",
+    siteName: "karmakoders",
+    url: "https://www.karmakoders.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   verification: {
     google: "uO__zcdAWvEBhoUqJoqCJxMsmLYDh2wGYW7dw2nVxlI",
   },
@@ -39,6 +47,7 @@ import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
 
 export default async function RootLayout({
   children,
@@ -149,6 +158,10 @@ export default async function RootLayout({
       <head>
         <style dangerouslySetInnerHTML={{ __html: customStyles }} suppressHydrationWarning />
         <CanonicalURL />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(DEFAULT_SITE_JSON_LD) }}
+        />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
         <ThemeProvider initialConfig={config}>

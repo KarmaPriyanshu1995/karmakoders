@@ -122,7 +122,7 @@ export function CaseStudiesSection({
                     fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
+                    {...(i < 2 ? { priority: true } : { loading: "lazy" as const })}
                   />
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.color || "from-indigo-600 to-purple-600"} opacity-40 mix-blend-multiply`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />

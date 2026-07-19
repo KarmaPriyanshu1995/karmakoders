@@ -25,7 +25,7 @@ const REQUIRED_TYPES = ["technology", "service"] as const;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const API_TIMEOUT_MS = 5000;
 
-const SITE_URL = "https://karmakoders.com";
+const SITE_URL = "https://www.karmakoders.com";
 
 export const DEFAULT_SITE_JSON_LD: object = {
   "@context": "https://schema.org",
@@ -33,14 +33,15 @@ export const DEFAULT_SITE_JSON_LD: object = {
     {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
-      name: "Karmakoders",
+      name: "karmakoders",
       url: SITE_URL,
-      description: "Expert web and mobile development company",
+      description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
+      email: "info@karmakoders.com",
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_URL}/#website`,
-      name: "Karmakoders",
+      name: "karmakoders",
       url: SITE_URL,
       publisher: { "@id": `${SITE_URL}/#organization` },
     },
