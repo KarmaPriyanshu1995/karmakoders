@@ -52,7 +52,6 @@ async function main() {
           description: sitePage.defaultMeta.description,
         })
       : undefined;
-
     const page = await prisma.page.upsert({
       where: { slug: sitePage.slug },
       update: { title: sitePage.title, isPublished: true },
@@ -69,7 +68,10 @@ async function main() {
     for (const section of defaultSections) {
       await prisma.section.upsert({
         where: { id: section.id },
-        update: {},
+        update: {
+          content: JSON.stringify(section.content),
+          order: section.order,
+        },
         create: {
           id: section.id,
           pageId: page.id,

@@ -6,12 +6,23 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    // Allow login page
-    if (pathname === "/admin/login") return NextResponse.next();
-
-    // Must be authenticated admin
     const isAdmin = token?.role === "ADMIN" || token?.role === "SUPER_ADMIN";
+    const isLoginPage = pathname === "/admin/login" || pathname === "/login";
+
+    // If logged in and trying to access login page, redirect to admin dashboard
+    if (token && isLoginPage) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
+    // If NOT logged in (or not admin) and trying to access protected /admin routes
     if (!token || !isAdmin) {
+      if (!isLoginPage && pathname.startsWith("/admin")) {
+        return NextResponse.redirect(new URL("/admin/login", req.url));
+      }
+    }
+
+    // Redirect generic /login to /admin/login for consistency
+    if (pathname === "/login") {
       return NextResponse.redirect(new URL("/admin/login", req.url));
     }
 
@@ -19,17 +30,22 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token, req }) => {
+      authorized: ({ req, token }) => {
         const { pathname } = req.nextUrl;
-        // Login page is always accessible
-        if (pathname === "/admin/login") return true;
-        // All other /admin/* routes require a token
+        // Always allow access to login pages so the middleware function can handle the redirect logic
+        if (pathname === "/admin/login" || pathname === "/login") {
+          return true;
+        }
+        // For all other routes in the matcher, require a token
         return !!token;
       },
+    },
+    pages: {
+      signIn: "/admin/login",
     },
   }
 );
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/login"],
 };

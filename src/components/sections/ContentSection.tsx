@@ -45,7 +45,7 @@ export function ContentSection({
   const mainTitle = h1 || heading;
 
   return (
-    <section className={`py-24 px-8 md:px-24 bg-slate-950 ${className}`}>
+    <section className={`pt-28 sm:pt-32 pb-20 sm:pb-32 px-8 md:px-24 bg-slate-950 ${className}`}>
       <div className="max-w-4xl mx-auto">
         {(tagline || mainTitle || subheading) && (
           <div className="mb-16">
@@ -54,7 +54,7 @@ export function ContentSection({
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-indigo-400 text-sm font-semibold uppercase tracking-widest"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)]"
               >
                 {tagline}
               </motion.span>
@@ -104,7 +104,6 @@ export function ContentSection({
             )}
           </div>
         )}
-
         {imageUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

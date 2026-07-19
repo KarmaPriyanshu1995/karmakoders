@@ -1,4 +1,4 @@
-import { SITE_PAGES } from "@/lib/sitePages";
+import { SITE_PAGES } from "./sitePages";
 
 export interface DefaultSection {
   id: string;

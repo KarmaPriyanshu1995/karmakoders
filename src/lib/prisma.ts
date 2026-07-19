@@ -2,7 +2,15 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString = process.env.DATABASE_URL;
+
+// Fix PostgreSQL SSL warnings by treating aliases as verify-full
+if (connectionString) {
+  connectionString = connectionString.replace(
+    /sslmode=(require|prefer|verify-ca)/g,
+    "sslmode=verify-full"
+  );
+}
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 

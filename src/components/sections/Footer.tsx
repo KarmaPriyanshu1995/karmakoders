@@ -47,13 +47,13 @@ export function Footer() {
   };
 
   return (
-    <footer className="relative bg-slate-950/95 border-t border-white/5 overflow-hidden">
+    <footer role="footer" className="relative bg-slate-950/95 border-t border-white/5 overflow-hidden">
       {/* Background Glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none" />
 
       {/* CTA Banner */}
       <div className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-20 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-12 sm:py-20 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <p className="text-indigo-500 text-sm font-bold uppercase tracking-widest mb-3">Ready to launch?</p>
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
@@ -71,28 +71,28 @@ export function Footer() {
       </div>
 
       {/* Main Footer Grid */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 pt-20 pb-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 pb-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
 
           {/* Brand Column */}
           <div className="lg:col-span-4">
             <Link href="/" className="text-3xl font-black tracking-tight text-white mb-6 block">
-              karmakoders<span className="text-indigo-500">.ai</span>
+              Karmakoders
+              {/* <span className="text-indigo-500">.ai</span> */}
             </Link>
             <p className="text-[#D6D6D6] text-base leading-relaxed mb-8 max-w-xs font-medium">
               Designing and engineering the future of the web with advanced AI, immersive 3D experiences, and premium aesthetics.
             </p>
 
-            {/* Social Icons */}
-            <div className="flex gap-3 mb-10">
+            <div className="flex gap-3 mb-10" role="list" aria-label="Social media links">
               {[
-                { href: "#", svg: <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/> },
-                { href: "#", svg: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></> },
-                { href: "#", svg: <><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></> },
-                { href: "#", svg: <><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></> },
+                { href: "#", label: "Twitter", svg: <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/> },
+                { href: "#", label: "LinkedIn", svg: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></> },
+                { href: "#", label: "GitHub", svg: <><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></> },
+                { href: "#", label: "Instagram", svg: <><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></> },
               ].map((item, i) => (
-                <a key={i} href={item.href} className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#D6D6D6] hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-[0_0_20px_var(--color-indigo-500)] transition-all duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{item.svg}</svg>
+                <a key={i} href={item.href} aria-label={item.label} rel="noopener noreferrer" className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#D6D6D6] hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-[0_0_20px_var(--color-indigo-500)] transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{item.svg}</svg>
                 </a>
               ))}
             </div>
@@ -101,21 +101,24 @@ export function Footer() {
             <div>
               <p className="text-white font-bold text-sm uppercase tracking-widest mb-4">Subscribe to Updates</p>
               {subscribed ? (
-                <div className="px-5 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 text-sm font-bold">
-                  ✓ You're subscribed! Thanks.
+                <div className="px-5 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 text-sm font-bold" role="status">
+                  ✓ You&apos;re subscribed! Thanks.
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe} className="flex gap-2">
+                  <label htmlFor="footer-email" className="sr-only">Email address</label>
                   <input
+                    id="footer-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
                     required
+                    autoComplete="email"
                     className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all outline-none"
                   />
-                  <button type="submit" className="h-12 w-12 flex items-center justify-center bg-indigo-500 text-slate-950 rounded-xl hover:bg-indigo-500/90 hover:shadow-[0_0_15px_var(--color-indigo-500)] transition-all shrink-0">
-                    <Mail className="w-5 h-5" />
+                  <button type="submit" aria-label="Subscribe to newsletter" className="h-12 w-12 flex items-center justify-center bg-indigo-500 text-slate-950 rounded-xl hover:bg-indigo-500/90 hover:shadow-[0_0_15px_var(--color-indigo-500)] transition-all shrink-0 cursor-pointer">
+                    <Mail className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </form>
               )}
@@ -148,11 +151,11 @@ export function Footer() {
             <ul className="space-y-6">
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Email</p>
-                <a href="mailto:hello@karmakoders.ai" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">hello@karmakoders.ai</a>
+                <a href="mailto:info@karmakoders.com" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">info@karmakoders.com</a>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Phone</p>
-                <a href="tel:+917627056875" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 76270 56875</a>
+                <a href="tel:+918690071861" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 86900 71861</a>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Office</p>
@@ -160,7 +163,7 @@ export function Footer() {
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Hours</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 9AM – 7PM IST</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 10AM – 7PM IST</p>
               </li>
             </ul>
           </div>

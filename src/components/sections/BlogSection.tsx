@@ -1,33 +1,77 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Calendar, User, ArrowRight } from "lucide-react";
+import { Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { DEFAULT_POSTS, type PostData } from "@/lib/constants";
+import { getPosts } from "@/lib/actions";
 
 interface BlogProps {
   tagline?: string;
   heading?: string;
   posts?: PostData[];
   showViewAll?: boolean;
+  postsPerPage?: number;
 }
 
 export function BlogSection({
   tagline = "Our Blog",
   heading = "Latest Insights & Digital Trends",
-  posts = DEFAULT_POSTS,
+  posts: propPosts,
   showViewAll = true,
+  postsPerPage = 9,
 }: BlogProps) {
+  const [livePosts, setLivePosts] = useState<PostData[]>([]);
+
+  useEffect(() => {
+    if (!propPosts) {
+      getPosts()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setLivePosts(data as unknown as PostData[]);
+          } else {
+            setLivePosts(DEFAULT_POSTS);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load live posts:", err);
+          setLivePosts(DEFAULT_POSTS);
+        });
+    }
+  }, [propPosts]);
+
+  const posts = propPosts || (livePosts.length > 0 ? livePosts : DEFAULT_POSTS);
+  const [currentPage, setCurrentPage] = useState(1);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const itemsPerPage = postsPerPage || 9;
+  const totalPages = Math.ceil(posts.length / itemsPerPage);
+
+  // Reset to page 1 if posts change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [posts.length]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPosts = postsPerPage ? posts.slice(startIndex, startIndex + itemsPerPage) : posts;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
   return (
-    <section id="blog" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
+    <section ref={sectionRef} id="blog" aria-label="Latest blog posts" className="pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
       {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-          <div className="max-w-2xl">
+        <div className="flex flex-col md:flex-row md:items-end items-center justify-between mb-20 gap-8">
+          <div className="text-center max-w-2xl">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -61,21 +105,24 @@ export function BlogSection({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post, i) => (
+          {paginatedPosts.map((post, i) => (
             <motion.div
-              key={post.title}
+              key={post.slug || post.title}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
+              transition={{ delay: (i % itemsPerPage) * 0.1, duration: 0.5 }}
               className="group cursor-pointer p-5 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
             >
               <Link href={`/blog/${post.slug || '#'}`}>
                 <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
-                  <img
+                  <Image
                     src={post.image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"}
                     alt={post.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
                   <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
@@ -113,6 +160,45 @@ export function BlogSection({
             </motion.div>
           ))}
         </div>
+
+        {postsPerPage && totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-16">
+            <button
+              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, idx) => {
+              const pageNum = idx + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`w-12 h-12 rounded-xl border flex items-center justify-center font-bold transition-all duration-300 active:scale-95 cursor-pointer ${
+                    currentPage === pageNum
+                      ? "bg-indigo-500 text-slate-950 border-indigo-500 shadow-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                      : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
