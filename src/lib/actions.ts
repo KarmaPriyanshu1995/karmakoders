@@ -188,6 +188,7 @@ export async function upsertPost(data: {
   author?: string;
   type?: string;
   published: boolean;
+  seoMeta?: string;
 }) {
   const { id, ...postData } = data;
   const post = await prisma.post.upsert({

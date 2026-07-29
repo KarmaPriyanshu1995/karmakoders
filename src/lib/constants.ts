@@ -11,6 +11,7 @@ export interface PostData {
   excerpt?: string | null;
   createdAt?: Date | string;
   published?: boolean;
+  seoMeta?: string | null;
 }
 
 export const DEFAULT_POSTS: PostData[] = [

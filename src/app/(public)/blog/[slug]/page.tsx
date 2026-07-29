@@ -28,19 +28,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return { title: "Post Not Found | karmakoders" };
   }
 
-  const seoMeta = post.seoMeta ? JSON.parse(post.seoMeta) : {};
+  const seoMeta = post.seoMeta ? (typeof post.seoMeta === 'string' ? JSON.parse(post.seoMeta) : post.seoMeta) : {};
   const title = seoMeta.title || `${post.title} | karmakoders Blog`;
   const description = seoMeta.description || post.excerpt || post.title;
   const url = `${SITE_URL}/blog/${slug}`;
+  const canonical = seoMeta.canonicalUrl || url;
+  const robots = seoMeta.noIndex ? { index: false, follow: true } : undefined;
 
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical },
+    robots,
     openGraph: {
       title,
       description,
-      url,
+      url: canonical,
       type: "article",
       ...(post.image && { images: [{ url: post.image }] }),
     },
@@ -87,6 +90,8 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
     ],
   };
 
+  const seoMeta = post.seoMeta ? (typeof post.seoMeta === "string" ? JSON.parse(post.seoMeta) : post.seoMeta) : {};
+
   return (
     <>
       <script
@@ -126,7 +131,7 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
           <div className="relative rounded-3xl overflow-hidden aspect-video mb-12 border border-slate-800">
             <img 
               src={post.image} 
-              alt={post.title} 
+              alt={seoMeta.imageAlt || post.title} 
               className="w-full h-full"
             />
           </div>

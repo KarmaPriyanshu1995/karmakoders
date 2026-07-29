@@ -119,30 +119,33 @@ export function BlogSection({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {paginatedPosts.map((post, i) => (
-            <motion.div
-              key={post.slug || post.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: (i % itemsPerPage) * 0.1, duration: 0.5 }}
-              className="group cursor-pointer p-5 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
-            >
-              <Link href={`/blog/${post.slug || '#'}`}>
-                <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
-                  <Image
-                    src={post.image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"}
-                    alt={post.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
-                  <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
-                    {post.category || "Design"}
+          {paginatedPosts.map((post, i) => {
+            const seoMeta = post.seoMeta ? (typeof post.seoMeta === 'string' ? JSON.parse(post.seoMeta) : post.seoMeta) : {};
+            const imageAlt = seoMeta.imageAlt || post.title;
+            return (
+              <motion.div
+                key={post.slug || post.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: (i % itemsPerPage) * 0.1, duration: 0.5 }}
+                className="group cursor-pointer p-5 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+              >
+                <Link href={`/blog/${post.slug || '#'}`}>
+                  <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
+                    <Image
+                      src={post.image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"}
+                      alt={imageAlt}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
+                    <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                      {post.category || "Design"}
+                    </div>
                   </div>
-                </div>
                 
                 <div className="px-3 pb-3">
                   <div className="flex items-center gap-6 mb-5 text-[#D6D6D6] text-sm font-medium">
@@ -172,7 +175,7 @@ export function BlogSection({
                 </div>
               </Link>
             </motion.div>
-          ))}
+          )})}
         </div>
 
         {postsPerPage && totalPages > 1 && (
