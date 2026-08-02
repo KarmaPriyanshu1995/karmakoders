@@ -122,7 +122,7 @@ export function IndustriesSection({
               </div>
 
               <Link
-                href="/portfolio"
+                href={`/portfolio?category=${ind.name}`}
                 className="inline-flex items-center text-indigo-500 font-bold text-sm uppercase tracking-widest hover:text-white transition-colors group/btn w-fit"
               >
                 Learn More

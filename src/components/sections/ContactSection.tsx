@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 
 interface ContactProps {
   isSpace?: boolean;
@@ -15,28 +15,68 @@ interface ContactProps {
   isFirstSection?: boolean;
 }
 
-export function ContactSection({
+function ContactFormInner({
   isSpace = false,
   tagline = "Start Your Project",
   heading = "Ready to Scale Your Digital Product?",
   description = "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
   isFirstSection = false,
 }: ContactProps) {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams ? searchParams.get("type") : null;
+  const isEstimate = typeParam === "estimate";
+
+  const currentTagline = isEstimate ? "Free Scoping Assessment" : tagline;
+  const currentHeading = isEstimate ? "Get a Free Project Scoping Estimate" : heading;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     message: "",
+    budget: "$10k - $25k",
+    projectType: "Custom Software",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Client-side validation checks
+    if (!formData.name.trim()) {
+      toast.error("Please enter your name.");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    if (!formData.message.trim()) {
+      toast.error("Please enter your project details/message.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await submitContact(formData);
-      toast.success("Message sent successfully! We'll get back to you soon.");
-      setFormData({ name: "", email: "", phone: "", message: "" });
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        message: isEstimate 
+          ? `[ESTIMATE REQUEST]\nProject Type: ${formData.projectType}\nEstimated Budget: ${formData.budget}\n\nDetails:\n${formData.message.trim()}`
+          : formData.message.trim()
+      };
+
+      await submitContact(payload);
+      toast.success(isEstimate ? "Scoping estimate request sent successfully!" : "Message sent successfully! We'll get back to you soon.");
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        message: "",
+        budget: "$10k - $25k",
+        projectType: "Custom Software",
+      });
     } catch (error) {
       toast.error("Failed to send message. Please try again later.");
       console.error(error);
@@ -45,7 +85,7 @@ export function ContactSection({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -64,21 +104,21 @@ export function ContactSection({
           <div>
             <motion.div
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              animate={showAsFirst ? { opacity: 1, x: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, x: 0 }}
               viewport={{ once: true }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
             >
-              {tagline}
+              {currentTagline}
             </motion.div>
             {showAsFirst ? (
               <motion.h1
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
                 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
               >
-                {heading}
+                {currentHeading}
               </motion.h1>
             ) : (
               <motion.h2
@@ -88,12 +128,13 @@ export function ContactSection({
                 transition={{ delay: 0.1 }}
                 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
               >
-                {heading}
+                {currentHeading}
               </motion.h2>
             )}
             <motion.p
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               className="mt-6 text-[#D6D6D6] text-xl leading-relaxed max-w-lg font-medium"
@@ -104,7 +145,8 @@ export function ContactSection({
             {/* Trust checkmarks list */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.25 }}
               className="mt-6 flex flex-col gap-2 text-slate-400 text-sm font-semibold"
@@ -116,25 +158,27 @@ export function ContactSection({
             
             <div className="mt-16 space-y-10">
               {[
-                { icon: Mail, label: "Email Us", value: "info@karmakoders.com" },
-                // TODO: Replace placeholders below with actual business details when approved.
-                { icon: Phone, label: "Call Us", value: "+1 (800) 555-0199 (Placeholder)" },
-                { icon: MapPin, label: "Visit Us", value: "Jaipur, India / Delaware, USA (Corporate Registration)" },
+                { icon: Mail, label: "Email Us", value: "info@karmakoders.com", href: "mailto:info@karmakoders.com" },
+                { icon: Phone, label: "Call Us", value: "+91 86900 71861", href: "tel:+918690071861" },
+                { icon: MapPin, label: "Visit Us", value: "JLN Marg, Malviya Nagar, Jaipur, Rajasthan", href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan" },
               ].map((item, i) => (
                 <motion.div 
-                   key={item.label}
+                  key={item.label}
                   initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+                  whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 + i * 0.1 }}
                   className="flex items-start gap-6 group cursor-default"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center text-indigo-500 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-indigo-500/10 group-hover:shadow-indigo-500/30">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center text-indigo-500 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-indigo-500/10 group-hover:shadow-indigo-500/30">
                     <item.icon className="w-6 h-6" />
                   </div>
                   <div className="pt-1">
                     <h4 className="text-white font-bold text-xl mb-1 group-hover:text-indigo-500 transition-colors">{item.label}</h4>
-                    <p className="text-[#D6D6D6] text-lg">{item.value}</p>
+                    <a href={item.href} target={item.label === "Visit Us" ? "_blank" : undefined} rel="noopener noreferrer" className="text-[#D6D6D6] text-lg hover:text-indigo-500 transition-colors">
+                      {item.value}
+                    </a>
                   </div>
                 </motion.div>
               ))}
@@ -143,18 +187,19 @@ export function ContactSection({
             {/* Social Links */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.6 }}
               className="mt-16 pt-10 border-t border-white/10 flex gap-4"
             >
-              <a href="#" aria-label="Follow us on Twitter" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
+              <a href="https://twitter.com/karmakoders" aria-label="Follow us on Twitter" rel="noopener noreferrer" target="_blank" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
               </a>
-              <a href="#" aria-label="Follow us on LinkedIn" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
+              <a href="https://linkedin.com/company/karmakoders" aria-label="Follow us on LinkedIn" rel="noopener noreferrer" target="_blank" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
               </a>
-              <a href="#" aria-label="Follow us on GitHub" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
+              <a href="https://github.com/karmakoders" aria-label="Follow us on GitHub" rel="noopener noreferrer" target="_blank" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
               </a>
             </motion.div>
@@ -163,12 +208,15 @@ export function ContactSection({
           {/* Right Column: Contact Form */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+            whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2, duration: 0.6 }}
             className="p-8 md:p-12 rounded-[2.5rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.2)] hover:border-indigo-500/30 transition-colors duration-500"
           >
-            <h3 className="text-3xl font-bold text-white mb-8">Send a Message</h3>
+            <h3 className="text-3xl font-bold text-white mb-8">
+              {isEstimate ? "Request Custom Estimate" : "Send a Message"}
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -219,6 +267,49 @@ export function ContactSection({
                   Phone Number (Optional)
                 </label>
               </div>
+
+              {isEstimate && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="relative group">
+                    <select
+                      id="budget"
+                      name="budget"
+                      value={formData.budget}
+                      onChange={handleChange}
+                      className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                    >
+                      <option value="$10k - $25k">$10k - $25k</option>
+                      <option value="$25k - $50k">$25k - $50k</option>
+                      <option value="$50k - $100k">$50k - $100k</option>
+                      <option value="$100k+">$100k+</option>
+                    </select>
+                    <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
+                      Estimated Budget
+                    </span>
+                  </div>
+                  
+                  <div className="relative group">
+                    <select
+                      id="projectType"
+                      name="projectType"
+                      value={formData.projectType}
+                      onChange={handleChange}
+                      className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                    >
+                      <option value="Custom Software">Custom Software</option>
+                      <option value="Mobile Apps">Mobile Apps</option>
+                      <option value="AI Solutions & Integrations">AI Solutions</option>
+                      <option value="SaaS Development">SaaS Development</option>
+                      <option value="Website Development">Website Development</option>
+                      <option value="UI/UX Design">UI/UX Design</option>
+                      <option value="Cloud Engineering & DevOps">Cloud & DevOps</option>
+                    </select>
+                    <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
+                      Project Type
+                    </span>
+                  </div>
+                </div>
+              )}
               
               <div className="relative group">
                 <textarea
@@ -229,10 +320,10 @@ export function ContactSection({
                   value={formData.message}
                   onChange={handleChange}
                   className="peer w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none resize-none pt-6"
-                  placeholder="Tell us about your project idea..."
+                  placeholder={isEstimate ? "Provide extra details about your requirements..." : "Tell us about your project idea..."}
                 />
                 <label htmlFor="message" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-5 peer-placeholder-shown:text-slate-500 peer-focus:top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:text-indigo-500 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:left-4 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] pointer-events-none rounded-md">
-                  Project Details
+                  {isEstimate ? "Requirements Details" : "Project Details"}
                 </label>
               </div>
               
@@ -241,7 +332,7 @@ export function ContactSection({
                 disabled={isSubmitting}
                 className="w-full h-16 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-lg flex items-center justify-center gap-2 group shadow-indigo-500/30 cursor-pointer hover:shadow-indigo-500/50 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
-                {isSubmitting ? "Sending Transmission..." : "Send Message"}
+                {isSubmitting ? "Sending Transmission..." : (isEstimate ? "Request Free Estimate" : "Send Message")}
                 {!isSubmitting && <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
               </button>
             </form>
@@ -249,5 +340,13 @@ export function ContactSection({
         </div>
       </div>
     </section>
+  );
+}
+
+export function ContactSection(props: ContactProps) {
+  return (
+    <Suspense fallback={<div className="py-24 text-center text-white">Loading Form...</div>}>
+      <ContactFormInner {...props} />
+    </Suspense>
   );
 }

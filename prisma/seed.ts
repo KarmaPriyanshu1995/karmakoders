@@ -234,6 +234,52 @@ async function main() {
     }
   }
 
+  // Seed Job Openings
+  console.log("💼 Seeding job openings...");
+  const jobs = [
+    {
+      title: "Lead AI Solutions Engineer",
+      slug: "lead-ai-solutions-engineer",
+      department: "AI Engineering",
+      location: "Remote (Global) / SF",
+      type: "Full-time",
+      description: `<h3>About the Role</h3><p>We are seeking a Lead AI Solutions Engineer to head our custom agent development workflows. You will design, build, and deploy fine-tuned LLM agents and orchestrate complex RAG frameworks for our luxury enterprise clients.</p><h3>Requirements</h3><ul><li>5+ years of software engineering experience</li><li>Expertise with LangChain, LlamaIndex, or raw model engineering</li><li>Proficiency in Python/TypeScript and next-generation vector stores</li></ul>`,
+      isActive: true,
+    },
+    {
+      title: "Senior Frontend Architect",
+      slug: "senior-frontend-architect",
+      department: "Creative Engineering",
+      location: "Remote",
+      type: "Full-time",
+      description: `<h3>About the Role</h3><p>We are looking for a Senior Frontend Architect to lead the implementation of our premium, high-fidelity user interfaces. You will work with Next.js, Framer Motion, Three.js, and WebGL to create web applications that feel responsive, fluid, and premium.</p><h3>Requirements</h3><ul><li>5+ years of production experience with Next.js and TailwindCSS</li><li>Expertise in performance profiling, animations, and typography</li><li>Experience building responsive, accessible, and high-performance apps</li></ul>`,
+      isActive: true,
+    },
+    {
+      title: "Lead UI Designer",
+      slug: "lead-ui-designer",
+      department: "Design",
+      location: "Remote / NY",
+      type: "Full-time",
+      description: `<h3>About the Role</h3><p>We are seeking an elite Lead UI Designer to define our design systems and craft premium digital products. You will collaborate with engineering to build gorgeous layouts, motion guidelines, and interactive mockups.</p><h3>Requirements</h3><ul><li>Portfolio showcasing premium brand layouts and typography</li><li>Deep expertise in Figma, design systems, and responsive layouts</li><li>Strong understanding of frontend styling (TailwindCSS/CSS)</li></ul>`,
+      isActive: true,
+    },
+  ];
+
+  for (const job of jobs) {
+    await prisma.jobOpening.upsert({
+      where: { slug: job.slug },
+      update: {
+        department: job.department,
+        location: job.location,
+        type: job.type,
+        description: job.description,
+        isActive: job.isActive,
+      },
+      create: job,
+    });
+  }
+
   console.log("✅ Seeding complete.");
 }
 

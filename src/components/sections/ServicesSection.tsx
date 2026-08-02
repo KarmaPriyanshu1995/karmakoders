@@ -139,11 +139,12 @@ export function ServicesSection({
           {services.map((service, i) => (
             <motion.div
               key={service.title}
+              id={service.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: service.delay, duration: 0.6, ease: "easeOut" }}
-              className="group relative overflow-hidden rounded-[2rem] bg-white/5 border border-white/10 p-8 flex flex-col justify-between hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-500"
+              className="scroll-mt-24 group relative overflow-hidden rounded-[2rem] bg-white/5 border border-white/10 p-8 flex flex-col justify-between hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-500"
             >
               {/* Inner animated gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-indigo-500/0 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -168,7 +169,7 @@ export function ServicesSection({
                     {service.benefit}
                   </p>
 
-                  <Link href="/services" className="inline-flex items-center text-indigo-500 font-bold text-sm uppercase tracking-widest hover:text-white transition-colors group/btn w-fit">
+                  <Link href={`/services#${service.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`} className="inline-flex items-center text-indigo-500 font-bold text-sm uppercase tracking-widest hover:text-white transition-colors group/btn w-fit">
                     {service.cta}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
                   </Link>

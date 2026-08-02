@@ -55,6 +55,14 @@ export const SITE_PAGES: SitePageDefinition[] = [
     },
   },
   {
+    slug: "refund-policy",
+    title: "Refund Policy",
+    defaultMeta: {
+      title: "Refund Policy | karmakoders",
+      description: "Read our refund policy to understand the terms, eligibility, and procedures for requesting a refund.",
+    },
+  },
+  {
     slug: "contact-support",
     title: "Contact Support",
     defaultMeta: {

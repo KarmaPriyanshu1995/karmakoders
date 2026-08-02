@@ -12,14 +12,14 @@ const defaultCases = [
     title: "Revolutionizing Fintech UX",
     client: "Quantum Pay",
     result: "+240% Engagement",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
     color: "from-blue-600 to-cyan-600",
   },
   {
     title: "AI-Driven Health Diagnostics",
     client: "Nova Health",
     result: "99.9% Accuracy",
-    image: "https://images.unsplash.com/photo-1504868584819-f8eec0421d50?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=800",
     color: "from-emerald-600 to-teal-600",
   },
 ];
