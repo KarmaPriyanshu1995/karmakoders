@@ -17,9 +17,9 @@ interface ContactProps {
 
 export function ContactSection({
   isSpace = false,
-  tagline = "Get In Touch",
-  heading = "Let's Start Your Next Digital Project",
-  description = "Ready to transform your vision into reality? Our team is standing by to help you navigate your digital journey.",
+  tagline = "Start Your Project",
+  heading = "Ready to Scale Your Digital Product?",
+  description = "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
   isFirstSection = false,
 }: ContactProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +83,7 @@ export function ContactSection({
             ) : (
               <motion.h2
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
                 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
@@ -93,19 +93,33 @@ export function ContactSection({
             )}
             <motion.p
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               className="mt-6 text-[#D6D6D6] text-xl leading-relaxed max-w-lg font-medium"
             >
               {description}
             </motion.p>
+
+            {/* Trust checkmarks list */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.25 }}
+              className="mt-6 flex flex-col gap-2 text-slate-400 text-sm font-semibold"
+            >
+              {["✔ 12-Hour SLA Response Time", "✔ Senior Systems Architect Lead Assigner", "✔ NDA Signed Before Discovery", "✔ 100% Free Scoping Assessment & Plan"].map((t) => (
+                <span key={t}>{t}</span>
+              ))}
+            </motion.div>
             
             <div className="mt-16 space-y-10">
               {[
                 { icon: Mail, label: "Email Us", value: "info@karmakoders.com" },
-                { icon: Phone, label: "Call Us", value: "+91 86900 71861" },
-                { icon: MapPin, label: "Visit Us", value: "JLN Marg, Malviya Nagar, Jaipur" },
+                // TODO: Replace placeholders below with actual business details when approved.
+                { icon: Phone, label: "Call Us", value: "+1 (800) 555-0199 (Placeholder)" },
+                { icon: MapPin, label: "Visit Us", value: "Jaipur, India / Delaware, USA (Corporate Registration)" },
               ].map((item, i) => (
                 <motion.div 
                    key={item.label}

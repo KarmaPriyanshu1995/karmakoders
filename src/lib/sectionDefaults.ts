@@ -36,24 +36,28 @@ const DEFAULT_PRICING_PLANS = [
 
 const DEFAULT_FAQS = [
   {
-    question: "How long does a typical project take?",
-    answer: "Project timelines vary depending on complexity. A standard landing page takes about 2-3 weeks, while complex platforms can take 2-4 months.",
+    question: "How do you coordinate with USA and Canada time zones?",
+    answer: "We ensure full daily overlap during your active working hours. Our dedicated Project Managers and lead engineers host daily stand-ups and sprint reviews during EST/PST times. All communication is maintained on Slack, Teams, or Jira for instant accessibility.",
   },
   {
-    question: "What industries do you specialize in?",
-    answer: "We have experience across fintech, healthcare, e-commerce, real estate, and entertainment.",
+    question: "Do you sign NDAs before discussing project scope?",
+    answer: "Absolutely. We require mutual or unilateral NDAs before any technical scoping, code audits, or system design discussions take place. Your brand security and IP are protected from day one.",
   },
   {
-    question: "Do you offer post-launch support?",
-    answer: "Yes, we provide tiered maintenance and support packages to ensure your platform remains secure and up-to-date.",
+    question: "How is intellectual property and code ownership handled?",
+    answer: "Once a milestone is delivered and signed off, 100% of the intellectual property, repository access, and code assets are legally transferred to your company under Delaware law.",
   },
   {
-    question: "Can you work with our existing brand guidelines?",
-    answer: "Absolutely. We can build upon your existing brand identity or help you evolve it into a modern digital-first aesthetic.",
+    question: "What compliance standards and security controls do you follow?",
+    answer: "We develop all projects using compliance-first engineering. We build to satisfy SOC 2 Type II controls, HIPAA standards for healthcare systems, GDPR & CCPA for global user privacy, and PCI-DSS rules for custom checkouts.",
   },
   {
-    question: "How does your AI redesign system work?",
-    answer: "Our proprietary AI engine analyzes design trends and user inspiration images to generate dynamic theme tokens.",
+    question: "What is your typical project velocity and sprint schedule?",
+    answer: "We operate on bi-weekly agile sprints. At the end of every 2 weeks, we host a sprint review showcasing functioning software on staging environments. This ensures continuous feedback and rapid iteration with zero surprises.",
+  },
+  {
+    question: "How does billing work and do you support USD payments?",
+    answer: "All contracts are executed in USD and processed via secure invoicing. We offer flexible options, including fixed-price scopes for validated MVPs and dedicated monthly engineer retainers for growing SaaS platforms.",
   },
 ];
 
@@ -78,65 +82,103 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       type: "hero",
       order: 0,
       content: {
-        headline: "Design the Future of Your Brand",
-        subheadline:
-          "We build premium, scalable, and immersive web platforms powered by advanced AI and cutting-edge 3D technologies.",
-        ctaPrimary: "Explore Portfolio",
-        ctaSecondary: "Our Services",
+        badge: "Trusted Development Partner",
+        headline: "Enterprise Software Engineering",
+        highlight: "Built for the US Market.",
+        subheadline: "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
+        ctaPrimary: "Book Discovery Call",
+        ctaSecondary: "Get Free Estimate",
       },
     },
-    { id: "section-partners-home", type: "partners", order: 1, content: {} },
+    {
+      id: "section-whychoosekarmakoders-home",
+      type: "whychoosekarmakoders",
+      order: 1,
+      content: {
+        tagline: "Why Choose KarmaKoders",
+        heading: "Why Businesses Choose KarmaKoders",
+        subtitle: "We combine modern engineering, transparent collaboration, and scalable technology to help businesses build digital products with confidence.",
+      },
+    },
+    { id: "section-partners-home", type: "partners", order: 2, content: {} },
     {
       id: "section-services-home",
       type: "services",
-      order: 2,
+      order: 3,
       content: {
         tagline: "Our Expertise",
         heading: "Comprehensive Solutions for Your Business",
-        description:
-          "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
+        description: "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
       },
     },
-    { id: "section-techstack-home", type: "techstack", order: 3, content: {} },
+    {
+      id: "section-industries-home",
+      type: "industries",
+      order: 4,
+      content: {
+        tagline: "Industries We Serve",
+        heading: "Built for Industries That Move Fast",
+        subheading: "From fintech to healthcare, we engineer digital products for industries where reliability matters.",
+      },
+    },
     {
       id: "section-projects-home",
       type: "projects",
-      order: 4,
+      order: 5,
       content: {
-        tagline: "Selected Works",
-        heading: "Transforming Visions into Digital Reality",
+        tagline: "Case Studies",
+        heading: "Real Results for Real Businesses",
         limit: 6,
         showViewAll: true,
       },
     },
-    { id: "section-feedback-home", type: "feedback", order: 5, content: {} },
+    { id: "section-techstack-home", type: "techstack", order: 6, content: {} },
     {
-      id: "section-team-home",
-      type: "team",
-      order: 6,
+      id: "section-chooseus-home",
+      type: "chooseus",
+      order: 7,
       content: {
-        tagline: "Our Team",
-        heading: "The Minds Behind karmakoders",
+        tagline: "Why Choose KarmaKoders",
+        heading: "Built for the US Market. Engineered Without Compromise.",
+      },
+    },
+    {
+      id: "section-engagement-home",
+      type: "engagement",
+      order: 8,
+      content: {
+        tagline: "Engagement Models",
+        heading: "Flexible Frameworks for Scaling Teams",
+        subheading: "Choose a structured collaboration model designed to fit your project scope, timeline, and compliance needs.",
+      },
+    },
+    {
+      id: "section-process-home",
+      type: "process",
+      order: 9,
+      content: {
+        tagline: "Our Methodology",
+        heading: "How We Build Successful Products",
       },
     },
     {
       id: "section-faq-home",
       type: "faq",
-      order: 7,
+      order: 10,
       content: {
         tagline: "FAQ",
-        heading: "Common Questions",
+        heading: "Frequently Asked Questions",
         faqs: DEFAULT_FAQS,
       },
     },
     {
       id: "section-contact-home",
       type: "contact",
-      order: 8,
+      order: 11,
       content: {
-        tagline: "Get in Touch",
-        heading: "Start Your Project Today",
-        description: "Have an idea or project in mind? Reach out and let's build the future together.",
+        tagline: "Start Your Project",
+        heading: "Ready to Scale Your Digital Product?",
+        description: "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
       },
     },
   ],

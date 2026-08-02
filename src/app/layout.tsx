@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "AI Business Portfolio",
   description: "Premium AI-powered business portfolio platform",
   metadataBase: new URL("https://www.karmakoders.com"),
+  icons: {
+    icon: "/webicon.png",
+    shortcut: "/webicon.png",
+    apple: "/webicon.png",
+  },
   openGraph: {
     type: "website",
     siteName: "karmakoders",
