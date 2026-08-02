@@ -193,24 +193,6 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
         body: "We are a team of passionate designers and engineers building premium digital experiences powered by AI.",
       },
     },
-    {
-      id: "section-about-team",
-      type: "team",
-      order: 1,
-      content: {
-        tagline: "Our Team",
-        heading: "Meet the Experts",
-      },
-    },
-    {
-      id: "section-about-testimonials",
-      type: "testimonials",
-      order: 2,
-      content: {
-        tagline: "Testimonials",
-        heading: "What Our Clients Say",
-      },
-    },
   ],
   services: [
     {
