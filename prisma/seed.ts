@@ -81,6 +81,15 @@ async function main() {
         },
       });
     }
+
+    // Prune any deprecated sections not in defaults
+    const defaultSectionIds = defaultSections.map((s) => s.id);
+    await prisma.section.deleteMany({
+      where: {
+        pageId: page.id,
+        id: { notIn: defaultSectionIds },
+      },
+    });
   }
 
   // Seed Blog Posts
@@ -217,13 +226,76 @@ async function main() {
       schemaJson: JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Service",
-        "name": "Web and Mobile Development Services",
+        "name": "Software Development Services",
         "provider": {
           "@type": "Organization",
           "name": "karmakoders",
-          "url": "https://www.karmakoders.com"
+          "url": "https://www.karmakoders.com",
+          "logo": "https://www.karmakoders.com/logo.png"
         },
-        "description": "Premium Next.js web design, custom software development, mobile apps, and SEO optimization."
+        "description": "Premium software engineering, custom SaaS development, mobile applications, and AI integrations for founders and scaling startups.",
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Software Engineering Services",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Custom Software Development",
+                "description": "Enterprise-grade bespoke software systems designed to solve complex business operations with robust architectures and absolute data safety."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Mobile App Development",
+                "description": "Native iOS and Android mobile solutions engineered for smooth performance, high offline accessibility, and interactive design layouts."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "AI Solutions & Integrations",
+                "description": "Integrate LLMs, neural searches, custom machine learning pipelines, and autonomous agentic workflows directly into your platform."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "SaaS Development",
+                "description": "Scalable multi-tenant subscription products built on high-speed Next.js frameworks with automated billing systems and analytic setups."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Website Development",
+                "description": "Premium corporate portals and headless web platforms optimized for fast loading speeds, search engine discoverability, and CRO."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "UI/UX Design & Branding",
+                "description": "High-end user interfaces, comprehensive wireframing, interactive prototyping, and custom typography to capture and convert users."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Cloud Engineering & DevOps",
+                "description": "Secure, auto-scaling cloud deployments on AWS and Google Cloud with continuous automated monitoring, audits, and SLA guarantees."
+              }
+            }
+          ]
+        }
       }),
       isApplied: true,
     };
@@ -231,6 +303,75 @@ async function main() {
       await prisma.seoSchema.update({ where: { id: existingService.id }, data: serviceData });
     } else {
       await prisma.seoSchema.create({ data: serviceData });
+    }
+
+    const existingServiceFaq = await prisma.seoSchema.findFirst({
+      where: { pageId: servicesPage.id, schemaType: "FAQPage" }
+    });
+    const serviceFaqData = {
+      pageType: "page",
+      pageId: servicesPage.id,
+      schemaType: "FAQPage",
+      schemaJson: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do you coordinate with USA and Canada time zones?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We ensure full daily overlap during your active working hours. Our dedicated Project Managers and lead engineers host daily stand-ups and sprint reviews during EST/PST times. All communication is maintained on Slack, Teams, or Jira for instant accessibility."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do you sign NDAs before discussing project scope?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Absolutely. We require mutual or unilateral NDAs before any technical scoping, code audits, or system design discussions take place. Your brand security and IP are protected from day one."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How is intellectual property and code ownership handled?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Once a milestone is delivered and signed off, 100% of the intellectual property, repository access, and code assets are legally transferred to your company under Delaware law."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What compliance standards and security controls do you follow?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We develop all projects using compliance-first engineering. We build to satisfy SOC 2 Type II controls, HIPAA standards for healthcare systems, GDPR & CCPA for global user privacy, and PCI-DSS rules for custom checkouts."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is your typical project velocity and sprint schedule?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We operate on bi-weekly agile sprints. At the end of every 2 weeks, we host a sprint review showcasing functioning software on staging environments. This ensures continuous feedback and rapid iteration with zero surprises."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does billing work and do you support USD payments?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "All contracts are executed in USD and processed via secure invoicing. We offer flexible options, including fixed-price scopes for validated MVPs and dedicated monthly engineer retainers for growing SaaS platforms."
+            }
+          }
+        ]
+      }),
+      isApplied: true,
+    };
+    if (existingServiceFaq) {
+      await prisma.seoSchema.update({ where: { id: existingServiceFaq.id }, data: serviceFaqData });
+    } else {
+      await prisma.seoSchema.create({ data: serviceFaqData });
     }
   }
 

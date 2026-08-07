@@ -21,6 +21,8 @@ import { ChooseUsSection } from "@/components/sections/ChooseUsSection";
 import { EngagementSection } from "@/components/sections/EngagementSection";
 import { ProcessSection } from "@/components/sections/ProcessSection";
 import { WhyChooseKarmaKoders } from "@/components/sections/WhyChooseKarmaKoders";
+import { ProjectEstimatorSection } from "@/components/sections/ProjectEstimatorSection";
+import { DecisionFrameworkSection } from "@/components/sections/DecisionFrameworkSection";
 
 // Map section types to their corresponding React components
 const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> = {
@@ -47,6 +49,8 @@ const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> =
   engagement: EngagementSection,
   process: ProcessSection,
   whychoosekarmakoders: WhyChooseKarmaKoders,
+  projectestimator: ProjectEstimatorSection,
+  decisionframework: DecisionFrameworkSection,
 };
 
 interface SectionData {

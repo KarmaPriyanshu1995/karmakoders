@@ -196,14 +196,102 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
   ],
   services: [
     {
-      id: "section-services-main",
-      type: "services",
+      id: "section-hero-services",
+      type: "hero",
       order: 0,
       content: {
-        tagline: "Our Expertise",
-        heading: "Comprehensive Solutions for Your Business",
-        description:
-          "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
+        badge: "Our Expertise",
+        headline: "Software Development Built for Founders",
+        highlight: "Who Can't Afford to Get It Wrong.",
+        subheadline: "From MVP to scale — we design, build, and ship web, mobile, AI, and SaaS products for startups and growing companies, with your IP fully protected from day one.",
+        ctaPrimary: "Book Free Scoping Call",
+        ctaSecondary: "See Our Work",
+        ctaPrimaryLink: "/contact?type=estimate",
+        ctaSecondaryLink: "#services",
+      },
+    },
+    {
+      id: "section-partners-services",
+      type: "partners",
+      order: 1,
+      content: {},
+    },
+    {
+      id: "section-estimator-services",
+      type: "projectestimator",
+      order: 2,
+      content: {},
+    },
+    {
+      id: "section-decisionframework-services",
+      type: "decisionframework",
+      order: 3,
+      content: {},
+    },
+    {
+      id: "section-services-main",
+      type: "services",
+      order: 4,
+      content: {
+        tagline: "Services Directory",
+        heading: "Everything you need to design, build, and scale your product",
+        description: "Pick a single service or bring us your whole roadmap — we work as an extension of your team.",
+      },
+    },
+    {
+      id: "section-process-services",
+      type: "process",
+      order: 5,
+      content: {
+        tagline: "Our Methodology",
+        heading: "How We Build Successful Products",
+      },
+    },
+    {
+      id: "section-techstack-services",
+      type: "techstack",
+      order: 6,
+      content: {},
+    },
+    {
+      id: "section-casestudies-services",
+      type: "casestudies",
+      order: 7,
+      content: {
+        tagline: "Case Studies",
+        heading: "Real Results for Real Businesses",
+        limit: 2,
+        showViewAll: true,
+      },
+    },
+    {
+      id: "section-whychoosekarmakoders-services",
+      type: "whychoosekarmakoders",
+      order: 8,
+      content: {
+        tagline: "Why Choose KarmaKoders",
+        heading: "Built for Founders. Engineered Without Compromise.",
+        subtitle: "We combine modern engineering, transparent collaboration, and scalable technology to help businesses build digital products with confidence.",
+      },
+    },
+    {
+      id: "section-faq-services",
+      type: "faq",
+      order: 9,
+      content: {
+        tagline: "FAQ",
+        heading: "Frequently Asked Questions",
+        faqs: DEFAULT_FAQS,
+      },
+    },
+    {
+      id: "section-contact-services",
+      type: "contact",
+      order: 10,
+      content: {
+        tagline: "Start Your Project",
+        heading: "Ready to Scale Your Digital Product?",
+        description: "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
       },
     },
   ],

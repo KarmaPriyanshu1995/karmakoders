@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
@@ -24,6 +24,8 @@ function ContactFormInner({
 }: ContactProps) {
   const searchParams = useSearchParams();
   const typeParam = searchParams ? searchParams.get("type") : null;
+  const serviceParam = searchParams ? searchParams.get("service") : null;
+  const messageParam = searchParams ? searchParams.get("message") : null;
   const isEstimate = typeParam === "estimate";
 
   const currentTagline = isEstimate ? "Free Scoping Assessment" : tagline;
@@ -38,6 +40,35 @@ function ContactFormInner({
     budget: "$10k - $25k",
     projectType: "Custom Software",
   });
+
+  useEffect(() => {
+    const dataToUpdate: Partial<typeof formData> = {};
+
+    if (serviceParam) {
+      const serviceMap: Record<string, string> = {
+        "custom-software": "Custom Software",
+        "mobile-apps": "Mobile Apps",
+        "ai-solutions": "AI Solutions & Integrations",
+        "saas-products": "SaaS Development",
+        "website-engineering": "Website Development",
+        "ui-ux-design": "UI/UX Design",
+        "cloud-devops": "Cloud Engineering & DevOps",
+        "custom-scope": "Custom Software",
+      };
+      const matched = serviceMap[serviceParam];
+      if (matched) {
+        dataToUpdate.projectType = matched;
+      }
+    }
+
+    if (messageParam) {
+      dataToUpdate.message = messageParam;
+    }
+
+    if (Object.keys(dataToUpdate).length > 0) {
+      setFormData((prev) => ({ ...prev, ...dataToUpdate }));
+    }
+  }, [serviceParam, messageParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

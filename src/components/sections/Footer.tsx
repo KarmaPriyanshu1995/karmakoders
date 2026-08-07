@@ -9,12 +9,13 @@ import { toast } from "sonner";
 
 const footerLinks = {
   Services: [
-    { name: "UI/UX Design", href: "/services" },
-    { name: "Web Engineering", href: "/services" },
-    { name: "AI Automation", href: "/services" },
-    { name: "Mobile Solutions", href: "/services" },
-    { name: "Cyber Security", href: "/services" },
-    { name: "Growth & Analytics", href: "/services" },
+    { name: "Custom Software", href: "/services#custom-software-development" },
+    { name: "Mobile App Dev", href: "/services#mobile-app-development" },
+    { name: "AI Integrations", href: "/services#ai-solutions-integrations" },
+    { name: "SaaS Products", href: "/services#saas-development" },
+    { name: "Web Engineering", href: "/services#website-development" },
+    { name: "UI/UX Design", href: "/services#ui-ux-design-branding" },
+    { name: "Cloud & DevOps", href: "/services#cloud-engineering-devops" },
   ],
   Company: [
     { name: "About Us", href: "/about" },
