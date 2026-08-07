@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, ChevronLeft, ChevronRight, HelpCircle, Lightbulb, Target, Cpu } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 
 import { DEFAULT_PROJECTS } from "@/lib/constants";
 import { getProjects } from "@/lib/actions";
@@ -44,7 +45,7 @@ const structuredCaseStudies: Record<string, { problem: string; solution: string;
   },
 };
 
-export function ProjectsSection({
+function ProjectsSectionInner({
   isCentered = false,
   tagline = "Case Studies",
   heading = "Real Results for Real Businesses",
@@ -54,6 +55,8 @@ export function ProjectsSection({
   isFirstSection = false,
 }: ProjectsProps) {
   const [liveProjects, setLiveProjects] = useState<any[]>([]);
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams ? searchParams.get("category") : null;
 
   useEffect(() => {
     if (!propProjects) {
@@ -73,7 +76,13 @@ export function ProjectsSection({
   }, [propProjects]);
 
   const projects = propProjects || (liveProjects.length > 0 ? liveProjects : DEFAULT_PROJECTS);
-  const displayProjects = (limit && limit > 0) ? projects.slice(0, limit) : projects;
+  
+  // Filter projects by category query parameter if present
+  const filteredProjects = categoryParam
+    ? projects.filter((p) => p.category?.toLowerCase() === categoryParam.toLowerCase())
+    : projects;
+
+  const displayProjects = (limit && limit > 0) ? filteredProjects.slice(0, limit) : filteredProjects;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {
@@ -267,5 +276,13 @@ export function ProjectsSection({
         </div>
       </div>
     </section>
+  );
+}
+
+export function ProjectsSection(props: ProjectsProps) {
+  return (
+    <Suspense fallback={<div className="py-24 text-center text-white">Loading Portfolio...</div>}>
+      <ProjectsSectionInner {...props} />
+    </Suspense>
   );
 }

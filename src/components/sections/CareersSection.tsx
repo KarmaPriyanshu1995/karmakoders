@@ -56,7 +56,7 @@ export function CareersSection({
   const [liveJobs, setLiveJobs] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!propJobs) {
+    if (!propJobs || propJobs.length === 0) {
       getJobs()
         .then((data) => {
           if (data && data.length > 0) {
@@ -72,7 +72,8 @@ export function CareersSection({
     }
   }, [propJobs]);
 
-  const jobs = propJobs || (liveJobs.length > 0 ? liveJobs : defaultJobs);
+  const jobs = (propJobs && propJobs.length > 0) ? propJobs : (liveJobs.length > 0 ? liveJobs : defaultJobs);
+  const showAsFirst = isFirstSection;
 
   return (
     <section id="careers" className="py-32 px-6 md:px-12 bg-slate-950 relative overflow-hidden">
@@ -84,17 +85,17 @@ export function CareersSection({
           <div className="lg:w-1/3 lg:sticky lg:top-32">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              animate={showAsFirst ? { opacity: 1, x: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, x: 0 }}
               viewport={{ once: true }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] mb-6"
             >
               {tagline}
             </motion.div>
-            {isFirstSection ? (
+            {showAsFirst ? (
               <motion.h1
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
                 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
               >
@@ -113,7 +114,8 @@ export function CareersSection({
             )}
             <motion.p
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               className="mt-6 text-[#D6D6D6] text-lg leading-relaxed font-medium"

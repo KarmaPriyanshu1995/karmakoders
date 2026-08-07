@@ -196,14 +196,102 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
   ],
   services: [
     {
-      id: "section-services-main",
-      type: "services",
+      id: "section-hero-services",
+      type: "hero",
       order: 0,
       content: {
-        tagline: "Our Expertise",
-        heading: "Comprehensive Solutions for Your Business",
-        description:
-          "We offer a wide range of services designed to help you stay ahead in the rapidly evolving digital landscape.",
+        badge: "Our Expertise",
+        headline: "Software Development Built for Founders",
+        highlight: "Who Can't Afford to Get It Wrong.",
+        subheadline: "From MVP to scale — we design, build, and ship web, mobile, AI, and SaaS products for startups and growing companies, with your IP fully protected from day one.",
+        ctaPrimary: "Book Free Scoping Call",
+        ctaSecondary: "See Our Work",
+        ctaPrimaryLink: "/contact?type=estimate",
+        ctaSecondaryLink: "#services",
+      },
+    },
+    {
+      id: "section-partners-services",
+      type: "partners",
+      order: 1,
+      content: {},
+    },
+    {
+      id: "section-estimator-services",
+      type: "projectestimator",
+      order: 2,
+      content: {},
+    },
+    {
+      id: "section-decisionframework-services",
+      type: "decisionframework",
+      order: 3,
+      content: {},
+    },
+    {
+      id: "section-services-main",
+      type: "services",
+      order: 4,
+      content: {
+        tagline: "Services Directory",
+        heading: "Everything you need to design, build, and scale your product",
+        description: "Pick a single service or bring us your whole roadmap — we work as an extension of your team.",
+      },
+    },
+    {
+      id: "section-process-services",
+      type: "process",
+      order: 5,
+      content: {
+        tagline: "Our Methodology",
+        heading: "How We Build Successful Products",
+      },
+    },
+    {
+      id: "section-techstack-services",
+      type: "techstack",
+      order: 6,
+      content: {},
+    },
+    {
+      id: "section-casestudies-services",
+      type: "casestudies",
+      order: 7,
+      content: {
+        tagline: "Case Studies",
+        heading: "Real Results for Real Businesses",
+        limit: 2,
+        showViewAll: true,
+      },
+    },
+    {
+      id: "section-whychoosekarmakoders-services",
+      type: "whychoosekarmakoders",
+      order: 8,
+      content: {
+        tagline: "Why Choose KarmaKoders",
+        heading: "Built for Founders. Engineered Without Compromise.",
+        subtitle: "We combine modern engineering, transparent collaboration, and scalable technology to help businesses build digital products with confidence.",
+      },
+    },
+    {
+      id: "section-faq-services",
+      type: "faq",
+      order: 9,
+      content: {
+        tagline: "FAQ",
+        heading: "Frequently Asked Questions",
+        faqs: DEFAULT_FAQS,
+      },
+    },
+    {
+      id: "section-contact-services",
+      type: "contact",
+      order: 10,
+      content: {
+        tagline: "Start Your Project",
+        heading: "Ready to Scale Your Digital Product?",
+        description: "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
       },
     },
   ],
@@ -308,7 +396,34 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
   "help-center": [contentSection("help-center", "Help Center")],
   terms: [contentSection("terms", "Terms of Service")],
   privacy: [contentSection("privacy", "Privacy Policy")],
-  "cookie-policy": [contentSection("cookie-policy", "Cookie Policy")],
+  "cookie-policy": [contentSection("cookie-policy", "Cookie Policy", `
+    <div class="prose prose-invert max-w-none">
+      <p>Last updated: August 2, 2026</p>
+      <p>At KarmaKoders, we believe in being clear and open about how we collect and use data related to you. This Cookie Policy applies to any KarmaKoders product or service that links to this policy or incorporates it by reference.</p>
+      <h3>How We Use Cookies</h3>
+      <p>We use cookies and other tracking technologies to ensure you get the best experience on our website, analyze site traffic, and assist with our marketing efforts. Some cookies are necessary for core security and functionality, while others help us improve performance and personalize your journey.</p>
+      <h3>Types of Cookies We Use</h3>
+      <ul>
+        <li><strong>Necessary Cookies:</strong> These cookies are essential to enable you to move around our website and use its features securely.</li>
+        <li><strong>Performance & Analytics Cookies:</strong> These cookies help us understand how visitors interact with our website by collecting information anonymously, helping us improve custom software development workflows.</li>
+        <li><strong>Functional Cookies:</strong> These cookies allow our website to remember choices you make (such as your login details or language preference) to provide an enhanced experience.</li>
+      </ul>
+      <h3>Managing Your Preferences</h3>
+      <p>You can manage or disable cookies at any time through your web browser settings. Please note that disabling certain cookies may affect your experience and limit the functionality of some website features.</p>
+    </div>
+  `)],
+  "refund-policy": [contentSection("refund-policy", "Refund Policy", `
+    <div class="prose prose-invert max-w-none">
+      <p>Last updated: August 2, 2026</p>
+      <p>At KarmaKoders, we stand behind the quality of our engineering and digital product development. Because we work under Delaware law and contract on milestone-based clear delivery scopes, we outline our refund terms below to ensure complete transparency.</p>
+      <h3>Milestone-Based Billing</h3>
+      <p>All custom software development, mobile app development, and AI solutions are scoped in bi-weekly sprint milestones. Once a milestone is signed off and delivered to staging or production, the work is considered accepted and the corresponding payment is non-refundable.</p>
+      <h3>Cancellation & Refund Requests</h3>
+      <p>If you choose to terminate a project before a milestone starts, any pre-paid amounts for future unstarted milestones will be fully refunded to your US bank account within 14 business days.</p>
+      <h3>Contact Us</h3>
+      <p>For any questions regarding billing or refund requests, please reach out directly to our billing support department at billing@karmakoders.com.</p>
+    </div>
+  `)],
   "contact-support": [contentSection("contact-support", "Contact Support")],
 };
 

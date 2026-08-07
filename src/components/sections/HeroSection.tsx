@@ -46,6 +46,8 @@ interface HeroProps {
   subheadline?: string;
   ctaPrimary?: string;
   ctaSecondary?: string;
+  ctaPrimaryLink?: string;
+  ctaSecondaryLink?: string;
 }
 
 export function HeroSection({
@@ -55,6 +57,8 @@ export function HeroSection({
   subheadline = "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
   ctaPrimary = "Book Discovery Call",
   ctaSecondary = "Get Free Estimate",
+  ctaPrimaryLink = "/contact",
+  ctaSecondaryLink = "/contact?type=estimate",
 }: HeroProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const primaryColor = "#FFC300";
@@ -132,10 +136,10 @@ export function HeroSection({
           className="flex flex-col sm:flex-row gap-5 w-full md:w-auto"
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
         >
-          <Link href="/contact" className="px-10 py-5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-lg font-black rounded-xl transition-all duration-300 shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 w-full sm:w-auto text-center">
+          <Link href={ctaPrimaryLink} className="px-10 py-5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-lg font-black rounded-xl transition-all duration-300 shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 w-full sm:w-auto text-center">
             {ctaPrimary}
           </Link>
-          <Link href="/contact?type=estimate" className="px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 text-lg font-bold rounded-xl transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 w-full sm:w-auto text-center">
+          <Link href={ctaSecondaryLink} className="px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 text-lg font-bold rounded-xl transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 w-full sm:w-auto text-center">
             {ctaSecondary}
           </Link>
         </motion.div>

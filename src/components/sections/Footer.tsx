@@ -4,15 +4,18 @@ import Link from "next/link";
 import { ArrowUp, Mail } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { subscribeNewsletter } from "@/lib/actions";
+import { toast } from "sonner";
 
 const footerLinks = {
   Services: [
-    { name: "UI/UX Design", href: "/services" },
-    { name: "Web Engineering", href: "/services" },
-    { name: "AI Automation", href: "/services" },
-    { name: "Mobile Solutions", href: "/services" },
-    { name: "Cyber Security", href: "/services" },
-    { name: "Growth & Analytics", href: "/services" },
+    { name: "Custom Software", href: "/services#custom-software-development" },
+    { name: "Mobile App Dev", href: "/services#mobile-app-development" },
+    { name: "AI Integrations", href: "/services#ai-solutions-integrations" },
+    { name: "SaaS Products", href: "/services#saas-development" },
+    { name: "Web Engineering", href: "/services#website-development" },
+    { name: "UI/UX Design", href: "/services#ui-ux-design-branding" },
+    { name: "Cloud & DevOps", href: "/services#cloud-engineering-devops" },
   ],
   Company: [
     { name: "About Us", href: "/about" },
@@ -36,13 +39,23 @@ export function Footer() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (!email || !email.trim()) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    try {
+      await subscribeNewsletter(email.trim());
       setSubscribed(true);
       setEmail("");
+      toast.success("Subscribed successfully! Thank you.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to subscribe. Please try again.");
     }
   };
 
@@ -86,10 +99,10 @@ export function Footer() {
 
             <div className="flex gap-3 mb-10" role="list" aria-label="Social media links">
               {[
-                { href: "#", label: "Twitter", svg: <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/> },
-                { href: "#", label: "LinkedIn", svg: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></> },
-                { href: "#", label: "GitHub", svg: <><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></> },
-                { href: "#", label: "Instagram", svg: <><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></> },
+                { href: "https://twitter.com/karmakoders", label: "Twitter", svg: <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/> },
+                { href: "https://linkedin.com/company/karmakoders", label: "LinkedIn", svg: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></> },
+                { href: "https://github.com/karmakoders", label: "GitHub", svg: <><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></> },
+                { href: "https://instagram.com/karmakoders", label: "Instagram", svg: <><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></> },
               ].map((item, i) => (
                 <a key={i} href={item.href} aria-label={item.label} rel="noopener noreferrer" className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#D6D6D6] hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 hover:scale-110 hover:shadow-[0_0_20px_var(--color-indigo-500)] transition-all duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{item.svg}</svg>
@@ -182,6 +195,7 @@ export function Footer() {
           </div>
 
           <button
+            type="button"
             onClick={scrollToTop}
             className="group flex items-center gap-3 text-[#D6D6D6] hover:text-indigo-500 transition-colors"
           >

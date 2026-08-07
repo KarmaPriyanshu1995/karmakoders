@@ -38,13 +38,14 @@ export function Navbar() {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b",
-        scrolled ? "py-4 bg-slate-950/80 backdrop-blur-xl border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]" : "py-6 bg-transparent border-transparent"
+        scrolled 
+          ? "py-4 bg-slate-950/90 backdrop-blur-xl border-white/10 shadow-lg" 
+          : "py-6 bg-slate-950/40 backdrop-blur-md border-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold tracking-tighter text-white flex items-center gap-1 group">
           Karmakoders
-          {/* <span className="text-indigo-500 transition-transform group-hover:scale-110 inline-block">.ai</span> */}
         </Link>
         
         {/* Desktop Navigation */}
@@ -74,7 +75,7 @@ export function Navbar() {
             );
           })}
         </nav>
-
+ 
         {/* Action Buttons & Hamburger Menu */}
         <div className="flex items-center gap-4">
           <Link
@@ -83,7 +84,7 @@ export function Navbar() {
           >
             Start Project
           </Link>
-
+ 
           {/* Hamburger Toggle Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -94,7 +95,7 @@ export function Navbar() {
           </button>
         </div>
       </div>
-
+ 
       {/* Mobile/Tablet Menu Drawer */}
       <AnimatePresence>
         {isOpen && (
@@ -103,7 +104,7 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 right-0 bg-slate-950/95 border-b border-white/10 backdrop-blur-2xl p-8 flex flex-col gap-6 shadow-2xl z-40"
+            className="absolute top-full left-0 right-0 bg-slate-900 border-b border-white/10 backdrop-blur-2xl p-8 flex flex-col gap-6 shadow-2xl z-40"
           >
             <nav className="flex flex-col gap-5 items-center">
               {navLinks.map((link) => {
@@ -124,7 +125,7 @@ export function Navbar() {
                 );
               })}
             </nav>
-
+ 
             <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
