@@ -24,8 +24,12 @@ import { WhyChooseKarmaKoders } from "@/components/sections/WhyChooseKarmaKoders
 import { ProjectEstimatorSection } from "@/components/sections/ProjectEstimatorSection";
 import { DecisionFrameworkSection } from "@/components/sections/DecisionFrameworkSection";
 
-// Map section types to their corresponding React components
-const sectionMap: Record<string, React.ComponentType<Record<string, unknown>>> = {
+// Map section types to their corresponding React components. Some (e.g. projects,
+// casestudies) are async Server Components that fetch data before rendering, so the
+// value type has to allow a Promise<ReactNode> return in addition to a plain one.
+type SectionComponent = (props: Record<string, unknown>) => React.ReactNode | Promise<React.ReactNode>;
+
+const sectionMap: Record<string, SectionComponent> = {
   hero: HeroSection,
   about: AboutSection,
   services: ServicesSection,

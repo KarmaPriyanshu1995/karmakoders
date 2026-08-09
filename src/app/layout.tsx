@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Roboto, Poppins, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import "@uploadthing/react/styles.css";
 
 if (typeof window !== "undefined") {
   const originalWarn = console.warn;
