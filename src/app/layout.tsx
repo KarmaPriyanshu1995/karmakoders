@@ -70,6 +70,7 @@ import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
+import { KiraAssistant } from "@/components/kira/KiraAssistant";
 
 export default async function RootLayout({
   children,
@@ -188,6 +189,7 @@ export default async function RootLayout({
       <body className={bodyClass} suppressHydrationWarning>
         <ThemeProvider initialConfig={config}>
           {children}
+          <KiraAssistant />
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>

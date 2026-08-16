@@ -60,9 +60,14 @@ export default async function InquiriesPage() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed bg-slate-800/40 rounded-lg p-4 border border-slate-800">
+                  <p className="text-slate-300 text-sm leading-relaxed bg-slate-800/40 rounded-lg p-4 border border-slate-800 whitespace-pre-wrap">
                     {sub.message}
                   </p>
+                  {sub.message.startsWith("[KIRA VOICE LEAD]") && (
+                    <span className="inline-flex mt-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[#FFC300]/15 text-[#FFC300] border border-[#FFC300]/30">
+                      Kira voice lead
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-slate-500 text-xs whitespace-nowrap">
                   <Clock className="w-3.5 h-3.5" />
