@@ -43,7 +43,7 @@ export async function CmsPageView({ slug, withTopPadding = true }: CmsPageViewPr
 
   // Fetch custom schema markup applied to this page in the DB
   const schemas = await prisma.seoSchema.findMany({
-    where: { pageId: page.id, isApplied: true },
+    where: { tenantId: page.tenantId, pageId: page.id, isApplied: true },
   });
 
   const sections = page.sections.map((s) => ({

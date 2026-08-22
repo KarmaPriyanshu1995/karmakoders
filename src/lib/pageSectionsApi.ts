@@ -8,7 +8,7 @@ export interface SectionPayload {
   order: number;
 }
 
-export async function resolveTargetKeywords(pageSlug: string, seoMetaRaw: string | null): Promise<string[]> {
+export async function resolveTargetKeywords(pageSlug: string, seoMetaRaw: string | null, tenantId: string): Promise<string[]> {
   const keywords = new Set<string>();
 
   if (seoMetaRaw) {
@@ -23,7 +23,7 @@ export async function resolveTargetKeywords(pageSlug: string, seoMetaRaw: string
     }
   }
 
-  const siteConfig = await prisma.siteConfig.findUnique({ where: { key: "seoMeta" } });
+  const siteConfig = await prisma.siteConfig.findUnique({ where: { tenantId_key: { tenantId, key: "seoMeta" } } });
   if (siteConfig) {
     try {
       const global = JSON.parse(siteConfig.value);
@@ -72,15 +72,15 @@ export async function bootstrapPageSections(pageId: string, slug: string): Promi
   }));
 }
 
-export async function getPageSectionsPayload(pageId: string) {
-  const page = await prisma.page.findUnique({
-    where: { id: pageId },
+export async function getPageSectionsPayload(pageId: string, tenantId: string) {
+  const page = await prisma.page.findFirst({
+    where: { id: pageId, tenantId },
     include: { sections: { orderBy: { order: "asc" } } },
   });
 
   if (!page) return null;
 
-  let sections = page.sections;
+  const sections = page.sections;
   if (sections.length === 0) {
     const bootstrapped = await bootstrapPageSections(pageId, page.slug);
     if (bootstrapped.length > 0) {
@@ -88,13 +88,13 @@ export async function getPageSectionsPayload(pageId: string) {
         pageId: page.id,
         slug: page.slug,
         title: page.title,
-        targetKeywords: await resolveTargetKeywords(page.slug, page.seoMeta),
+        targetKeywords: await resolveTargetKeywords(page.slug, page.seoMeta, tenantId),
         sections: bootstrapped,
       };
     }
   }
 
-  const targetKeywords = await resolveTargetKeywords(page.slug, page.seoMeta);
+  const targetKeywords = await resolveTargetKeywords(page.slug, page.seoMeta, tenantId);
 
   return {
     pageId: page.id,
@@ -113,9 +113,10 @@ export async function getPageSectionsPayload(pageId: string) {
 export async function savePageSections(
   pageId: string,
   sections: SectionPayload[],
+  tenantId: string,
   sectionScores?: Record<string, number>
 ) {
-  const page = await prisma.page.findUnique({ where: { id: pageId } });
+  const page = await prisma.page.findFirst({ where: { id: pageId, tenantId } });
   if (!page) return null;
 
   const incomingIds = sections.map((s) => s.id);

@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 
-export async function runSearchConsoleOptimizationPipeline() {
+export async function runSearchConsoleOptimizationPipeline(tenantId: string) {
   const logs: string[] = [];
 
   try {
     // 1. Fetch Keyword Opportunities (typically synced from Search Console)
-    const opportunities = await prisma.seoKeywordOpportunity.findMany();
-    
+    const opportunities = await prisma.seoKeywordOpportunity.findMany({ where: { tenantId } });
+
     // We target keywords with high impressions but low CTR (< 15%)
     const lowCtrOps = opportunities.filter(
       (op) => op.impressions >= 100 && (op.ctr || 0) < 0.15
@@ -18,7 +18,7 @@ export async function runSearchConsoleOptimizationPipeline() {
     }
 
     // 2. Fetch all SEO Pages to match keywords with pages
-    const seoPages = await prisma.seoPage.findMany();
+    const seoPages = await prisma.seoPage.findMany({ where: { tenantId } });
 
     for (const op of lowCtrOps) {
       // Find matching page
@@ -66,6 +66,7 @@ export async function runSearchConsoleOptimizationPipeline() {
       // Check if this issue already exists
       const existingIssue = await prisma.seoIssue.findFirst({
         where: {
+          tenantId,
           pageId: targetPage.pageId,
           type: "keyword_ctr_optimization",
           description: { contains: op.keyword },
@@ -76,6 +77,7 @@ export async function runSearchConsoleOptimizationPipeline() {
       if (!existingIssue) {
         await prisma.seoIssue.create({
           data: {
+            tenantId,
             pageId: targetPage.pageId,
             pageType: targetPage.pageType,
             url: targetPage.url,

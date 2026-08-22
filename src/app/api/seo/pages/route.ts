@@ -2,20 +2,25 @@ import { NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { syncSitePages } from "@/lib/actions";
 import { buildPageUrl } from "@/lib/sitePages";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await withDbRetry(() => syncSitePages());
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW);
+
+    await withDbRetry(() => syncSitePages(tenantId));
 
     const [pages, posts, projects] = await withDbRetry(() => Promise.all([
-      prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true } }),
-      prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, content: true, image: true } }),
-      prisma.project.findMany({ select: { id: true, slug: true, title: true, content: true } }),
+      prisma.page.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true } }),
+      prisma.post.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true, content: true, image: true } }),
+      prisma.project.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, content: true } }),
     ]));
 
-    const seoPages = await withDbRetry(() => prisma.seoPage.findMany());
+    const seoPages = await withDbRetry(() => prisma.seoPage.findMany({ where: { tenantId } }));
     const seoMap = new Map(seoPages.map((sp) => [`${sp.pageType}:${sp.pageId}`, sp]));
 
     const allPages = [
@@ -66,6 +71,9 @@ export async function GET() {
 
     return NextResponse.json({ pages: result });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Pages]", error);
     return NextResponse.json({ error: "Failed to load pages" }, { status: 500 });
   }
@@ -73,6 +81,9 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const body = await req.json();
     const { id, type, metaTitle, metaDescription } = body;
 
@@ -80,16 +91,16 @@ export async function PUT(req: Request) {
 
     await withDbRetry(async () => {
       if (type === "post") {
-        await prisma.post.update({ where: { id }, data: { seoMeta } });
+        await prisma.post.updateMany({ where: { id, tenantId }, data: { seoMeta } });
       } else if (type === "page") {
-        await prisma.page.update({ where: { id }, data: { seoMeta } });
+        await prisma.page.updateMany({ where: { id, tenantId }, data: { seoMeta } });
       } else if (type === "project") {
         // Project table does not store seoMeta column in prisma.prisma directly
       }
 
       // Update in seo_pages table if it exists
       await prisma.seoPage.updateMany({
-        where: { pageType: type, pageId: id },
+        where: { tenantId, pageType: type, pageId: id },
         data: {
           metaTitle,
           metaDescription,
@@ -100,6 +111,7 @@ export async function PUT(req: Request) {
       // Create an automation log entry
       await prisma.seoAutomationLog.create({
         data: {
+          tenantId,
           action: `Optimized metadata for ${type}: ${id}`,
           pageId: id,
           pageType: type,
@@ -113,8 +125,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO PUT Pages]", error);
     return NextResponse.json({ error: "Failed to update page metadata" }, { status: 500 });
   }
 }
-

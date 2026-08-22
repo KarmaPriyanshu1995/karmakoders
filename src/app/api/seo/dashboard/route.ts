@@ -2,22 +2,27 @@ import { NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { runAudit, AuditPage } from "@/lib/seo/auditEngine";
 import { calcSiteScores } from "@/lib/seo/scorer";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW);
+
     // Fetch all content
     const [pages, posts, projects, seoPages, latestAudit, issues, brand, searchConsole, keywords] = await withDbRetry(() => Promise.all([
-      prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, isPublished: true } }),
-      prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, published: true, content: true, image: true } }),
-      prisma.project.findMany({ select: { id: true, slug: true, title: true, content: true } }),
-      prisma.seoPage.findMany(),
-      prisma.seoAudit.findFirst({ orderBy: { runAt: "desc" } }),
-      prisma.seoIssue.findMany({ where: { isFixed: false }, orderBy: { createdAt: "desc" }, take: 50 }),
-      prisma.seoBrand.findFirst(),
-      prisma.seoSearchConsole.findFirst({ orderBy: { fetchedAt: "desc" } }),
-      prisma.seoKeywordOpportunity.findMany({ orderBy: { opportunityScore: "desc" }, take: 10 }),
+      prisma.page.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true, isPublished: true } }),
+      prisma.post.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true, published: true, content: true, image: true } }),
+      prisma.project.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, content: true } }),
+      prisma.seoPage.findMany({ where: { tenantId } }),
+      prisma.seoAudit.findFirst({ where: { tenantId }, orderBy: { runAt: "desc" } }),
+      prisma.seoIssue.findMany({ where: { tenantId, isFixed: false }, orderBy: { createdAt: "desc" }, take: 50 }),
+      prisma.seoBrand.findFirst({ where: { tenantId } }),
+      prisma.seoSearchConsole.findFirst({ where: { tenantId }, orderBy: { fetchedAt: "desc" } }),
+      prisma.seoKeywordOpportunity.findMany({ where: { tenantId }, orderBy: { opportunityScore: "desc" }, take: 10 }),
     ]));
 
     // Build audit pages from DB content
@@ -105,6 +110,9 @@ export async function GET() {
       brand: brand ? { name: brand.brandName, score: brand.brandScore } : null,
     });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Dashboard]", error);
     return NextResponse.json({ error: "Failed to load dashboard data" }, { status: 500 });
   }

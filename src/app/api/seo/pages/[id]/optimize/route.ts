@@ -6,6 +6,8 @@ import { analyzePage, extractPageHtmlFromSections } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
 import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
 import { generateAllRecommendations } from "@/lib/seo/aiRecommender";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const { id } = await params;
     const body = await req.json();
     const { pageType } = body;
@@ -33,26 +38,26 @@ export async function POST(
     };
 
     // 1. Run the optimization engine
-    const optimizeResult = await optimizePage(id, pageType, rules);
+    const optimizeResult = await optimizePage(id, pageType, rules, tenantId);
 
     // 2. Fetch updated page data
     let pageData: any = null;
     let url = "";
 
     if (pageType === "post") {
-      const post = await prisma.post.findUnique({ where: { id } });
+      const post = await prisma.post.findFirst({ where: { id, tenantId } });
       if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
       const meta = post.seoMeta ? JSON.parse(post.seoMeta) : {};
       pageData = { id: post.id, title: post.title, slug: post.slug, content: post.content, metaTitle: meta.title || null, metaDescription: meta.description || null };
       url = buildPageUrl(post.slug, "post");
     } else if (pageType === "project") {
-      const project = await prisma.project.findUnique({ where: { id } });
+      const project = await prisma.project.findFirst({ where: { id, tenantId } });
       if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
       pageData = { id: project.id, title: project.title, slug: project.slug, content: project.content, metaTitle: null, metaDescription: null };
       url = buildPageUrl(project.slug, "project");
     } else {
-      const page = await prisma.page.findUnique({
-        where: { id },
+      const page = await prisma.page.findFirst({
+        where: { id, tenantId },
         include: { sections: { orderBy: { order: "asc" } } },
       });
       if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });
@@ -83,11 +88,11 @@ export async function POST(
     const entities = detectEntities((pageData.content || "") + " " + pageData.title);
     const entityScore = calcEntityScore(entities.length, 10);
 
-    const existingSchemaEntries = await prisma.seoSchema.findMany({ where: { pageId: id } });
+    const existingSchemaEntries = await prisma.seoSchema.findMany({ where: { tenantId, pageId: id } });
     const hasPageSchema = existingSchemaEntries.length > 0;
     const pageSchemaTypes = existingSchemaEntries.map((s) => s.schemaType);
 
-    const internalLinks = await prisma.seoInternalLink.findMany({ where: { fromPageId: id } });
+    const internalLinks = await prisma.seoInternalLink.findMany({ where: { tenantId, fromPageId: id } });
 
     const scores = calcPageScores({
       hasMetaTitle: !!analysis.metaTitle,
@@ -138,6 +143,9 @@ export async function POST(
       url,
     });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Page Optimize POST Error]", error);
     return NextResponse.json({ error: "Optimization failed" }, { status: 500 });
   }

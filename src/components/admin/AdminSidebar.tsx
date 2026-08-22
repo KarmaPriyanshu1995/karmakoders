@@ -33,6 +33,7 @@ import {
   Bot,
   Zap,
   Settings2,
+  Shield,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -87,15 +88,22 @@ const navItems: NavItem[] = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminSidebar() {
+const platformNavItem: NavItem = {
+  href: "/admin/platform/tenants",
+  label: "Platform · Tenants",
+  icon: Shield,
+};
+
+export function AdminSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = isSuperAdmin ? [...navItems, platformNavItem] : navItems;
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   // Auto-expand parent items when on a sub-route
   useEffect(() => {
     const initialExpanded: Record<string, boolean> = {};
-    navItems.forEach((item) => {
+    items.forEach((item) => {
       if (item.children && pathname.startsWith(item.href)) {
         initialExpanded[item.href] = true;
       }
@@ -138,7 +146,7 @@ export function AdminSidebar() {
           </span>
         </div>
         <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const hasChildren = !!item.children;
             const isExpanded = !!expandedItems[item.href];
             

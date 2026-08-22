@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +18,11 @@ const SAMPLE_KEYWORDS = [
 
 export async function GET() {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW);
+
     let keywords = await withDbRetry(() =>
-      prisma.seoKeywordOpportunity.findMany({ orderBy: { opportunityScore: "desc" } })
+      prisma.seoKeywordOpportunity.findMany({ where: { tenantId }, orderBy: { opportunityScore: "desc" } })
     );
 
     // Auto-seed keywords if database has none to ensure dashboard and keyword pages display rich data
@@ -26,6 +31,7 @@ export async function GET() {
         for (const kw of SAMPLE_KEYWORDS) {
           await prisma.seoKeywordOpportunity.create({
             data: {
+              tenantId,
               keyword: kw.keyword,
               currentPosition: kw.position,
               impressions: kw.impressions,
@@ -40,7 +46,7 @@ export async function GET() {
         }
       });
       keywords = await withDbRetry(() =>
-        prisma.seoKeywordOpportunity.findMany({ orderBy: { opportunityScore: "desc" } })
+        prisma.seoKeywordOpportunity.findMany({ where: { tenantId }, orderBy: { opportunityScore: "desc" } })
       );
     }
 
@@ -58,6 +64,9 @@ export async function GET() {
 
     return NextResponse.json({ keywords: result });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Keywords GET]", error);
     return NextResponse.json({ error: "Failed to load keyword opportunities" }, { status: 500 });
   }
@@ -65,6 +74,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const body = await req.json();
     const { keyword, position, impressions, clicks, ctr } = body;
 
@@ -79,6 +91,7 @@ export async function POST(req: NextRequest) {
     const kwOpportunity = await withDbRetry(() =>
       prisma.seoKeywordOpportunity.create({
         data: {
+          tenantId,
           keyword,
           currentPosition: pos,
           impressions: impressions !== undefined ? Number(impressions) : 100,
@@ -106,6 +119,9 @@ export async function POST(req: NextRequest) {
       },
     }, { status: 201 });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Keywords POST]", error);
     return NextResponse.json({ error: "Failed to create keyword opportunity" }, { status: 500 });
   }
@@ -113,6 +129,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -120,10 +139,16 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing keyword id" }, { status: 400 });
     }
 
-    await withDbRetry(() => prisma.seoKeywordOpportunity.delete({ where: { id } }));
+    const { count } = await withDbRetry(() => prisma.seoKeywordOpportunity.deleteMany({ where: { id, tenantId } }));
+    if (count === 0) {
+      return NextResponse.json({ error: "Keyword not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Keywords DELETE]", error);
     return NextResponse.json({ error: "Failed to delete keyword" }, { status: 500 });
   }

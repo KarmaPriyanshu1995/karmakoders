@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW);
+
     let gsc = await prisma.seoSearchConsole.findFirst({
+      where: { tenantId },
       orderBy: { fetchedAt: "desc" }
     });
 
@@ -13,6 +19,7 @@ export async function GET() {
       // Create a default disconnected GSC record
       gsc = await prisma.seoSearchConsole.create({
         data: {
+          tenantId,
           dateRange: "last_30_days",
           connected: false,
           totalClicks: 0,
@@ -25,6 +32,9 @@ export async function GET() {
 
     return NextResponse.json({ gsc });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[GSC GET]", error);
     return NextResponse.json({ error: "Failed to load GSC status" }, { status: 500 });
   }
@@ -32,10 +42,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const body = await req.json();
     const { siteUrl, connected } = body;
 
-    const existing = await prisma.seoSearchConsole.findFirst();
+    const existing = await prisma.seoSearchConsole.findFirst({ where: { tenantId } });
 
     const topQueries = [
       { query: "web development company india", clicks: 120, impressions: 450, ctr: 0.26, position: 8.2 },
@@ -62,14 +75,15 @@ export async function POST(req: NextRequest) {
 
     const gsc = existing
       ? await prisma.seoSearchConsole.update({ where: { id: existing.id }, data })
-      : await prisma.seoSearchConsole.create({ data });
+      : await prisma.seoSearchConsole.create({ data: { ...data, tenantId } });
 
     // Also populate keyword opportunities based on GSC queries
-    await prisma.seoKeywordOpportunity.deleteMany({});
+    await prisma.seoKeywordOpportunity.deleteMany({ where: { tenantId } });
     await Promise.all(
       topQueries.map((q) =>
         prisma.seoKeywordOpportunity.create({
           data: {
+            tenantId,
             keyword: q.query,
             currentPosition: q.position,
             impressions: q.impressions,
@@ -84,6 +98,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ gsc });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[GSC POST]", error);
     return NextResponse.json({ error: "Failed to connect GSC" }, { status: 500 });
   }

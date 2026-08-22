@@ -45,11 +45,11 @@ export class ApplyLinkError extends Error {
   }
 }
 
-async function loadAllPages(): Promise<PageRecord[]> {
+async function loadAllPages(tenantId: string): Promise<PageRecord[]> {
   const [pages, posts, projects] = await Promise.all([
-    prisma.page.findMany({ select: { id: true, slug: true, title: true } }),
-    prisma.post.findMany({ select: { id: true, slug: true, title: true } }),
-    prisma.project.findMany({ select: { id: true, slug: true, title: true } }),
+    prisma.page.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
+    prisma.post.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
+    prisma.project.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
   ]);
 
   return [
@@ -59,23 +59,23 @@ async function loadAllPages(): Promise<PageRecord[]> {
   ];
 }
 
-async function resolvePageById(id: string): Promise<PageRecord | null> {
+async function resolvePageById(id: string, tenantId: string): Promise<PageRecord | null> {
   if (!id) return null;
 
-  const page = await prisma.page.findUnique({
-    where: { id },
+  const page = await prisma.page.findFirst({
+    where: { id, tenantId },
     select: { id: true, slug: true, title: true },
   });
   if (page) return { ...page, type: "page" };
 
-  const post = await prisma.post.findUnique({
-    where: { id },
+  const post = await prisma.post.findFirst({
+    where: { id, tenantId },
     select: { id: true, slug: true, title: true },
   });
   if (post) return { ...post, type: "post" };
 
-  const project = await prisma.project.findUnique({
-    where: { id },
+  const project = await prisma.project.findFirst({
+    where: { id, tenantId },
     select: { id: true, slug: true, title: true },
   });
   if (project) return { ...project, type: "project" };
@@ -192,8 +192,8 @@ function mapLinkToRecommendationSync(
   };
 }
 
-async function generateAndPersistSuggestions(): Promise<number> {
-  const allPages = await loadAllPages();
+async function generateAndPersistSuggestions(tenantId: string): Promise<number> {
+  const allPages = await loadAllPages(tenantId);
   const flattened = allPages.map((p) => ({
     title: p.title,
     slug: p.slug,
@@ -213,6 +213,7 @@ async function generateAndPersistSuggestions(): Promise<number> {
 
       const existing = await prisma.seoInternalLink.findFirst({
         where: {
+          tenantId,
           fromPageId: source.id,
           toPageId: target.id,
           isSuggested: true,
@@ -222,6 +223,7 @@ async function generateAndPersistSuggestions(): Promise<number> {
 
       await prisma.seoInternalLink.create({
         data: {
+          tenantId,
           fromPageId: source.id,
           toPageId: target.id,
           url: sug.url,
@@ -236,33 +238,34 @@ async function generateAndPersistSuggestions(): Promise<number> {
   return created;
 }
 
-export async function getRecommendations(): Promise<{
+export async function getRecommendations(tenantId: string): Promise<{
   recommendations: InternalLinkRecommendation[];
   meta: { total: number; generated: boolean };
 }> {
   let generated = false;
 
   let suggestedLinks = await prisma.seoInternalLink.findMany({
-    where: { isSuggested: true },
+    where: { tenantId, isSuggested: true },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
 
   if (suggestedLinks.length === 0) {
-    await generateAndPersistSuggestions();
+    await generateAndPersistSuggestions(tenantId);
     generated = true;
     suggestedLinks = await prisma.seoInternalLink.findMany({
-      where: { isSuggested: true },
+      where: { tenantId, isSuggested: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
 
-  const allPages = await loadAllPages();
+  const allPages = await loadAllPages(tenantId);
   const pageMap = new Map(allPages.map((p) => [p.id, p]));
 
   // Pre-fetch seoPages meta in a single query to eliminate N+1 queries
   const seoPages = await prisma.seoPage.findMany({
+    where: { tenantId },
     select: { pageType: true, pageId: true, isOrphan: true, internalLinksCount: true },
   });
   const seoPageMap = new Map(
@@ -275,7 +278,7 @@ export async function getRecommendations(): Promise<{
   // Pre-fetch outgoing link counts in a single query
   const linkCounts = await prisma.seoInternalLink.groupBy({
     by: ["fromPageId"],
-    where: { isSuggested: false },
+    where: { tenantId, isSuggested: false },
     _count: { id: true },
   });
   const outgoingLinkCountMap = new Map(
@@ -304,9 +307,10 @@ export async function getRecommendations(): Promise<{
 async function injectLinkIntoPage(
   pageId: string,
   url: string,
-  anchorText: string
+  anchorText: string,
+  tenantId: string
 ): Promise<void> {
-  const payload = await getPageSectionsPayload(pageId);
+  const payload = await getPageSectionsPayload(pageId, tenantId);
   if (!payload) throw new ApplyLinkError("Source page not found", 404);
 
   const sections = payload.sections as SectionPayload[];
@@ -334,19 +338,20 @@ async function injectLinkIntoPage(
     internalLinkUrl: url,
   };
 
-  await savePageSections(pageId, sections);
+  await savePageSections(pageId, sections, tenantId);
 }
 
 async function injectLinkIntoPostOrProject(
   pageId: string,
   pageType: "post" | "project",
   url: string,
-  anchorText: string
+  anchorText: string,
+  tenantId: string
 ): Promise<void> {
   const linkHtml = `<p><a href="${url}">${anchorText}</a></p>`;
 
   if (pageType === "post") {
-    const post = await prisma.post.findUnique({ where: { id: pageId } });
+    const post = await prisma.post.findFirst({ where: { id: pageId, tenantId } });
     if (!post) throw new ApplyLinkError("Source post not found", 404);
     if (post.content?.includes(url)) {
       throw new ApplyLinkError("Link already exists in post content", 409);
@@ -358,7 +363,7 @@ async function injectLinkIntoPostOrProject(
     return;
   }
 
-  const project = await prisma.project.findUnique({ where: { id: pageId } });
+  const project = await prisma.project.findFirst({ where: { id: pageId, tenantId } });
   if (!project) throw new ApplyLinkError("Source project not found", 404);
   if (project.content?.includes(url)) {
     throw new ApplyLinkError("Link already exists in project content", 409);
@@ -378,26 +383,27 @@ function revalidateSourcePath(source: PageRecord): void {
 }
 
 export async function applyRecommendation(
-  recommendationId: string
+  recommendationId: string,
+  tenantId: string
 ): Promise<{ success: true; jobId: string; message: string }> {
-  const link = await prisma.seoInternalLink.findUnique({
-    where: { id: recommendationId },
+  const link = await prisma.seoInternalLink.findFirst({
+    where: { id: recommendationId, tenantId },
   });
 
   if (!link || !link.isSuggested) {
     throw new ApplyLinkError("Recommendation not found or already applied", 404);
   }
 
-  const source = await resolvePageById(link.fromPageId);
+  const source = await resolvePageById(link.fromPageId, tenantId);
   if (!source) throw new ApplyLinkError("Source page not found", 404);
 
   const anchorText = link.anchorText || link.url;
   const sourceUrl = buildPageUrl(source.slug, source.type);
 
   if (source.type === "page") {
-    await injectLinkIntoPage(source.id, link.url, anchorText);
+    await injectLinkIntoPage(source.id, link.url, anchorText, tenantId);
   } else {
-    await injectLinkIntoPostOrProject(source.id, source.type, link.url, anchorText);
+    await injectLinkIntoPostOrProject(source.id, source.type, link.url, anchorText, tenantId);
   }
 
   await prisma.seoInternalLink.update({
@@ -407,6 +413,7 @@ export async function applyRecommendation(
 
   const log = await prisma.seoAutomationLog.create({
     data: {
+      tenantId,
       action: "apply_internal_link",
       pageId: source.id,
       pageType: source.type,

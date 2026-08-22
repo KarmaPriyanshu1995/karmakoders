@@ -5,6 +5,8 @@ import { analyzePage, extractPageHtmlFromSections } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
 import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
 import { generateAllRecommendations } from "@/lib/seo/aiRecommender";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+
     const { id } = await params;
     const body = await req.json();
     const { pageType } = body; // "page" | "post" | "project"
@@ -20,17 +25,17 @@ export async function POST(
     let pageData: { id: string; title: string; slug: string; content: string | null; metaTitle: string | null; metaDescription: string | null; imageUrl: string | null } | null = null;
 
     if (pageType === "post") {
-      const post = await prisma.post.findUnique({ where: { id } });
+      const post = await prisma.post.findFirst({ where: { id, tenantId } });
       if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
       const meta = post.seoMeta ? JSON.parse(post.seoMeta) : {};
       pageData = { id: post.id, title: post.title, slug: post.slug, content: post.content, metaTitle: meta.title || null, metaDescription: meta.description || null, imageUrl: post.image || null };
     } else if (pageType === "project") {
-      const project = await prisma.project.findUnique({ where: { id } });
+      const project = await prisma.project.findFirst({ where: { id, tenantId } });
       if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
       pageData = { id: project.id, title: project.title, slug: project.slug, content: project.content, metaTitle: null, metaDescription: null, imageUrl: project.imageUrl || null };
     } else {
-      const page = await prisma.page.findUnique({
-        where: { id },
+      const page = await prisma.page.findFirst({
+        where: { id, tenantId },
         include: { sections: { orderBy: { order: "asc" } } },
       });
       if (!page) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -105,8 +110,9 @@ export async function POST(
 
     // Upsert into DB
     await prisma.seoPage.upsert({
-      where: { pageType_pageId: { pageType: pageType || "page", pageId: id } },
+      where: { tenantId_pageType_pageId: { tenantId, pageType: pageType || "page", pageId: id } },
       create: {
+        tenantId,
         pageType: pageType || "page",
         pageId: id,
         url,
@@ -166,6 +172,9 @@ export async function POST(
       url,
     });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Analyze Page]", error);
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }

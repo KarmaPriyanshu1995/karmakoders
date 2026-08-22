@@ -1,12 +1,17 @@
 import { getContactSubmissions } from "@/lib/actions";
+import { TenantAccessError } from "@/lib/errors";
 import { MessageSquare, Eye, MousePointerClick, Users, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const submissions = await getContactSubmissions();
+  let submissions: Awaited<ReturnType<typeof getContactSubmissions>> = [];
+  try {
+    submissions = await getContactSubmissions();
+  } catch (error) {
+    if (!(error instanceof TenantAccessError)) throw error;
+  }
   const recent = submissions.slice(0, 5);
 
   return (

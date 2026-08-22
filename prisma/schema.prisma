@@ -7,15 +7,108 @@ datasource db {
   provider = "postgresql"
 }
 
+// ===========================
+// PLATFORM / MULTI-TENANCY
+// ===========================
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MembershipRole {
+  TENANT_ADMIN
+  MANAGER
+  EDITOR
+  AUTHOR
+  HR
+  EMPLOYEE
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+model Tenant {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  status    TenantStatus @default(ACTIVE)
+  isPrimary Boolean      @default(false)
+  logo      String?
+  email     String?
+  phone     String?
+  website   String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  memberships           Membership[]
+  pages                 Page[]
+  projects              Project[]
+  posts                 Post[]
+  contactSubmissions    ContactSubmission[]
+  newsletterSubscribers NewsletterSubscriber[]
+  jobOpenings           JobOpening[]
+  jobApplications       JobApplication[]
+  siteConfigs           SiteConfig[]
+  media                 Media[]
+  auditLogs             AuditLog[]
+
+  seoPages                SeoPage[]
+  seoEntities             SeoEntity[]
+  seoClusters             SeoCluster[]
+  seoAudits               SeoAudit[]
+  seoInternalLinks        SeoInternalLink[]
+  seoSchemas              SeoSchema[]
+  seoReports              SeoReport[]
+  seoIssues               SeoIssue[]
+  seoKeywordOpportunities SeoKeywordOpportunity[]
+  seoCtrReports           SeoCtrReport[]
+  seoContentGaps          SeoContentGap[]
+  seoBrand                SeoBrand[]
+  seoSearchConsole        SeoSearchConsole[]
+  seoAutomationLogs       SeoAutomationLog[]
+
+  @@index([status])
+}
+
+model Membership {
+  id        String            @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      MembershipRole    @default(TENANT_ADMIN)
+  status    MembershipStatus  @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+}
+
+// ===========================
+// AUTH
+// ===========================
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
   emailVerified DateTime?
   image         String?
+  passwordHash  String?
+  isSuperAdmin  Boolean   @default(false)
   role          String    @default("USER")
   accounts      Account[]
   sessions      Session[]
+  memberships   Membership[]
+  auditLogs     AuditLog[]
 }
 
 model Account {
@@ -53,20 +146,36 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ===========================
+// TENANT-OWNED CONTENT
+// ===========================
+
 model SiteConfig {
   id        String   @id @default(cuid())
-  key       String   @unique // e.g. "theme", "seoMeta"
+  tenantId  String
+  key       String   // e.g. "theme", "seoMeta"
   value     String   // JSON stringified
   updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
 }
 
 model Page {
   id          String    @id @default(cuid())
-  slug        String    @unique
+  tenantId    String
+  slug        String
   title       String
   sections    Section[]
   isPublished Boolean   @default(false)
   seoMeta     String?   // JSON stringified
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
 }
 
 model Section {
@@ -76,24 +185,33 @@ model Section {
   type    String
   content String // JSON stringified
   order   Int
+
+  @@index([pageId])
 }
 
 model Project {
   id          String   @id @default(cuid())
+  tenantId    String
   title       String
-  slug        String   @unique
+  slug        String
   description String
   imageUrl    String
   content     String
   link        String?
   tags        String   // CSV string (e.g. "react,nextjs")
   createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
 }
 
 model Post {
   id        String   @id @default(cuid())
+  tenantId  String
   title     String
-  slug      String   @unique
+  slug      String
   excerpt   String?
   content   String
   image     String?
@@ -103,39 +221,62 @@ model Post {
   published Boolean  @default(false)
   seoMeta   String?  // JSON stringified
   createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
 }
 
 model ContactSubmission {
   id        String   @id @default(cuid())
+  tenantId  String
   name      String
   email     String
   phone     String?
   message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model NewsletterSubscriber {
   id        String   @id @default(cuid())
-  email     String   @unique
+  tenantId  String
+  email     String
   createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 model JobOpening {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  department  String?
-  location    String?
-  type        String   @default("Full-time")
-  description String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  tenantId     String
+  title        String
+  slug         String
+  department   String?
+  location     String?
+  type         String   @default("Full-time")
+  description  String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
   applications JobApplication[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
 }
 
 model JobApplication {
   id          String   @id @default(cuid())
+  tenantId    String
   jobId       String
   job         JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
   name        String
@@ -146,6 +287,50 @@ model JobApplication {
   coverLetter String?
   status      String   @default("Pending") // Pending, Reviewed, Interview, Rejected, Hired
   createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([jobId])
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  tenantId     String
+  url          String
+  key          String?
+  name         String
+  size         Int?
+  mimeType     String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ===========================
+// AUDIT LOG
+// ===========================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  userId     String?
+  action     String
+  resource   String?
+  resourceId String?
+  metadata   String?  // JSON stringified
+  createdAt  DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 // ===========================
@@ -154,6 +339,7 @@ model JobApplication {
 
 model SeoPage {
   id                  String   @id @default(cuid())
+  tenantId            String
   pageType            String   // "page" | "post" | "project"
   pageId              String   // references Page.id, Post.id, or Project.id
   url                 String
@@ -187,12 +373,16 @@ model SeoPage {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  @@unique([pageType, pageId])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, pageType, pageId])
+  @@index([tenantId])
   @@map("seo_pages")
 }
 
 model SeoEntity {
   id          String   @id @default(cuid())
+  tenantId    String
   type        String   // "brand" | "person" | "service" | "product" | "location" | "topic" | "keyword"
   name        String
   description String?
@@ -202,13 +392,17 @@ model SeoEntity {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_entities")
 }
 
 model SeoCluster {
   id               String   @id @default(cuid())
+  tenantId         String
   name             String
-  slug             String   @unique
+  slug             String
   pillarPageId     String?
   childPagesJson   String?  // JSON array of SeoPage.ids
   keywords         String?  // CSV
@@ -220,11 +414,16 @@ model SeoCluster {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
   @@map("seo_clusters")
 }
 
 model SeoAudit {
   id                    String   @id @default(cuid())
+  tenantId              String
   runAt                 DateTime @default(now())
   totalPages            Int      @default(0)
   indexedPages          Int      @default(0)
@@ -246,11 +445,15 @@ model SeoAudit {
   issuesSummaryJson     String?
   status                String   @default("complete")
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_audits")
 }
 
 model SeoInternalLink {
   id          String   @id @default(cuid())
+  tenantId    String
   fromPageId  String
   toPageId    String
   anchorText  String?
@@ -259,6 +462,9 @@ model SeoInternalLink {
   isSuggested Boolean  @default(false)
   createdAt   DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@index([fromPageId])
   @@index([toPageId])
   @@map("seo_internal_links")
@@ -266,6 +472,7 @@ model SeoInternalLink {
 
 model SeoSchema {
   id         String   @id @default(cuid())
+  tenantId   String
   pageType   String
   pageId     String
   schemaType String
@@ -276,21 +483,29 @@ model SeoSchema {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_schema")
 }
 
 model SeoReport {
   id          String   @id @default(cuid())
+  tenantId    String
   type        String   @default("weekly")
   title       String
   summaryJson String
   createdAt   DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_reports")
 }
 
 model SeoIssue {
   id          String    @id @default(cuid())
+  tenantId    String
   pageType    String?
   pageId      String?
   url         String?
@@ -302,6 +517,9 @@ model SeoIssue {
   fixedAt     DateTime?
   createdAt   DateTime  @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@index([pageId])
   @@index([severity])
   @@index([isFixed])
@@ -310,6 +528,7 @@ model SeoIssue {
 
 model SeoKeywordOpportunity {
   id                  String   @id @default(cuid())
+  tenantId            String
   keyword             String
   pageId              String?
   url                 String?
@@ -325,11 +544,15 @@ model SeoKeywordOpportunity {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_keyword_opportunities")
 }
 
 model SeoCtrReport {
   id                  String   @id @default(cuid())
+  tenantId            String
   pageId              String?
   url                 String
   currentTitle        String?
@@ -345,11 +568,15 @@ model SeoCtrReport {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_ctr_reports")
 }
 
 model SeoContentGap {
   id          String   @id @default(cuid())
+  tenantId    String
   type        String   // "topic" | "keyword" | "faq" | "entity" | "service" | "subtopic"
   gap         String
   description String?
@@ -358,11 +585,15 @@ model SeoContentGap {
   sourceUrl   String?
   createdAt   DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_content_gaps")
 }
 
 model SeoBrand {
   id                 String   @id @default(cuid())
+  tenantId           String
   brandName          String
   businessName       String?
   tagline            String?
@@ -385,11 +616,15 @@ model SeoBrand {
   updatedAt          DateTime @updatedAt
   createdAt          DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_brand")
 }
 
 model SeoSearchConsole {
   id                  String   @id @default(cuid())
+  tenantId            String
   fetchedAt           DateTime @default(now())
   dateRange           String
   totalClicks         Int      @default(0)
@@ -404,11 +639,15 @@ model SeoSearchConsole {
   connected           Boolean  @default(false)
   siteUrl             String?
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_search_console")
 }
 
 model SeoAutomationLog {
   id          String   @id @default(cuid())
+  tenantId    String
   action      String
   pageId      String?
   pageType    String?
@@ -419,5 +658,8 @@ model SeoAutomationLog {
   triggeredBy String   @default("auto")
   createdAt   DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@map("seo_automation_logs")
 }

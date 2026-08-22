@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateMetaTitle, generateMetaDescription, generateFaqQuestions, generateContentImprovements, generateEEATImprovements } from "@/lib/seo/aiRecommender";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW);
+
     const body = await req.json();
     const { action, pageId, pageType, context } = body;
 
@@ -45,6 +50,7 @@ export async function POST(req: NextRequest) {
     if (pageId && pageType) {
       await prisma.seoAutomationLog.create({
         data: {
+          tenantId,
           action,
           pageId,
           pageType,
@@ -57,6 +63,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ result });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[AI Recommend]", error);
     return NextResponse.json({ error: "Recommendation failed" }, { status: 500 });
   }
