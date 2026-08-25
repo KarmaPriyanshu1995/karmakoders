@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applyRecommendation, ApplyLinkError } from "@/lib/seo/internalLinkService";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
     const body = await req.json();
     const recommendationId = body?.recommendationId;
 
@@ -15,9 +20,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await applyRecommendation(recommendationId);
+    const result = await applyRecommendation(recommendationId, tenantId);
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     if (error instanceof ApplyLinkError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }

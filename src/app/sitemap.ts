@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { buildPageUrl } from "@/lib/sitePages";
+import { getPrimaryTenantId } from "@/lib/tenant-context";
 
 const SITE_URL = "https://www.karmakoders.com";
 
@@ -16,20 +17,22 @@ const STATIC_ENTRIES: MetadataRoute.Sitemap = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const tenantId = await getPrimaryTenantId();
   const [pages, posts, projects, jobs] = await Promise.all([
     prisma.page.findMany({
-      where: { isPublished: true },
+      where: { tenantId, isPublished: true },
       select: { slug: true },
     }),
     prisma.post.findMany({
-      where: { published: true },
+      where: { tenantId, published: true },
       select: { slug: true, createdAt: true },
     }),
     prisma.project.findMany({
+      where: { tenantId },
       select: { slug: true, createdAt: true },
     }),
     prisma.jobOpening.findMany({
-      where: { isActive: true },
+      where: { tenantId, isActive: true },
       select: { slug: true, createdAt: true },
     }),
   ]);

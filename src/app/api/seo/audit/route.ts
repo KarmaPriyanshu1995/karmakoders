@@ -7,19 +7,25 @@ import { extractHtmlFromSection, analyzePage } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
 import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
 import { generateAllRecommendations } from "@/lib/seo/aiRecommender";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    await withDbRetry(() => syncSitePages());
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
+    await withDbRetry(() => syncSitePages(tenantId));
 
     const [pages, posts, projects] = await withDbRetry(() => Promise.all([
       prisma.page.findMany({
+        where: { tenantId },
         include: { sections: { orderBy: { order: "asc" } } }
       }),
-      prisma.post.findMany(),
-      prisma.project.findMany(),
+      prisma.post.findMany({ where: { tenantId } }),
+      prisma.project.findMany({ where: { tenantId } }),
     ]));
 
     const auditPages: AuditPage[] = [
@@ -76,6 +82,7 @@ export async function POST() {
     // Save audit to DB
     const audit = await prisma.seoAudit.create({
       data: {
+        tenantId,
         totalPages: result.totalPages,
         indexedPages: result.indexedPages,
         nonIndexedPages: result.nonIndexedPages,
@@ -100,13 +107,14 @@ export async function POST() {
 
     // Clear old unresolved issues
     await prisma.seoIssue.deleteMany({
-      where: { isFixed: false }
+      where: { tenantId, isFixed: false }
     });
 
     // Bulk insert issues using createMany
     if (result.issues.length > 0) {
       await prisma.seoIssue.createMany({
         data: result.issues.map((issue) => ({
+          tenantId,
           pageId: issue.pageId || null,
           pageType: issue.pageType || null,
           url: issue.url || null,
@@ -119,10 +127,11 @@ export async function POST() {
     }
 
     // Save links to seo_internal_links in bulk
-    await prisma.seoInternalLink.deleteMany();
+    await prisma.seoInternalLink.deleteMany({ where: { tenantId } });
     if (result.internalLinks.length > 0) {
       await prisma.seoInternalLink.createMany({
         data: result.internalLinks.map((link) => ({
+          tenantId,
           fromPageId: link.fromPageId,
           toPageId: link.toPageId || "",
           url: link.url,
@@ -134,7 +143,7 @@ export async function POST() {
     }
 
     // Update seo_pages scores
-    const dbSchemas = await prisma.seoSchema.findMany({ where: { isApplied: true } });
+    const dbSchemas = await prisma.seoSchema.findMany({ where: { tenantId, isApplied: true } });
     const schemaMap = new Map(dbSchemas.map((s) => [s.pageId, s]));
 
     // Run all upserts in parallel
@@ -208,8 +217,9 @@ export async function POST() {
         });
 
         await prisma.seoPage.upsert({
-          where: { pageType_pageId: { pageType: auditPage.type, pageId: auditPage.id } },
+          where: { tenantId_pageType_pageId: { tenantId, pageType: auditPage.type, pageId: auditPage.id } },
           create: {
+            tenantId,
             pageType: auditPage.type,
             pageId: auditPage.id,
             url,
@@ -275,6 +285,9 @@ export async function POST() {
 
     return NextResponse.json({ success: true, audit: { id: audit.id, ...result } });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Audit]", error);
     return NextResponse.json({ error: "Audit failed" }, { status: 500 });
   }
@@ -282,9 +295,14 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const audits = await withDbRetry(() => prisma.seoAudit.findMany({ orderBy: { runAt: "desc" }, take: 10 }));
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
+    const audits = await withDbRetry(() => prisma.seoAudit.findMany({ where: { tenantId }, orderBy: { runAt: "desc" }, take: 10 }));
     return NextResponse.json({ audits });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     return NextResponse.json({ error: "Failed to load audits" }, { status: 500 });
   }
 }

@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma"]
+  "exclude": ["node_modules", "prisma", "scratch", "scripts", "scratch-seed.ts", "scratch-theme.ts", "scratch-replace.js"]
 }

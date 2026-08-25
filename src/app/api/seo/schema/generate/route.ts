@@ -5,11 +5,23 @@ import {
   generateServiceSchema, generateBreadcrumbSchema, generateLocalBusinessSchema,
   generatePersonSchema, generateWebsiteSchema, validateSchema,
 } from "@/lib/seo/schemaGenerator";
+import { requireTenantContext, TenantAccessError, assertOwnership } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
+async function verifyPageOwnership(pageType: string, pageId: string, tenantId: string) {
+  const delegate = pageType === "post" ? prisma.post : pageType === "project" ? prisma.project : prisma.page;
+  const record = await (delegate as typeof prisma.page).findUnique({ where: { id: pageId }, select: { tenantId: true } });
+  if (!record) throw new TenantAccessError("Referenced content not found");
+  assertOwnership(record.tenantId, tenantId);
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
     const body = await req.json();
     const { schemaType, pageId, pageType, data } = body;
 
@@ -48,12 +60,14 @@ export async function POST(req: NextRequest) {
 
     // Save to DB if pageId provided
     if (pageId && pageType) {
+      await verifyPageOwnership(pageType, pageId, tenantId);
+
+      const id = `${pageType}-${pageId}-${schemaType}`;
       await prisma.seoSchema.upsert({
-        where: {
-          id: `${pageType}-${pageId}-${schemaType}`,
-        },
+        where: { id },
         create: {
-          id: `${pageType}-${pageId}-${schemaType}`,
+          id,
+          tenantId,
           pageType,
           pageId,
           schemaType,
@@ -71,6 +85,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ schema, validation, json: JSON.stringify(schema, null, 2) });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[Schema Generate]", error);
     return NextResponse.json({ error: "Schema generation failed" }, { status: 500 });
   }

@@ -2,10 +2,14 @@ import { getPages } from "@/lib/actions";
 import Link from "next/link";
 import { Edit2, Globe, File, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPagesList() {
+  const { role, permissionOverrides } = await requireTenantContext();
+  const canCreate = hasPermission(role, PERMISSIONS.PAGE_CREATE, permissionOverrides);
   const pages = await getPages();
 
   return (
@@ -15,10 +19,12 @@ export default async function AdminPagesList() {
           <h2 className="text-2xl font-bold text-white tracking-tight">Pages & Sections</h2>
           <p className="text-slate-400 mt-1">Manage your website&apos;s pages and their content sections.</p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Page
-        </Button>
+        {canCreate && (
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Page
+          </Button>
+        )}
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden">
