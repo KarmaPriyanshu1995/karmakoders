@@ -24,9 +24,18 @@ export function CreateTenantForm() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { tempPassword } = await createTenant(form);
-      setResult(tempPassword);
-      router.refresh();
+      const { tempPassword, error } = await createTenant(form);
+      if (error) {
+        toast.error(error);
+      } else if (tempPassword) {
+        setResult(tempPassword);
+        router.refresh();
+      } else {
+        toast.success("Tenant created. The admin can sign in with their existing password.");
+        setOpen(false);
+        reset();
+        router.refresh();
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create tenant");
     }

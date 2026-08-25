@@ -170,24 +170,37 @@ describe("getContextualTenantId via getPosts (shared public/admin read path)", (
     expect(publicPosts.some((p) => p.slug === `${RUN_ID}-ctx-a`)).toBe(false);
     expect(publicPosts.some((p) => p.slug === `${RUN_ID}-ctx-b`)).toBe(false);
   });
+
+  it("a super admin acting in Tenant A sees Tenant A's posts", async () => {
+    mockSessionFor({ ...superAdmin, isSuperAdmin: true });
+    mockCookieGet.mockReturnValue({ value: tenantA.id });
+    const posts = await actions.getPosts();
+    expect(posts.some((p) => p.slug === `${RUN_ID}-ctx-a`)).toBe(true);
+    expect(posts.some((p) => p.slug === `${RUN_ID}-ctx-b`)).toBe(false);
+  });
 });
 
 describe("membership-actions: full admin lifecycle", () => {
   it("TENANT_ADMIN can add, promote, suspend, and remove a member of their own tenant", async () => {
     mockSessionFor(adminA);
-    const { membership, tempPassword } = await membershipActions.createTenantMember({
+    const created = await membershipActions.createTenantMember({
       name: "New Editor", email: `${RUN_ID}-new-editor@example.com`, role: "EDITOR",
     });
-    expect(tempPassword).toBeTruthy();
-    expect(membership.role).toBe("EDITOR");
+    expect(created.error).toBeNull();
+    expect(created.tempPassword).toBeTruthy();
+    expect(created.membership?.role).toBe("EDITOR");
+    const membership = created.membership!;
 
     const promoted = await membershipActions.updateMemberRole(membership.id, "MANAGER");
+    expect(promoted.error).toBeNull();
     expect(promoted.role).toBe("MANAGER");
 
     const suspended = await membershipActions.updateMemberStatus(membership.id, "SUSPENDED");
+    expect(suspended.error).toBeNull();
     expect(suspended.status).toBe("SUSPENDED");
 
-    await membershipActions.removeMember(membership.id);
+    const removed = await membershipActions.removeMember(membership.id);
+    expect(removed.error).toBeNull();
     const gone = await prisma.membership.findUnique({ where: { id: membership.id } });
     expect(gone).toBeNull();
 
@@ -196,13 +209,16 @@ describe("membership-actions: full admin lifecycle", () => {
 
   it("TENANT_ADMIN of Tenant A cannot modify a membership belonging to Tenant B", async () => {
     mockSessionFor(adminB);
-    const { membership } = await membershipActions.createTenantMember({
+    const created = await membershipActions.createTenantMember({
       name: "B Editor", email: `${RUN_ID}-b-editor@example.com`, role: "EDITOR",
     });
+    const membership = created.membership!;
 
     mockSessionFor(adminA);
-    await expect(membershipActions.updateMemberRole(membership.id, "TENANT_ADMIN")).rejects.toThrow(TenantAccessError);
-    await expect(membershipActions.removeMember(membership.id)).rejects.toThrow(TenantAccessError);
+    const roleResult = await membershipActions.updateMemberRole(membership.id, "TENANT_ADMIN");
+    expect(roleResult.error).toBeTruthy();
+    const removeResult = await membershipActions.removeMember(membership.id);
+    expect(removeResult.error).toBeTruthy();
 
     const stillThere = await prisma.membership.findUnique({ where: { id: membership.id } });
     expect(stillThere?.role).toBe("EDITOR");
@@ -223,16 +239,17 @@ describe("membership-actions: full admin lifecycle", () => {
 describe("SUPER_ADMIN tenant lifecycle (end-to-end through the real action)", () => {
   it("createTenant provisions a tenant + initial TENANT_ADMIN with a real login-capable password hash", async () => {
     mockSessionFor({ ...superAdmin, isSuperAdmin: true });
-    const { tenant, tempPassword } = await membershipActions.createTenant({
+    const { tenant, tempPassword, error } = await membershipActions.createTenant({
       name: `${RUN_ID}-new-org`,
       adminName: "Fresh Admin",
       adminEmail: `${RUN_ID}-fresh-admin@example.com`,
     });
 
-    expect(tenant.status).toBe("ACTIVE");
+    expect(error).toBeNull();
+    expect(tenant?.status).toBe("ACTIVE");
     expect(tempPassword).toBeTruthy();
 
-    const detail = await membershipActions.getTenantDetail(tenant.id);
+    const detail = await membershipActions.getTenantDetail(tenant!.id);
     expect(detail.memberships).toHaveLength(1);
     expect(detail.memberships[0].role).toBe("TENANT_ADMIN");
     expect(detail.memberships[0].user.email).toBe(`${RUN_ID}-fresh-admin@example.com`);
@@ -242,7 +259,7 @@ describe("SUPER_ADMIN tenant lifecycle (end-to-end through the real action)", ()
     expect(await bcrypt.compare(tempPassword!, newUser.passwordHash!)).toBe(true);
 
     // cleanup
-    await prisma.tenant.delete({ where: { id: tenant.id } });
+    await prisma.tenant.delete({ where: { id: tenant!.id } });
     await prisma.user.delete({ where: { id: newUser.id } });
   });
 
@@ -272,13 +289,15 @@ describe("SUPER_ADMIN tenant lifecycle (end-to-end through the real action)", ()
 describe("switchActiveTenant", () => {
   it("sets the cookie only after verifying real membership", async () => {
     mockSessionFor(adminA);
-    await membershipActions.switchActiveTenant(tenantA.id);
+    const switched = await membershipActions.switchActiveTenant(tenantA.id);
+    expect(switched.error).toBeNull();
     expect(mockCookieSet).toHaveBeenCalledWith("active_tenant_id", tenantA.id, expect.anything());
   });
 
   it("refuses to switch into a tenant the user does not belong to", async () => {
     mockSessionFor(adminA);
-    await expect(membershipActions.switchActiveTenant(tenantB.id)).rejects.toThrow(TenantAccessError);
+    const result = await membershipActions.switchActiveTenant(tenantB.id);
+    expect(result.error).toMatch(/not an active member/i);
     expect(mockCookieSet).not.toHaveBeenCalled();
   });
 });

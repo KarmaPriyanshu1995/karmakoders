@@ -37,12 +37,15 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import type { MembershipRole } from "@prisma/client";
+import { canViewSection, type PermissionOverrides, type SectionKey } from "@/lib/permissions";
 
 interface NavItem {
   href: string;
   label: string;
   icon: any;
   exact?: boolean;
+  section?: SectionKey;
   children?: {
     href: string;
     label: string;
@@ -53,18 +56,19 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/pages", label: "Pages & Sections", icon: Layers },
-  { href: "/admin/blog", label: "Blog Posts", icon: FileText },
-  { href: "/admin/projects", label: "Projects", icon: Briefcase },
-  { href: "/admin/careers", label: "Careers", icon: Building },
-  { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare },
-  { href: "/admin/media", label: "Media Library", icon: ImageIcon },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/appearance", label: "Appearance", icon: Palette },
+  { href: "/admin/pages", label: "Pages & Sections", icon: Layers, section: "PAGES" },
+  { href: "/admin/blog", label: "Blog Posts", icon: FileText, section: "BLOG" },
+  { href: "/admin/projects", label: "Projects", icon: Briefcase, section: "PROJECTS" },
+  { href: "/admin/careers", label: "Careers", icon: Building, section: "CAREERS" },
+  { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare, section: "INQUIRIES" },
+  { href: "/admin/media", label: "Media Library", icon: ImageIcon, section: "MEDIA" },
+  { href: "/admin/users", label: "Users", icon: Users, section: "USERS" },
+  { href: "/admin/appearance", label: "Appearance", icon: Palette, section: "SETTINGS" },
   {
     href: "/admin/seo",
     label: "SEO Intelligence",
     icon: Activity,
+    section: "SEO",
     children: [
       { href: "/admin/seo", label: "SEO Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin/seo/analyzer", label: "Page Analyzer", icon: Search },
@@ -85,7 +89,7 @@ const navItems: NavItem[] = [
       { href: "/admin/seo/settings", label: "Settings", icon: Settings2 },
     ],
   },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/settings", label: "Settings", icon: Settings, section: "SETTINGS" },
 ];
 
 const platformNavItem: NavItem = {
@@ -94,9 +98,18 @@ const platformNavItem: NavItem = {
   icon: Shield,
 };
 
-export function AdminSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
+interface AdminSidebarProps {
+  isSuperAdmin?: boolean;
+  role?: MembershipRole | null;
+  permissionOverrides?: PermissionOverrides | null;
+}
+
+export function AdminSidebar({ isSuperAdmin = false, role = null, permissionOverrides = null }: AdminSidebarProps) {
   const pathname = usePathname();
-  const items = isSuperAdmin ? [...navItems, platformNavItem] : navItems;
+  const visibleItems = isSuperAdmin
+    ? navItems
+    : navItems.filter((item) => !item.section || (role && canViewSection(role, item.section, permissionOverrides)));
+  const items = isSuperAdmin ? [...visibleItems, platformNavItem] : visibleItems;
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 

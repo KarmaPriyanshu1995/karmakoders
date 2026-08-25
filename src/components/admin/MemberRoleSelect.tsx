@@ -22,8 +22,13 @@ export function MemberRoleSelect({ membershipId, initialRole, action }: MemberRo
     setRole(newRole);
     setLoading(true);
     try {
-      await action(membershipId, newRole);
-      toast.success(`Role updated to ${newRole}`);
+      const result = (await action(membershipId, newRole)) as { error?: string | null } | void;
+      if (result && typeof result === "object" && result.error) {
+        setRole(prev);
+        toast.error(result.error);
+      } else {
+        toast.success(`Role updated to ${newRole}`);
+      }
     } catch (error) {
       console.error(error);
       setRole(prev);

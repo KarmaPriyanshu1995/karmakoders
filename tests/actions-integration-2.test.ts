@@ -193,19 +193,23 @@ describe("SUPER_ADMIN-scoped member management variants", () => {
   it("addTenantMemberAsSuperAdmin / update / remove work against an explicit tenantId regardless of acting-tenant cookie", async () => {
     mockSessionFor({ ...superAdmin, isSuperAdmin: true });
     // No acting-tenant cookie set at all -- these must not depend on it.
-    const { membership } = await membershipActions.addTenantMemberAsSuperAdmin(tenantB.id, {
+    const { membership, error } = await membershipActions.addTenantMemberAsSuperAdmin(tenantB.id, {
       name: "SA-added", email: `${RUN_ID}-sa-added@example.com`, role: "EDITOR",
     });
-    expect(membership.role).toBe("EDITOR");
+    expect(error).toBeNull();
+    expect(membership!.role).toBe("EDITOR");
 
-    const updated = await membershipActions.updateMemberRoleAsSuperAdmin(tenantB.id, membership.id, "MANAGER");
+    const updated = await membershipActions.updateMemberRoleAsSuperAdmin(tenantB.id, membership!.id, "MANAGER");
+    expect(updated.error).toBeNull();
     expect(updated.role).toBe("MANAGER");
 
-    const suspended = await membershipActions.updateMemberStatusAsSuperAdmin(tenantB.id, membership.id, "SUSPENDED");
+    const suspended = await membershipActions.updateMemberStatusAsSuperAdmin(tenantB.id, membership!.id, "SUSPENDED");
+    expect(suspended.error).toBeNull();
     expect(suspended.status).toBe("SUSPENDED");
 
-    await membershipActions.removeMemberAsSuperAdmin(tenantB.id, membership.id);
-    const gone = await prisma.membership.findUnique({ where: { id: membership.id } });
+    const removed = await membershipActions.removeMemberAsSuperAdmin(tenantB.id, membership!.id);
+    expect(removed.error).toBeNull();
+    const gone = await prisma.membership.findUnique({ where: { id: membership!.id } });
     expect(gone).toBeNull();
 
     await prisma.user.deleteMany({ where: { email: `${RUN_ID}-sa-added@example.com` } });
@@ -218,9 +222,10 @@ describe("SUPER_ADMIN-scoped member management variants", () => {
     });
 
     // Wrong tenantId (B) for a membership that actually belongs to A.
-    await expect(membershipActions.updateMemberRoleAsSuperAdmin(tenantB.id, membership.id, "MANAGER")).rejects.toThrow(TenantAccessError);
+    const wrongTenant = await membershipActions.updateMemberRoleAsSuperAdmin(tenantB.id, membership!.id, "MANAGER");
+    expect(wrongTenant.error).toBeTruthy();
 
-    await prisma.membership.delete({ where: { id: membership.id } });
+    await prisma.membership.delete({ where: { id: membership!.id } });
     await prisma.user.deleteMany({ where: { email: `${RUN_ID}-a-member@example.com` } });
   });
 });

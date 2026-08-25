@@ -66,8 +66,8 @@ export async function syncSitePages(tenantId: string) {
 }
 
 export async function getPages() {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_VIEW, permissionOverrides);
   await syncSitePages(tenantId);
   return prisma.page.findMany({
     where: { tenantId },
@@ -77,24 +77,24 @@ export async function getPages() {
 }
 
 export async function createPage(data: { slug: string; title: string }) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_CREATE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_CREATE, permissionOverrides);
   const page = await prisma.page.create({ data: { ...data, tenantId } });
   revalidatePath("/admin/pages");
   return page;
 }
 
 export async function updatePagePublished(id: string, isPublished: boolean) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_UPDATE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_UPDATE, permissionOverrides);
   const { count } = await prisma.page.updateMany({ where: { id, tenantId }, data: { isPublished } });
   if (count === 0) throw new TenantAccessError("Page not found");
   revalidatePath("/admin/pages");
 }
 
 export async function deletePage(id: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_DELETE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_DELETE, permissionOverrides);
   const { count } = await prisma.page.deleteMany({ where: { id, tenantId } });
   if (count === 0) throw new TenantAccessError("Page not found");
   revalidatePath("/admin/pages");
@@ -106,8 +106,8 @@ export async function upsertSections(
   pageId: string,
   sections: { id: string; type: string; content: object; order: number }[]
 ) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_UPDATE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_UPDATE, permissionOverrides);
 
   const page = await prisma.page.findUnique({ where: { id: pageId }, select: { tenantId: true } });
   if (!page) throw new TenantAccessError("Page not found");
@@ -146,8 +146,8 @@ export async function getSiteConfig(key: string) {
 }
 
 export async function setSiteConfig(key: string, value: object) {
-  const { tenantId, role, user } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.SETTINGS_UPDATE);
+  const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.SETTINGS_UPDATE, permissionOverrides);
   await prisma.siteConfig.upsert({
     where: { tenantId_key: { tenantId, key } },
     update: { value: JSON.stringify(value) },
@@ -171,8 +171,8 @@ export async function submitContact(data: {
 }
 
 export async function getContactSubmissions() {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.INQUIRY_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);
   return prisma.contactSubmission.findMany({
     where: { tenantId },
     orderBy: { createdAt: "desc" },
@@ -224,19 +224,19 @@ export async function upsertPost(data: {
   published: boolean;
   seoMeta?: string;
 }) {
-  const { tenantId, role, user } = await requireTenantContext();
+  const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
   const { id, ...postData } = data;
 
   let post;
   if (id) {
-    assertPermission(role, PERMISSIONS.BLOG_UPDATE);
+    assertPermission(role, PERMISSIONS.BLOG_UPDATE, permissionOverrides);
     const existing = await prisma.post.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Post not found");
     assertOwnership(existing.tenantId, tenantId);
     post = await prisma.post.update({ where: { id }, data: postData });
     await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_UPDATED, resource: "Post", resourceId: post.id });
   } else {
-    assertPermission(role, PERMISSIONS.BLOG_CREATE);
+    assertPermission(role, PERMISSIONS.BLOG_CREATE, permissionOverrides);
     post = await prisma.post.create({ data: { ...postData, tenantId } });
     await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_CREATED, resource: "Post", resourceId: post.id });
   }
@@ -251,8 +251,8 @@ export async function upsertPost(data: {
 }
 
 export async function deletePost(id: string) {
-  const { tenantId, role, user } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.BLOG_DELETE);
+  const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.BLOG_DELETE, permissionOverrides);
   const { count } = await prisma.post.deleteMany({ where: { id, tenantId } });
   if (count === 0) throw new TenantAccessError("Post not found");
   await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_DELETED, resource: "Post", resourceId: id });
@@ -287,18 +287,18 @@ export async function upsertProject(data: {
   link?: string;
   tags: string;
 }) {
-  const { tenantId, role } = await requireTenantContext();
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
   const { id, ...projectData } = data;
 
   let project;
   if (id) {
-    assertPermission(role, PERMISSIONS.PROJECT_UPDATE);
+    assertPermission(role, PERMISSIONS.PROJECT_UPDATE, permissionOverrides);
     const existing = await prisma.project.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Project not found");
     assertOwnership(existing.tenantId, tenantId);
     project = await prisma.project.update({ where: { id }, data: projectData });
   } else {
-    assertPermission(role, PERMISSIONS.PROJECT_CREATE);
+    assertPermission(role, PERMISSIONS.PROJECT_CREATE, permissionOverrides);
     project = await prisma.project.create({ data: { ...projectData, tenantId } });
   }
 
@@ -308,8 +308,8 @@ export async function upsertProject(data: {
 }
 
 export async function deleteProject(id: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PROJECT_DELETE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PROJECT_DELETE, permissionOverrides);
   const { count } = await prisma.project.deleteMany({ where: { id, tenantId } });
   if (count === 0) throw new TenantAccessError("Project not found");
   revalidatePath("/portfolio");
@@ -348,18 +348,18 @@ export async function upsertJob(data: {
   description: string;
   isActive: boolean;
 }) {
-  const { tenantId, role } = await requireTenantContext();
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
   const { id, ...jobData } = data;
 
   let job;
   if (id) {
-    assertPermission(role, PERMISSIONS.CAREER_UPDATE);
+    assertPermission(role, PERMISSIONS.CAREER_UPDATE, permissionOverrides);
     const existing = await prisma.jobOpening.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Job opening not found");
     assertOwnership(existing.tenantId, tenantId);
     job = await prisma.jobOpening.update({ where: { id }, data: jobData });
   } else {
-    assertPermission(role, PERMISSIONS.CAREER_CREATE);
+    assertPermission(role, PERMISSIONS.CAREER_CREATE, permissionOverrides);
     job = await prisma.jobOpening.create({ data: { ...jobData, tenantId } });
   }
 
@@ -369,8 +369,8 @@ export async function upsertJob(data: {
 }
 
 export async function deleteJob(id: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.CAREER_DELETE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.CAREER_DELETE, permissionOverrides);
   const { count } = await prisma.jobOpening.deleteMany({ where: { id, tenantId } });
   if (count === 0) throw new TenantAccessError("Job opening not found");
   revalidatePath("/careers");
@@ -392,8 +392,8 @@ export async function submitJobApplication(data: {
 }
 
 export async function getJobApplications(jobId?: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.CAREER_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.CAREER_VIEW, permissionOverrides);
   return prisma.jobApplication.findMany({
     where: { tenantId, ...(jobId ? { jobId } : {}) },
     include: {
@@ -404,16 +404,16 @@ export async function getJobApplications(jobId?: string) {
 }
 
 export async function updateApplicationStatus(id: string, status: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.CAREER_UPDATE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.CAREER_UPDATE, permissionOverrides);
   const { count } = await prisma.jobApplication.updateMany({ where: { id, tenantId }, data: { status } });
   if (count === 0) throw new TenantAccessError("Application not found");
   revalidatePath("/admin/careers/applications");
 }
 
 export async function deleteJobApplication(id: string) {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.CAREER_DELETE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.CAREER_DELETE, permissionOverrides);
 
   const application = await prisma.jobApplication.findFirst({ where: { id, tenantId } });
   if (!application) throw new TenantAccessError("Application not found");
@@ -438,8 +438,8 @@ export async function deleteJobApplication(id: string) {
 // ─── Database Seeding & Recovery Actions ─────────────────────────────────────
 
 export async function seedDatabase(type: "sections" | "all") {
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.SETTINGS_UPDATE);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.SETTINGS_UPDATE, permissionOverrides);
 
   // 1. Create or upsert "/" page
   const homePage = await prisma.page.upsert({

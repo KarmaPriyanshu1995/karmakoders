@@ -50,8 +50,8 @@ const PRESET_CLUSTERS = [
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     let clusters = await withDbRetry(() => prisma.seoCluster.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } }));
 
@@ -104,8 +104,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
     const { name, pillar, keywords } = body;
@@ -157,8 +157,8 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

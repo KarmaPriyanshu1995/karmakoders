@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     let brand = await withDbRetry(() => prisma.seoBrand.findFirst({ where: { tenantId } }));
 
@@ -61,8 +61,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
 

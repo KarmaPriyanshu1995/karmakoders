@@ -18,8 +18,8 @@ const SAMPLE_KEYWORDS = [
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     let keywords = await withDbRetry(() =>
       prisma.seoKeywordOpportunity.findMany({ where: { tenantId }, orderBy: { opportunityScore: "desc" } })
@@ -74,8 +74,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
     const { keyword, position, impressions, clicks, ctr } = body;
@@ -129,8 +129,8 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

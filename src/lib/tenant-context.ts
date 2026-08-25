@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { MembershipRole } from "@prisma/client";
 import { TenantAccessError } from "@/lib/errors";
+import type { PermissionOverrides } from "@/lib/permissions";
 
 export { TenantAccessError };
 
@@ -68,6 +69,7 @@ export interface TenantContext {
   user: CurrentUser;
   tenantId: string;
   role: MembershipRole;
+  permissionOverrides: PermissionOverrides | null;
   tenant: { id: string; name: string; slug: string; status: string };
 }
 
@@ -82,18 +84,21 @@ export async function requireTenantContext(): Promise<TenantContext> {
   const cookieTenantId = await getActiveTenantCookie();
 
   if (user.isSuperAdmin) {
-    const tenant = cookieTenantId
-      ? await prisma.tenant.findUnique({ where: { id: cookieTenantId } })
-      : await resolveDefaultActiveTenant();
-    if (!tenant) throw new TenantAccessError("Selected tenant no longer exists");
-    if (tenant.status !== "ACTIVE") throw new TenantAccessError("Tenant is suspended");
-    return { user, tenantId: tenant.id, role: "TENANT_ADMIN", tenant };
+    if (cookieTenantId) {
+      const cookieTenant = await prisma.tenant.findUnique({ where: { id: cookieTenantId } });
+      if (cookieTenant?.status === "ACTIVE") {
+        return { user, tenantId: cookieTenant.id, role: "TENANT_ADMIN", permissionOverrides: null, tenant: cookieTenant };
+      }
+    }
+    const tenant = await resolveDefaultActiveTenant();
+    return { user, tenantId: tenant.id, role: "TENANT_ADMIN", permissionOverrides: null, tenant };
   }
 
-  // Regular member: prefer the cookie's tenant IF the user actually has an
-  // active membership there, otherwise fall back to their default membership.
+  // Regular member: only ACTIVE memberships on ACTIVE tenants can be chosen.
+  // A stale cookie pointing at a suspended org must not lock the dashboard
+  // if the user still has another live membership.
   const memberships = await prisma.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE" },
+    where: { userId: user.id, status: "ACTIVE", tenant: { status: "ACTIVE" } },
     include: { tenant: true },
     orderBy: { createdAt: "asc" },
   });
@@ -106,21 +111,27 @@ export async function requireTenantContext(): Promise<TenantContext> {
     (cookieTenantId && memberships.find((m) => m.tenantId === cookieTenantId)) ||
     memberships[0];
 
-  if (chosen.tenant.status !== "ACTIVE") {
-    throw new TenantAccessError("Tenant is suspended");
-  }
-
-  return { user, tenantId: chosen.tenantId, role: chosen.role, tenant: chosen.tenant };
+  return {
+    user,
+    tenantId: chosen.tenantId,
+    role: chosen.role,
+    permissionOverrides: (chosen.permissionOverrides as PermissionOverrides | null) ?? null,
+    tenant: chosen.tenant,
+  };
 }
 
-/** All tenants (id, name, slug, role) the current user can act in. Used by the tenant switcher. */
+/** Active tenants the current user can act in. Used by the tenant switcher. */
 export async function listMyTenants() {
   const user = await requireUser();
   if (user.isSuperAdmin) {
-    return prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, slug: true, status: true } });
+    return prisma.tenant.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, slug: true, status: true },
+    });
   }
   const memberships = await prisma.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE" },
+    where: { userId: user.id, status: "ACTIVE", tenant: { status: "ACTIVE" } },
     include: { tenant: { select: { id: true, name: true, slug: true, status: true } } },
     orderBy: { createdAt: "asc" },
   });
@@ -158,12 +169,13 @@ export const getPrimaryTenantId = cache(async (): Promise<string> => {
  */
 export async function getContextualTenantId(): Promise<string> {
   const user = await getCurrentUser();
-  if (user && !user.isSuperAdmin) {
+  if (user) {
     try {
       const ctx = await requireTenantContext();
       return ctx.tenantId;
     } catch {
-      // No active membership resolvable -- fall through to the public default.
+      // No resolvable acting tenant -- public visitors and locked-out
+      // members fall through to the primary site.
     }
   }
   return getPrimaryTenantId();

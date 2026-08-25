@@ -18,9 +18,13 @@ export function MemberStatusToggle({ membershipId, initialStatus, action }: Memb
     const next: MembershipStatus = status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     setLoading(true);
     try {
-      await action(membershipId, next);
-      setStatus(next);
-      toast.success(next === "ACTIVE" ? "Member reactivated" : "Member suspended");
+      const result = (await action(membershipId, next)) as { error?: string | null } | void;
+      if (result && typeof result === "object" && result.error) {
+        toast.error(result.error);
+      } else {
+        setStatus(next);
+        toast.success(next === "ACTIVE" ? "Member reactivated" : "Member suspended");
+      }
     } catch {
       toast.error("Failed to update status");
     }

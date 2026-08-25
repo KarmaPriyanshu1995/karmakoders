@@ -4,10 +4,17 @@ import { Edit2, FileText, Plus, Globe, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 import { revalidatePath } from "next/cache";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { assertPermission, hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBlogList() {
+  const { role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.BLOG_VIEW, permissionOverrides);
+  const canCreate = hasPermission(role, PERMISSIONS.BLOG_CREATE, permissionOverrides);
+  const canUpdate = hasPermission(role, PERMISSIONS.BLOG_UPDATE, permissionOverrides);
+  const canDelete = hasPermission(role, PERMISSIONS.BLOG_DELETE, permissionOverrides);
   const posts = await getPosts();
 
   return (
@@ -17,12 +24,14 @@ export default async function AdminBlogList() {
           <h2 className="text-2xl font-bold text-white tracking-tight">Blog Posts</h2>
           <p className="text-slate-400 mt-1">Manage your dynamic blog content and articles.</p>
         </div>
-        <Link href="/admin/blog/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-500 text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            New Post
-          </Button>
-        </Link>
+        {canCreate && (
+          <Link href="/admin/blog/new">
+            <Button className="bg-indigo-600 hover:bg-indigo-500 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              New Post
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden">
@@ -81,11 +90,14 @@ export default async function AdminBlogList() {
                         <Eye className="w-4 h-4" />
                       </Button>
                     </Link>
+                    {canUpdate && (
                     <Link href={`/admin/blog/${post.id}`}>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400">
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </Link>
+                    )}
+                    {canDelete && (
                     <DeleteConfirmButton
                       iconOnly
                       confirmTitle="Delete this blog post?"
@@ -97,6 +109,7 @@ export default async function AdminBlogList() {
                       }}
                       className="h-8 w-8"
                     />
+                    )}
                   </div>
                 </td>
               </tr>

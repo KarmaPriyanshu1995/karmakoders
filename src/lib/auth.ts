@@ -2,6 +2,7 @@ import { NextAuthOptions, DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/email";
 
 declare module "next-auth" {
   interface Session {
@@ -26,6 +27,41 @@ declare module "next-auth/jwt" {
   }
 }
 
+export async function authenticateWithCredentials(emailRaw: string, password: string) {
+  const email = normalizeEmail(emailRaw);
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+  if (!user?.passwordHash) return null;
+
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) return null;
+
+  if (user.isSuperAdmin) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: "SUPER_ADMIN",
+      isSuperAdmin: true,
+    };
+  }
+
+  const membership = await prisma.membership.findFirst({
+    where: { userId: user.id, status: "ACTIVE", tenant: { status: "ACTIVE" } },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!membership) return null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: membership.role,
+    isSuperAdmin: false,
+  };
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -37,38 +73,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-        if (!user?.passwordHash) return null;
-
-        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!valid) return null;
-
-        if (user.isSuperAdmin) {
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: "SUPER_ADMIN",
-            isSuperAdmin: true,
-          };
-        }
-
-        const membership = await prisma.membership.findFirst({
-          where: { userId: user.id, status: "ACTIVE" },
-          orderBy: { createdAt: "asc" },
-        });
-        if (!membership) return null; // no tenant to operate in -- deny login
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: membership.role,
-          isSuperAdmin: false,
-        };
+        return authenticateWithCredentials(credentials.email, credentials.password);
       },
     }),
   ],

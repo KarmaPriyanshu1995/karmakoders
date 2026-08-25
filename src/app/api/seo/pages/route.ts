@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     await withDbRetry(() => syncSitePages(tenantId));
 
@@ -81,8 +81,8 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
     const { id, type, metaTitle, metaDescription } = body;

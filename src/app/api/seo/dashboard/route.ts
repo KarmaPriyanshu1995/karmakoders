@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     // Fetch all content
     const [pages, posts, projects, seoPages, latestAudit, issues, brand, searchConsole, keywords] = await withDbRetry(() => Promise.all([

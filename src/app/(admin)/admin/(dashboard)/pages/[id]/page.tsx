@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default async function PageEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PAGE_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PAGE_VIEW, permissionOverrides);
   const page = await prisma.page.findFirst({
     where: { id, tenantId },
     include: { sections: { orderBy: { order: "asc" } } },

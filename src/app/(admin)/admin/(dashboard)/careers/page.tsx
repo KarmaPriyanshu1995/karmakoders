@@ -3,8 +3,17 @@ import Link from "next/link";
 import { Plus, Building, MapPin, Users, Edit, FileText } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { assertPermission, hasPermission, PERMISSIONS } from "@/lib/permissions";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminCareersPage() {
+  const { role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.CAREER_VIEW, permissionOverrides);
+  const canCreate = hasPermission(role, PERMISSIONS.CAREER_CREATE, permissionOverrides);
+  const canUpdate = hasPermission(role, PERMISSIONS.CAREER_UPDATE, permissionOverrides);
+  const canDelete = hasPermission(role, PERMISSIONS.CAREER_DELETE, permissionOverrides);
   const jobs = await getJobs();
 
   async function toggleActive(formData: FormData) {
@@ -37,6 +46,7 @@ export default async function AdminCareersPage() {
             <FileText className="w-4 h-4" />
             All Applications
           </Link>
+          {canCreate && (
           <Link
             href="/admin/careers/new"
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors"
@@ -44,6 +54,7 @@ export default async function AdminCareersPage() {
             <Plus className="w-4 h-4" />
             Post New Job
           </Link>
+          )}
         </div>
       </div>
 
@@ -71,6 +82,7 @@ export default async function AdminCareersPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {canUpdate && (
                   <form action={toggleActive}>
                     <input type="hidden" name="id" value={job.id} />
                     <input type="hidden" name="title" value={job.title} />
@@ -82,12 +94,16 @@ export default async function AdminCareersPage() {
                       {job.isActive ? "Mark Closed" : "Mark Active"}
                     </button>
                   </form>
+                  )}
+                  {canUpdate && (
                   <Link
                     href={`/admin/careers/${job.id}/edit`}
                     className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </Link>
+                  )}
+                  {canDelete && (
                   <DeleteConfirmButton
                     iconOnly
                     confirmTitle="Delete this job posting?"
@@ -98,6 +114,7 @@ export default async function AdminCareersPage() {
                       revalidatePath("/admin/careers");
                     }}
                   />
+                  )}
                 </div>
               </div>
             ))}

@@ -4,10 +4,17 @@ import { Edit2, Plus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 import { revalidatePath } from "next/cache";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { assertPermission, hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProjectList() {
+  const { role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PROJECT_VIEW, permissionOverrides);
+  const canCreate = hasPermission(role, PERMISSIONS.PROJECT_CREATE, permissionOverrides);
+  const canUpdate = hasPermission(role, PERMISSIONS.PROJECT_UPDATE, permissionOverrides);
+  const canDelete = hasPermission(role, PERMISSIONS.PROJECT_DELETE, permissionOverrides);
   const projects = await getProjects();
 
   return (
@@ -17,12 +24,14 @@ export default async function AdminProjectList() {
           <h2 className="text-2xl font-bold text-white tracking-tight">Projects & Case Studies</h2>
           <p className="text-slate-400 mt-1">Manage your portfolio and dynamic project showcases.</p>
         </div>
-        <Link href="/admin/projects/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-500 text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
-        </Link>
+        {canCreate && (
+          <Link href="/admin/projects/new">
+            <Button className="bg-indigo-600 hover:bg-indigo-500 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden">
@@ -63,11 +72,14 @@ export default async function AdminProjectList() {
                         <Eye className="w-4 h-4" />
                       </Button>
                     </Link>
+                    {canUpdate && (
                     <Link href={`/admin/projects/${project.id}`}>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400">
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </Link>
+                    )}
+                    {canDelete && (
                     <DeleteConfirmButton
                       iconOnly
                       confirmTitle="Delete this project?"
@@ -79,6 +91,7 @@ export default async function AdminProjectList() {
                       }}
                       className="h-8 w-8"
                     />
+                    )}
                   </div>
                 </td>
               </tr>

@@ -24,6 +24,11 @@ export async function proxy(req: NextRequest) {
   }
 
   if (!token) {
+    // Server Actions POST to the page URL. Redirecting them to the HTML login
+    // page makes the client throw "An unexpected response was received from the server."
+    if (req.headers.has("next-action")) {
+      return NextResponse.next();
+    }
     const signInUrl = new URL("/admin/login", req.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);

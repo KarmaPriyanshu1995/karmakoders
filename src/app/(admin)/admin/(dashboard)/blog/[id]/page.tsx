@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminBlogEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.BLOG_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.BLOG_VIEW, permissionOverrides);
   const isNew = id === "new";
 
   const post = isNew

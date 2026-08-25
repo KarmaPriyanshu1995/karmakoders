@@ -105,10 +105,11 @@ describe("requireTenantContext", () => {
     expect(ctx.tenantId).toBe(activeTenant.id);
   });
 
-  it("throws for a super admin whose cookie points at a non-existent tenant", async () => {
+  it("falls back to an active tenant when a super admin cookie points at a missing or suspended tenant", async () => {
     mockSessionFor({ ...superAdminUser, isSuperAdmin: true });
     mockCookieGet.mockReturnValue({ value: "does-not-exist" });
-    await expect(requireTenantContext()).rejects.toThrow(TenantAccessError);
+    const ctx = await requireTenantContext();
+    expect(ctx.tenant.status).toBe("ACTIVE");
   });
 
   it("never grants access to a tenant the member does not belong to, even via a tampered cookie", async () => {
@@ -127,6 +128,17 @@ describe("requireTenantContext", () => {
     mockSessionFor(suspendedMember);
     await expect(requireTenantContext()).rejects.toThrow(TenantAccessError);
     await prisma.user.delete({ where: { id: suspendedMember.id } });
+  });
+
+  it("falls back to a live tenant when the cookie points at a suspended membership the user also holds", async () => {
+    const mixedUser = await prisma.user.create({ data: { email: `${RUN_ID}-mixed@example.com`, passwordHash: "x" } });
+    await prisma.membership.create({ data: { userId: mixedUser.id, tenantId: suspendedTenant.id, role: "TENANT_ADMIN", status: "ACTIVE" } });
+    await prisma.membership.create({ data: { userId: mixedUser.id, tenantId: activeTenant.id, role: "EDITOR", status: "ACTIVE" } });
+    mockSessionFor(mixedUser);
+    mockCookieGet.mockReturnValue({ value: suspendedTenant.id });
+    const ctx = await requireTenantContext();
+    expect(ctx.tenantId).toBe(activeTenant.id);
+    await prisma.user.delete({ where: { id: mixedUser.id } });
   });
 });
 

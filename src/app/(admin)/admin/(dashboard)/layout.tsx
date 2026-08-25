@@ -4,16 +4,19 @@ import { TenantSwitcher } from "@/components/admin/TenantSwitcher";
 import { TenantStoreHydrator } from "@/components/admin/TenantStoreHydrator";
 import { getCurrentUser, listMyTenants, requireTenantContext } from "@/lib/tenant-context";
 import type { MembershipRole } from "@prisma/client";
+import type { PermissionOverrides } from "@/lib/permissions";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   const tenants = user ? await listMyTenants() : [];
   let currentTenantId: string | null = null;
   let currentRole: MembershipRole | null = null;
+  let currentPermissionOverrides: PermissionOverrides | null = null;
   try {
     const ctx = await requireTenantContext();
     currentTenantId = ctx.tenantId;
     currentRole = ctx.role;
+    currentPermissionOverrides = ctx.permissionOverrides;
   } catch {
     // No tenant resolvable (e.g. a brand-new platform with zero tenants) -- switcher handles this.
   }
@@ -27,9 +30,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         currentUser={user}
         currentTenant={currentTenant}
         currentRole={currentRole}
+        currentPermissionOverrides={currentPermissionOverrides}
         memberships={tenants}
       />
-      <AdminSidebar isSuperAdmin={user?.isSuperAdmin ?? false} />
+      <AdminSidebar
+        isSuperAdmin={user?.isSuperAdmin ?? false}
+        role={currentRole}
+        permissionOverrides={currentPermissionOverrides}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden bg-[#252422]">

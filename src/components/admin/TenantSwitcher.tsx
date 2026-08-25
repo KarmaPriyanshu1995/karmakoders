@@ -34,13 +34,13 @@ export function TenantSwitcher({ tenants, currentTenantId }: { tenants: TenantOp
       return;
     }
     startTransition(async () => {
-      try {
-        await switchActiveTenant(tenantId);
-        setOpen(false);
-        router.refresh();
-      } catch {
-        toast.error("Failed to switch tenant");
+      const result = await switchActiveTenant(tenantId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
       }
+      setOpen(false);
+      router.refresh();
     });
   };
 

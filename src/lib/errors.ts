@@ -5,3 +5,15 @@ export class TenantAccessError extends Error {
     this.name = "TenantAccessError";
   }
 }
+
+/** Safe, serializable message to return from a Server Action instead of throwing. */
+export function publicActionError(error: unknown): string {
+  if (error instanceof TenantAccessError) {
+    if (error.message.includes("lacks permission")) {
+      return "You don't have permission to do that.";
+    }
+    return error.message;
+  }
+  if (error instanceof Error) return error.message;
+  return "Something went wrong";
+}

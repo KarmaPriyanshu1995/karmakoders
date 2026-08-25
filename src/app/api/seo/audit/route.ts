@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     await withDbRetry(() => syncSitePages(tenantId));
 
@@ -295,8 +295,8 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
     const audits = await withDbRetry(() => prisma.seoAudit.findMany({ where: { tenantId }, orderBy: { runAt: "desc" }, take: 10 }));
     return NextResponse.json({ audits });
   } catch (error) {

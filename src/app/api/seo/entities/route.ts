@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
 
     let entities = await withDbRetry(() => prisma.seoEntity.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } }));
 
@@ -49,8 +49,8 @@ const VALID_ENTITY_TYPES = new Set([
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -86,8 +86,8 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

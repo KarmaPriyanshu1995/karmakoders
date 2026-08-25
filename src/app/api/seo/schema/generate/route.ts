@@ -19,8 +19,8 @@ async function verifyPageOwnership(pageType: string, pageId: string, tenantId: s
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
 
     const body = await req.json();
     const { schemaType, pageId, pageType, data } = body;

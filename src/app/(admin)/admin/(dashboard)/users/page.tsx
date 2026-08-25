@@ -1,10 +1,14 @@
-import { listMyTenantMembers, createTenantMember, updateMemberRole, updateMemberStatus, removeMember, resetMemberPassword } from "@/lib/membership-actions";
+import { listMyTenantMembers, createTenantMember, updateMemberRole, updateMemberStatus, removeMember, resetMemberPassword, updateMemberPermissions } from "@/lib/membership-actions";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { hasPermission, assertPermission, PERMISSIONS } from "@/lib/permissions";
 import { Users, Shield } from "lucide-react";
 import { MemberRoleSelect } from "@/components/admin/MemberRoleSelect";
 import { AddMemberForm } from "@/components/admin/AddMemberForm";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 import { MemberStatusToggle } from "@/components/admin/MemberStatusToggle";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
+import { MemberPermissionsButton } from "@/components/admin/MemberPermissionsButton";
+import type { PermissionOverrides } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +17,12 @@ export const metadata = {
 };
 
 export default async function UsersPage() {
+  const { user, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.USER_VIEW, permissionOverrides);
   const members = await listMyTenantMembers();
+  const canCreateUsers = hasPermission(role, PERMISSIONS.USER_CREATE, permissionOverrides);
+  const canUpdateUsers = hasPermission(role, PERMISSIONS.USER_UPDATE, permissionOverrides);
+  const canDeleteUsers = hasPermission(role, PERMISSIONS.USER_DELETE, permissionOverrides);
 
   return (
     <div className="space-y-8">
@@ -24,7 +33,7 @@ export default async function UsersPage() {
             People with access to this organization&apos;s admin dashboard
           </p>
         </div>
-        <AddMemberForm createAction={createTenantMember} />
+        {canCreateUsers && <AddMemberForm createAction={createTenantMember} />}
       </div>
 
       {/* Stats */}
@@ -65,18 +74,36 @@ export default async function UsersPage() {
                 <p className="text-slate-400 text-sm">{m.user.email}</p>
               </div>
               <div className="ml-auto flex items-center gap-2 flex-wrap">
-                <MemberRoleSelect membershipId={m.id} initialRole={m.role} action={updateMemberRole} />
-                <MemberStatusToggle membershipId={m.id} initialStatus={m.status} action={updateMemberStatus} />
-                <ResetPasswordButton membershipId={m.id} email={m.user.email} action={resetMemberPassword} />
-                <DeleteConfirmButton
-                  iconOnly
-                  confirmTitle="Remove this member?"
-                  confirmMessage={`${m.user.email} will lose access to this organization's admin dashboard.`}
-                  onDelete={async () => {
-                    "use server";
-                    await removeMember(m.id);
-                  }}
-                />
+                {canUpdateUsers ? (
+                  <>
+                    <MemberRoleSelect membershipId={m.id} initialRole={m.role} action={updateMemberRole} />
+                    <MemberStatusToggle membershipId={m.id} initialStatus={m.status} action={updateMemberStatus} />
+                    <ResetPasswordButton membershipId={m.id} email={m.user.email} action={resetMemberPassword} />
+                    <MemberPermissionsButton
+                      membershipId={m.id}
+                      email={m.user.email}
+                      role={m.role}
+                      permissionOverrides={m.permissionOverrides as PermissionOverrides | null}
+                      action={updateMemberPermissions}
+                    />
+                  </>
+                ) : (
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                    {m.role}
+                  </span>
+                )}
+                {canDeleteUsers && m.userId !== user.id && (
+                  <DeleteConfirmButton
+                    iconOnly
+                    confirmTitle="Remove this member?"
+                    confirmMessage={`${m.user.email} will lose access to this organization's admin dashboard.`}
+                    onDelete={async () => {
+                      "use server";
+                      const result = await removeMember(m.id);
+                      if (result.error) throw new Error(result.error);
+                    }}
+                  />
+                )}
               </div>
             </div>
           ))}

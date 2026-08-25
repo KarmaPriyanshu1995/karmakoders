@@ -1,13 +1,15 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { requireTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 const f = createUploadthing();
 
 export const ourFileRouter = {
   imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 10 } })
     .middleware(async () => {
-      const { user, tenantId } = await requireTenantContext();
+      const { user, tenantId, role, permissionOverrides } = await requireTenantContext();
+      assertPermission(role, PERMISSIONS.MEDIA_CREATE, permissionOverrides);
       return { userId: user.id, tenantId };
     })
     .onUploadComplete(async ({ metadata, file }) => {

@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.SEO_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
     const result = await getRecommendations(tenantId);
     return NextResponse.json(result);
   } catch (error) {

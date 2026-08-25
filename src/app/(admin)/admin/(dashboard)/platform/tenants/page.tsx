@@ -70,7 +70,7 @@ export default async function PlatformTenantsPage() {
                 {t._count.memberships}
               </div>
               <div className="ml-auto flex items-center gap-3">
-                <TenantStatusToggle tenantId={t.id} initialStatus={t.status} />
+                <TenantStatusToggle tenantId={t.id} initialStatus={t.status} isPrimary={t.isPrimary} />
                 <Link
                   href={`/admin/platform/tenants/${t.id}`}
                   className="text-xs font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1"

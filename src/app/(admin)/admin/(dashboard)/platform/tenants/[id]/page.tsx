@@ -7,13 +7,16 @@ import {
   updateMemberStatusAsSuperAdmin,
   removeMemberAsSuperAdmin,
   resetMemberPasswordAsSuperAdmin,
+  updateMemberPermissionsAsSuperAdmin,
 } from "@/lib/membership-actions";
 import { TenantStatusToggle } from "@/components/admin/TenantStatusToggle";
 import { AddMemberForm } from "@/components/admin/AddMemberForm";
 import { MemberRoleSelect } from "@/components/admin/MemberRoleSelect";
 import { MemberStatusToggle } from "@/components/admin/MemberStatusToggle";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
+import { MemberPermissionsButton } from "@/components/admin/MemberPermissionsButton";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
+import type { PermissionOverrides } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +44,11 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     return resetMemberPasswordAsSuperAdmin(id, membershipId);
   };
 
+  const changePermissions = async (membershipId: string, overrides: PermissionOverrides) => {
+    "use server";
+    return updateMemberPermissionsAsSuperAdmin(id, membershipId, overrides);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
@@ -51,7 +59,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           <h2 className="text-2xl font-bold text-white">{tenant.name}</h2>
           <p className="text-slate-400 mt-1">/{tenant.slug}{tenant.email ? ` · ${tenant.email}` : ""}</p>
         </div>
-        <TenantStatusToggle tenantId={tenant.id} initialStatus={tenant.status} />
+        <TenantStatusToggle tenantId={tenant.id} initialStatus={tenant.status} isPrimary={tenant.isPrimary} />
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden border border-slate-800">
@@ -76,13 +84,21 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                 <MemberRoleSelect membershipId={m.id} initialRole={m.role} action={changeRole} />
                 <MemberStatusToggle membershipId={m.id} initialStatus={m.status} action={changeStatus} />
                 <ResetPasswordButton membershipId={m.id} email={m.user.email} action={resetPassword} />
+                <MemberPermissionsButton
+                  membershipId={m.id}
+                  email={m.user.email}
+                  role={m.role}
+                  permissionOverrides={m.permissionOverrides as PermissionOverrides | null}
+                  action={changePermissions}
+                />
                 <DeleteConfirmButton
                   iconOnly
                   confirmTitle="Remove this member?"
                   confirmMessage={`${m.user.email} will lose access to ${tenant.name}'s admin dashboard.`}
                   onDelete={async () => {
                     "use server";
-                    await removeMemberAsSuperAdmin(id, m.id);
+                    const result = await removeMemberAsSuperAdmin(id, m.id);
+                    if (result.error) throw new Error(result.error);
                   }}
                 />
               </div>

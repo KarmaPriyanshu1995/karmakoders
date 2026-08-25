@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminProjectEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { tenantId, role } = await requireTenantContext();
-  assertPermission(role, PERMISSIONS.PROJECT_VIEW);
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PROJECT_VIEW, permissionOverrides);
   const isNew = id === "new";
   const project = isNew
     ? { title: "", slug: "", description: "", imageUrl: "", content: "", link: "", tags: "" }

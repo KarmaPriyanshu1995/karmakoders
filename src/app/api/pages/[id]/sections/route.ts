@@ -11,8 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.PAGE_VIEW);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.PAGE_VIEW, permissionOverrides);
     const { id } = await params;
     const payload = await getPageSectionsPayload(id, tenantId);
     if (!payload) {
@@ -33,8 +33,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenantId, role } = await requireTenantContext();
-    assertPermission(role, PERMISSIONS.PAGE_UPDATE);
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.PAGE_UPDATE, permissionOverrides);
     const { id } = await params;
     const body = await req.json();
     const { sections, sectionScores } = body;
