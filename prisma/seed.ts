@@ -430,6 +430,15 @@ async function main() {
     });
   }
 
+  try {
+    const { ensureFreeToolsDefaults, seedDomainProviders } = await import("../src/lib/tools/defaults");
+    await ensureFreeToolsDefaults(tenantId);
+    await seedDomainProviders(tenantId);
+    console.log("🛠️  Free tools defaults ensured.");
+  } catch (error) {
+    console.warn("Free tools seed skipped:", error instanceof Error ? error.message : error);
+  }
+
   console.log("✅ Seeding complete.");
 }
 

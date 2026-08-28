@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { buildPageUrl } from "@/lib/sitePages";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
+import { getFreeToolsSitemapEntries } from "@/lib/tools/sitemap-entries";
 
 const SITE_URL = "https://www.karmakoders.com";
 
@@ -18,7 +19,7 @@ const STATIC_ENTRIES: MetadataRoute.Sitemap = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tenantId = await getPrimaryTenantId();
-  const [pages, posts, projects, jobs] = await Promise.all([
+  const [pages, posts, projects, jobs, toolEntries] = await Promise.all([
     prisma.page.findMany({
       where: { tenantId, isPublished: true },
       select: { slug: true },
@@ -35,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { tenantId, isActive: true },
       select: { slug: true, createdAt: true },
     }),
+    getFreeToolsSitemapEntries(tenantId),
   ]);
 
   const pageEntries: MetadataRoute.Sitemap = pages.map((page) => ({
@@ -60,5 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "weekly",
   }));
 
-  return [...STATIC_ENTRIES, ...pageEntries, ...postEntries, ...projectEntries, ...jobEntries];
+  return [...STATIC_ENTRIES, ...pageEntries, ...postEntries, ...projectEntries, ...jobEntries, ...toolEntries].filter(
+    (entry, index, all) => all.findIndex((item) => item.url === entry.url) === index
+  );
 }
