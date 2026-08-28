@@ -192,10 +192,15 @@ export async function subscribeNewsletter(email: string) {
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────
 
-export async function getPosts(type?: string) {
+export async function getPosts(type?: string, options?: { includeDrafts?: boolean }) {
   const tenantId = await getContextualTenantId();
+  const includeDrafts = options?.includeDrafts ?? false;
   return prisma.post.findMany({
-    where: { tenantId, ...(type ? { type } : {}) },
+    where: {
+      tenantId,
+      ...(type ? { type } : {}),
+      ...(!includeDrafts ? { published: true } : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -204,11 +209,14 @@ export async function getCaseStudies() {
   return getPosts("case-study");
 }
 
-export async function getPostBySlug(slug: string) {
+export async function getPostBySlug(slug: string, options?: { includeDrafts?: boolean }) {
   const tenantId = await getContextualTenantId();
-  return prisma.post.findUnique({
+  const includeDrafts = options?.includeDrafts ?? false;
+  const post = await prisma.post.findUnique({
     where: { tenantId_slug: { tenantId, slug } },
   });
+  if (!post || (!includeDrafts && !post.published)) return null;
+  return post;
 }
 
 export async function upsertPost(data: {

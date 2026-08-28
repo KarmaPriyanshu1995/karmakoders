@@ -159,7 +159,7 @@ describe("getContextualTenantId via getPosts (shared public/admin read path)", (
     await actions.upsertPost({ title: "B's own", slug: `${RUN_ID}-ctx-b`, content: "c", published: false });
 
     mockSessionFor(adminA);
-    const postsForA = await actions.getPosts();
+    const postsForA = await actions.getPosts(undefined, { includeDrafts: true });
     expect(postsForA.some((p) => p.slug === `${RUN_ID}-ctx-a`)).toBe(true);
     expect(postsForA.some((p) => p.slug === `${RUN_ID}-ctx-b`)).toBe(false);
   });
@@ -174,7 +174,7 @@ describe("getContextualTenantId via getPosts (shared public/admin read path)", (
   it("a super admin acting in Tenant A sees Tenant A's posts", async () => {
     mockSessionFor({ ...superAdmin, isSuperAdmin: true });
     mockCookieGet.mockReturnValue({ value: tenantA.id });
-    const posts = await actions.getPosts();
+    const posts = await actions.getPosts(undefined, { includeDrafts: true });
     expect(posts.some((p) => p.slug === `${RUN_ID}-ctx-a`)).toBe(true);
     expect(posts.some((p) => p.slug === `${RUN_ID}-ctx-b`)).toBe(false);
   });

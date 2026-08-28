@@ -15,7 +15,7 @@ export default async function AdminBlogList() {
   const canCreate = hasPermission(role, PERMISSIONS.BLOG_CREATE, permissionOverrides);
   const canUpdate = hasPermission(role, PERMISSIONS.BLOG_UPDATE, permissionOverrides);
   const canDelete = hasPermission(role, PERMISSIONS.BLOG_DELETE, permissionOverrides);
-  const posts = await getPosts();
+  const posts = await getPosts(undefined, { includeDrafts: true });
 
   return (
     <div className="space-y-6">

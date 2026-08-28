@@ -6,8 +6,24 @@ import { ImageIcon, Upload } from "lucide-react";
 import { UploadButton } from "@/lib/uploadthing";
 import { toast } from "sonner";
 
-export function ImagePreview({ initialUrl, name }: { initialUrl?: string | null, name: string }) {
-  const [url, setUrl] = useState(initialUrl || "");
+export function ImagePreview({
+  initialUrl,
+  name,
+  value,
+  onChange,
+}: {
+  initialUrl?: string | null;
+  name: string;
+  value?: string;
+  onChange?: (url: string) => void;
+}) {
+  const [internal, setInternal] = useState(initialUrl || "");
+  const url = value !== undefined ? value : internal;
+
+  const setUrl = (next: string) => {
+    onChange?.(next);
+    if (value === undefined) setInternal(next);
+  };
 
   return (
     <div className="space-y-4">
@@ -18,7 +34,6 @@ export function ImagePreview({ initialUrl, name }: { initialUrl?: string | null,
           </label>
           <input
             name={name}
-            required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://images.pexels.com/..."
