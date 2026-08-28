@@ -24,6 +24,7 @@ describe("permissions", () => {
   it("EDITOR can manage content but not users or settings", () => {
     expect(hasPermission("EDITOR", PERMISSIONS.BLOG_CREATE)).toBe(true);
     expect(hasPermission("EDITOR", PERMISSIONS.PROJECT_DELETE)).toBe(true);
+    expect(hasPermission("EDITOR", PERMISSIONS.TOOLS_UPDATE)).toBe(true);
     expect(hasPermission("EDITOR", PERMISSIONS.USER_CREATE)).toBe(false);
     expect(hasPermission("EDITOR", PERMISSIONS.SETTINGS_UPDATE)).toBe(false);
   });

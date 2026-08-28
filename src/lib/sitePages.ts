@@ -20,6 +20,14 @@ export const SITE_PAGES: SitePageDefinition[] = [
   { slug: "blog", title: "Blog", defaultMeta: { title: "Blog | karmakoders", description: "Insights, tutorials, and updates from the karmakoders team." } },
   { slug: "careers", title: "Careers", defaultMeta: { title: "Careers | karmakoders", description: "Join our team and help build the future of digital experiences." } },
   { slug: "contact", title: "Contact", defaultMeta: { title: "Contact | karmakoders", description: "Get in touch with karmakoders for your next project." } },
+  {
+    slug: "free-tools",
+    title: "Free Tools",
+    defaultMeta: {
+      title: "Free Tools | karmakoders",
+      description: "Useful free tools for founders, developers, marketers and businesses.",
+    },
+  },
   { slug: "services", title: "Services", defaultMeta: { title: "Custom Software & AI Development Services for Startups | KarmaKoders", description: "Get elite custom software, mobile app, SaaS product, and AI agent development services from KarmaKoders. Protect your IP with NDAs from day one." } },
   { slug: "case-studies", title: "Case Studies", defaultMeta: { title: "Case Studies | karmakoders", description: "Real-world results from our client partnerships." } },
   {

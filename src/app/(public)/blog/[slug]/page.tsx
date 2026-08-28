@@ -6,6 +6,7 @@ import { Calendar, User, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Metadata } from "next";
 
+import { RelatedToolLinks } from "@/components/tools/RelatedToolLinks";
 import { DEFAULT_POSTS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,15 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
           className="prose prose-invert prose-indigo max-w-none prose-lg prose-p:leading-relaxed prose-headings:text-white prose-a:text-indigo-400"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
+        {/domain/i.test(`${post.title} ${post.content} ${post.category || ""}`) && (
+          <RelatedToolLinks
+            links={[
+              { href: "/free-tools/domain-compare", label: "Try our Domain Compare tool →", description: "Check availability and prices across registrars" },
+              { href: "/domains/com", label: "Compare .com domain prices" },
+              { href: "/cheapest-domain-registrar", label: "Cheapest domain registrar" },
+            ]}
+          />
+        )}
       </article>
 
       <Footer />

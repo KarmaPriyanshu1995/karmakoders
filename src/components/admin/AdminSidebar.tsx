@@ -34,6 +34,10 @@ import {
   Zap,
   Settings2,
   Shield,
+  Sparkles,
+  Globe,
+  Tags,
+  Handshake,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -62,6 +66,21 @@ const navItems: NavItem[] = [
   { href: "/admin/careers", label: "Careers", icon: Building, section: "CAREERS" },
   { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare, section: "INQUIRIES" },
   { href: "/admin/media", label: "Media Library", icon: ImageIcon, section: "MEDIA" },
+  {
+    href: "/admin/tools",
+    label: "Tools",
+    icon: Sparkles,
+    section: "TOOLS",
+    children: [
+      { href: "/admin/tools", label: "All Tools", icon: LayoutDashboard, exact: true },
+      { href: "/admin/tools/new", label: "Add Tool", icon: Sparkles },
+      { href: "/admin/tools/categories", label: "Categories", icon: Tags },
+      { href: "/admin/tools/providers", label: "Providers", icon: Globe },
+      { href: "/admin/tools/affiliates", label: "Affiliate Programs", icon: Handshake },
+      { href: "/admin/tools/seo-pages", label: "SEO Pages", icon: FileText },
+      { href: "/admin/tools/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
   { href: "/admin/users", label: "Users", icon: Users, section: "USERS" },
   { href: "/admin/appearance", label: "Appearance", icon: Palette, section: "SETTINGS" },
   {
