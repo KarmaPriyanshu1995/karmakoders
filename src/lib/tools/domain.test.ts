@@ -43,8 +43,16 @@ describe("parseDomainInput", () => {
     expect(parseDomainInput("invalid..com")).toEqual({ ok: false, message: "Please enter a valid domain name." });
   });
 
-  it("rejects blocked TLDs", () => {
+  it("rejects dangerous and invalid input", () => {
+    expect(parseDomainInput("javascript:alert(1)")).toEqual({ ok: false, message: "Please enter a valid domain name." });
+    expect(parseDomainInput("exa_mple.com")).toEqual({ ok: false, message: "Please enter a valid domain name." });
     expect(parseDomainInput("foo.local")).toEqual({ ok: false, message: "That domain extension is not supported." });
+  });
+
+  it("strips URL paths and query strings safely", () => {
+    const fromPath = parseDomainInput("example.com/path");
+    expect(fromPath.ok).toBe(true);
+    if (fromPath.ok) expect(fromPath.value.domain).toBe("example.com");
   });
 });
 

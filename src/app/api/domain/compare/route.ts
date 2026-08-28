@@ -3,7 +3,6 @@ import { parseDomainInput } from "@/lib/tools/domain";
 import { compareDomain } from "@/lib/tools/compare-service";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { consumeRateLimit, clientKeyFromRequest } from "@/lib/tools/rate-limit";
-import { ensureFreeToolsDefaults } from "@/lib/tools/defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +23,6 @@ export async function GET(req: Request) {
 
   try {
     const tenantId = await getPrimaryTenantId();
-    await ensureFreeToolsDefaults(tenantId);
     const result = await compareDomain(tenantId, parsed.value);
     return NextResponse.json(result);
   } catch (error) {

@@ -4,6 +4,7 @@ import type { NormalizedDomainQuote, DomainLookupInput } from "@/lib/tools/provi
 import { availableConsensus, scoreQuotes, type ComparisonRow, type ComparisonSummary } from "@/lib/tools/scoring";
 import { getFreeToolsSettings } from "@/lib/tools/settings";
 import { alternativeDomains } from "@/lib/tools/domain";
+import { convertQuotePrices } from "@/lib/tools/currency";
 
 export interface AffiliateBuyOption {
   name: string;
@@ -36,22 +37,18 @@ const AFFILIATE_TAGLINES: Record<string, string> = {
 
 async function buildAffiliateOptions(
   tenantId: string,
-  providers: Array<{ id: string; name: string; slug: string; affiliateEnabled: boolean; apiEnabled: boolean }>
+  providers: Array<{ id: string; name: string; slug: string; affiliateEnabled: boolean; apiEnabled: boolean; status: string }>
 ): Promise<AffiliateBuyOption[]> {
-  const affiliateOnly = providers.filter((provider) => provider.affiliateEnabled && !provider.apiEnabled);
+  const affiliateOnly = providers.filter(
+    (provider) => provider.status === "active" && provider.affiliateEnabled && !provider.apiEnabled
+  );
   const options: AffiliateBuyOption[] = [];
 
   for (const provider of affiliateOnly) {
-    const program = await prisma.affiliateProgram.findFirst({
-      where: { tenantId, providerId: provider.id, status: "active" },
-      orderBy: { updatedAt: "desc" },
-    });
-    if (!program?.trackingUrl) continue;
-
     options.push({
       name: provider.name,
       slug: provider.slug,
-      tagline: AFFILIATE_TAGLINES[provider.slug] || "Check pricing on their site",
+      tagline: AFFILIATE_TAGLINES[provider.slug] || "Search and register on their website",
       buyPath: `/go/domain-provider/${provider.slug}`,
     });
   }
@@ -221,7 +218,12 @@ export async function compareDomain(tenantId: string, input: DomainLookupInput &
     })
   );
 
-  const normalized = quotes.map((item) => item.quote);
+  const normalized = await Promise.all(
+    quotes.map(async (item) => {
+      if (item.quote.status !== "ok") return item.quote;
+      return convertQuotePrices(item.quote, settings.defaultCurrency);
+    })
+  );
   const { rows, summary } = scoreQuotes(normalized, settings.scoringWeights);
   const available = availableConsensus(normalized);
   const lastChecked = rows

@@ -22,25 +22,65 @@ function money(value: number | null, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
 }
 
+function multiYearFromSource(
+  source: CompareRow["sourcePricing"],
+  extraRenewalYears: number
+): number | null {
+  if (!source || source.registrationPrice == null || source.renewalPrice == null) return null;
+  return Math.round((source.registrationPrice + source.renewalPrice * extraRenewalYears) * 100) / 100;
+}
+
+function PriceValue({
+  value,
+  currency,
+  sourcePricing,
+  sourceValue,
+}: {
+  value: number | null;
+  currency: string;
+  sourcePricing?: CompareRow["sourcePricing"];
+  sourceValue?: number | null;
+}) {
+  return (
+    <span className="inline-flex flex-col items-end leading-tight">
+      <span className="text-white font-semibold tabular-nums">{money(value, currency)}</span>
+      {sourcePricing && sourceValue != null && (
+        <span className="text-[10px] text-slate-500 tabular-nums mt-0.5">
+          {money(sourceValue, sourcePricing.currency)} catalog
+        </span>
+      )}
+    </span>
+  );
+}
+
 function MetricBar({
   label,
   value,
   max,
   currency,
   barClass,
+  sourcePricing,
+  sourceValue,
 }: {
   label: string;
   value: number | null;
   max: number;
   currency: string;
   barClass: string;
+  sourcePricing?: CompareRow["sourcePricing"];
+  sourceValue?: number | null;
 }) {
   const pct = value != null && max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-slate-400">{label}</span>
-        <span className="text-white font-semibold tabular-nums">{money(value, currency)}</span>
+        <PriceValue
+          value={value}
+          currency={currency}
+          sourcePricing={sourcePricing}
+          sourceValue={sourceValue}
+        />
       </div>
       <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
         <div
@@ -96,7 +136,9 @@ export function ComparePriceChart({ rows }: { rows: CompareRow[] }) {
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-300 mb-2">Price breakdown</p>
           <h3 className="text-xl md:text-2xl font-bold text-white">Side-by-side cost comparison</h3>
-          <p className="text-sm text-slate-400 mt-1">Each registrar shows prices in its native catalog currency.</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Compared in USD. Hostinger catalog prices in INR are shown underneath when different.
+          </p>
         </div>
         <div className="flex items-center gap-4 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1.5">
@@ -139,10 +181,36 @@ export function ComparePriceChart({ rows }: { rows: CompareRow[] }) {
                   max={max}
                   currency={row.currency}
                   barClass={theme.bar}
+                  sourcePricing={row.sourcePricing}
+                  sourceValue={row.sourcePricing?.registrationPrice}
                 />
-                <MetricBar label="Renewal" value={row.renewalPrice} max={max} currency={row.currency} barClass={theme.bar} />
-                <MetricBar label="3-year total" value={row.threeYearCost} max={max} currency={row.currency} barClass={theme.bar} />
-                <MetricBar label="5-year total" value={row.fiveYearCost} max={max} currency={row.currency} barClass={theme.bar} />
+                <MetricBar
+                  label="Renewal"
+                  value={row.renewalPrice}
+                  max={max}
+                  currency={row.currency}
+                  barClass={theme.bar}
+                  sourcePricing={row.sourcePricing}
+                  sourceValue={row.sourcePricing?.renewalPrice}
+                />
+                <MetricBar
+                  label="3-year total"
+                  value={row.threeYearCost}
+                  max={max}
+                  currency={row.currency}
+                  barClass={theme.bar}
+                  sourcePricing={row.sourcePricing}
+                  sourceValue={multiYearFromSource(row.sourcePricing, 2)}
+                />
+                <MetricBar
+                  label="5-year total"
+                  value={row.fiveYearCost}
+                  max={max}
+                  currency={row.currency}
+                  barClass={theme.bar}
+                  sourcePricing={row.sourcePricing}
+                  sourceValue={multiYearFromSource(row.sourcePricing, 4)}
+                />
               </div>
             </div>
           );
@@ -255,15 +323,36 @@ export function RegistrarBuyPanel({
             <dl className="grid grid-cols-2 gap-3 mb-6 text-sm">
               <div className="rounded-lg bg-white/5 px-3 py-2">
                 <dt className="text-slate-500 text-xs">First year</dt>
-                <dd className="text-white font-bold">{money(row.registrationPrice, row.currency)}</dd>
+                <dd>
+                  <PriceValue
+                    value={row.registrationPrice}
+                    currency={row.currency}
+                    sourcePricing={row.sourcePricing}
+                    sourceValue={row.sourcePricing?.registrationPrice}
+                  />
+                </dd>
               </div>
               <div className="rounded-lg bg-white/5 px-3 py-2">
                 <dt className="text-slate-500 text-xs">Renewal</dt>
-                <dd className="text-white font-bold">{money(row.renewalPrice, row.currency)}</dd>
+                <dd>
+                  <PriceValue
+                    value={row.renewalPrice}
+                    currency={row.currency}
+                    sourcePricing={row.sourcePricing}
+                    sourceValue={row.sourcePricing?.renewalPrice}
+                  />
+                </dd>
               </div>
               <div className="rounded-lg bg-white/5 px-3 py-2">
                 <dt className="text-slate-500 text-xs">3-year</dt>
-                <dd className="text-white font-bold">{money(row.threeYearCost, row.currency)}</dd>
+                <dd>
+                  <PriceValue
+                    value={row.threeYearCost}
+                    currency={row.currency}
+                    sourcePricing={row.sourcePricing}
+                    sourceValue={multiYearFromSource(row.sourcePricing, 2)}
+                  />
+                </dd>
               </div>
               <div className="rounded-lg bg-white/5 px-3 py-2">
                 <dt className="text-slate-500 text-xs">Privacy</dt>

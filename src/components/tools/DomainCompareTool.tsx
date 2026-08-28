@@ -8,6 +8,7 @@ import {
   CompareWinnerStrip,
   RegistrarBuyPanel,
 } from "@/components/tools/DomainCompareVisuals";
+import { AffiliateRegistrarCards } from "@/components/tools/AffiliateRegistrarCards";
 import type { CompareResponse } from "@/components/tools/domain-compare-types";
 
 function relativeTime(iso: string) {
@@ -165,9 +166,9 @@ export function DomainCompareTool({
       {!result && !error && !loading && (
         <div className="grid sm:grid-cols-3 gap-4">
           {[
-            { icon: Sparkles, title: "Live pricing", desc: "Real-time quotes from GoDaddy & Hostinger APIs" },
+            { icon: Sparkles, title: "Live pricing", desc: "Real-time quotes from GoDaddy & Hostinger APIs only" },
             { icon: Shield, title: "Renewal aware", desc: "See 3-year & 5-year cost — not just promo year one" },
-            { icon: Globe, title: "Buy in one click", desc: "Go straight to registrar checkout when you decide" },
+            { icon: Globe, title: "More registrars", desc: "Namecheap, Porkbun & others in a separate buy section below" },
           ].map((item) => (
             <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
               <item.icon className="w-5 h-5 text-indigo-300 mb-3" />
@@ -253,6 +254,10 @@ export function DomainCompareTool({
               <ComparePriceChart rows={okRows} />
               <RegistrarBuyPanel rows={okRows} domain={result.domain} onBuyClick={handleBuyClick} />
             </>
+          )}
+
+          {(result.affiliateOptions?.length ?? 0) > 0 && (
+            <AffiliateRegistrarCards options={result.affiliateOptions ?? []} domain={result.domain} />
           )}
 
           <p className="flex items-start gap-2 text-xs text-slate-500">

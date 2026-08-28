@@ -3,12 +3,18 @@ import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { recordToolEvent, TOOL_EVENTS } from "@/lib/tools/analytics";
 import { prisma } from "@/lib/prisma";
 import { parseDomainInput } from "@/lib/tools/domain";
+import { consumeRateLimit, clientKeyFromRequest } from "@/lib/tools/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 const ALLOWED = new Set(Object.values(TOOL_EVENTS));
 
 export async function POST(req: Request) {
+  const limit = consumeRateLimit(`${clientKeyFromRequest(req)}:tools-events`, 60, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json({ ok: false }, { status: 429 });
+  }
+
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const eventType = typeof body.eventType === "string" ? body.eventType : "";

@@ -17,6 +17,12 @@ export interface CompareRow {
   overallScore: number | null;
   badges: string[];
   buyPath: string;
+  sourcePricing?: {
+    currency: string;
+    registrationPrice: number | null;
+    renewalPrice: number | null;
+    transferPrice: number | null;
+  };
 }
 
 export interface CompareSummary {

@@ -1,3 +1,4 @@
+import type { SourcePricing } from "@/lib/tools/currency";
 import type { NormalizedDomainQuote } from "@/lib/tools/providers/types";
 
 export interface ScoringWeights {
@@ -24,6 +25,7 @@ export interface ComparisonRow extends NormalizedDomainQuote {
   overallScore: number | null;
   badges: string[];
   buyPath: string;
+  sourcePricing?: SourcePricing;
 }
 
 export interface ComparisonSummary {
@@ -93,6 +95,7 @@ export function scoreQuotes(
       overallScore,
       badges: [],
       buyPath: `/go/domain-provider/${quote.registrarSlug}`,
+      sourcePricing: (quote as NormalizedDomainQuote & { sourcePricing?: SourcePricing }).sourcePricing,
     };
   });
 

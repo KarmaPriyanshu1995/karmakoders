@@ -31,40 +31,36 @@ export async function ensureDomainProviders(tenantId: string): Promise<void> {
       name: "Namecheap",
       slug: "namecheap",
       adapterKey: "namecheap",
-      websiteUrl: "https://www.namecheap.com",
+      websiteUrl: "https://www.namecheap.com/domains/registration/results.aspx",
       priority: 20,
       logoUrl: null,
       apiEnabled: false,
-      affiliateEnabled: false,
-      status: "disabled" as const,
+      affiliateEnabled: true,
+      status: "active" as const,
     },
     {
       name: "Porkbun",
       slug: "porkbun",
       adapterKey: "porkbun",
-      websiteUrl: "https://porkbun.com",
+      websiteUrl: "https://porkbun.com/checkout/search",
       priority: 30,
       logoUrl: null,
       apiEnabled: false,
-      affiliateEnabled: false,
-      status: "disabled" as const,
+      affiliateEnabled: true,
+      status: "active" as const,
     },
   ];
 
   for (const provider of providers) {
     const { apiEnabled, affiliateEnabled, status, ...rest } = provider;
-    await prisma.domainProvider.upsert({
+    const existing = await prisma.domainProvider.findUnique({
       where: { tenantId_slug: { tenantId, slug: provider.slug } },
-      update: {
-        name: rest.name,
-        adapterKey: rest.adapterKey,
-        websiteUrl: rest.websiteUrl,
-        priority: rest.priority,
-        apiEnabled,
-        affiliateEnabled,
-        status,
-      },
-      create: {
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    await prisma.domainProvider.create({
+      data: {
         tenantId,
         ...rest,
         apiEnabled,
@@ -73,23 +69,80 @@ export async function ensureDomainProviders(tenantId: string): Promise<void> {
       },
     });
   }
-
-  await ensureHostingerAffiliate(tenantId);
-  await disableLegacyAffiliatePrograms(tenantId);
 }
 
-async function disableLegacyAffiliatePrograms(tenantId: string): Promise<void> {
-  const legacySlugs = ["namecheap", "porkbun", "godaddy"];
-  for (const slug of legacySlugs) {
+/** Full provider + affiliate sync for deploy/seed only — do not call from public routes. */
+export async function seedDomainProviders(tenantId: string): Promise<void> {
+  await ensureDomainProviders(tenantId);
+  await ensureHostingerAffiliate(tenantId, { force: true });
+  await ensureAffiliateOnlyPrograms(tenantId, { force: true });
+  await disableGoDaddyAffiliatePrograms(tenantId);
+}
+
+async function ensureAffiliateOnlyPrograms(tenantId: string, opts?: { force?: boolean }): Promise<void> {
+  const defaults: Array<{ slug: string; programName: string; network: string; trackingUrl: string; notes: string }> = [
+    {
+      slug: "namecheap",
+      programName: "Namecheap Domains",
+      network: "Namecheap",
+      trackingUrl: "https://www.namecheap.com/domains/registration/results.aspx",
+      notes: "Replace with your Namecheap affiliate link in Admin → Affiliates.",
+    },
+    {
+      slug: "porkbun",
+      programName: "Porkbun Domains",
+      network: "Porkbun",
+      trackingUrl: "https://porkbun.com/checkout/search",
+      notes: "Replace with your Porkbun affiliate link in Admin → Affiliates.",
+    },
+  ];
+
+  for (const item of defaults) {
     const provider = await prisma.domainProvider.findUnique({
-      where: { tenantId_slug: { tenantId, slug } },
+      where: { tenantId_slug: { tenantId, slug: item.slug } },
     });
     if (!provider) continue;
-    await prisma.affiliateProgram.updateMany({
-      where: { tenantId, providerId: provider.id },
-      data: { status: "disabled" },
+
+    const existing = await prisma.affiliateProgram.findFirst({
+      where: { tenantId, providerId: provider.id, programName: item.programName },
+    });
+
+    const payload = {
+      programName: item.programName,
+      affiliateNetwork: item.network,
+      trackingUrl: item.trackingUrl,
+      status: "active",
+      commissionType: "percent",
+      commissionValue: null as number | null,
+      cookieDuration: 30,
+      notes: item.notes,
+    };
+
+    if (existing) {
+      if (opts?.force) {
+        await prisma.affiliateProgram.update({
+          where: { id: existing.id },
+          data: { status: "active", affiliateNetwork: payload.affiliateNetwork, notes: payload.notes },
+        });
+      }
+      continue;
+    }
+
+    await prisma.affiliateProgram.create({
+      data: { ...payload, tenantId, providerId: provider.id },
     });
   }
+}
+
+async function disableGoDaddyAffiliatePrograms(tenantId: string): Promise<void> {
+  const godaddy = await prisma.domainProvider.findUnique({
+    where: { tenantId_slug: { tenantId, slug: "godaddy" } },
+  });
+  if (!godaddy) return;
+  await prisma.affiliateProgram.updateMany({
+    where: { tenantId, providerId: godaddy.id },
+    data: { status: "disabled" },
+  });
 }
 
 export async function ensureDomainCompareContent(tenantId: string): Promise<void> {
@@ -107,19 +160,21 @@ export async function ensureDomainCompareContent(tenantId: string): Promise<void
   });
 }
 
-export async function ensureHostingerAffiliate(tenantId: string): Promise<void> {
+export async function ensureHostingerAffiliate(tenantId: string, opts?: { force?: boolean }): Promise<void> {
   const hostinger = await prisma.domainProvider.findUnique({
     where: { tenantId_slug: { tenantId, slug: "hostinger" } },
   });
   if (!hostinger) return;
 
-  await prisma.domainProvider.update({
-    where: { id: hostinger.id },
-    data: {
-      affiliateEnabled: true,
-      websiteUrl: "https://www.hostinger.com/in",
-    },
-  });
+  if (opts?.force) {
+    await prisma.domainProvider.update({
+      where: { id: hostinger.id },
+      data: {
+        affiliateEnabled: true,
+        websiteUrl: "https://www.hostinger.com/in",
+      },
+    });
+  }
 
   const existing = await prisma.affiliateProgram.findFirst({
     where: { tenantId, providerId: hostinger.id, programName: "Hostinger Domains" },
@@ -137,7 +192,9 @@ export async function ensureHostingerAffiliate(tenantId: string): Promise<void> 
   };
 
   if (existing) {
-    await prisma.affiliateProgram.update({ where: { id: existing.id }, data: payload });
+    if (opts?.force) {
+      await prisma.affiliateProgram.update({ where: { id: existing.id }, data: payload });
+    }
     return;
   }
 
@@ -181,14 +238,18 @@ export async function ensureRegistrarComparisons(tenantId: string): Promise<void
 
 export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
   await ensureDomainProviders(tenantId);
-  await ensureDomainCompareContent(tenantId);
-  await ensureRegistrarComparisons(tenantId);
 
   const already = await prisma.freeTool.findFirst({
     where: { tenantId, slug: "domain-compare" },
     select: { id: true },
   });
   if (already) return;
+
+  await ensureDomainCompareContent(tenantId);
+  await ensureRegistrarComparisons(tenantId);
+  await ensureHostingerAffiliate(tenantId);
+  await ensureAffiliateOnlyPrograms(tenantId);
+  await disableGoDaddyAffiliatePrograms(tenantId);
 
   await prisma.siteConfig.upsert({
     where: { tenantId_key: { tenantId, key: FREE_TOOLS_SETTINGS_KEY } },

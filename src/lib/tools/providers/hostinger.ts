@@ -63,24 +63,30 @@ function yearlyPrice(prices: CatalogPrice[] | undefined): CatalogPrice | null {
   );
 }
 
-function findCatalogItem(items: CatalogItem[], tld: string, kind: "register" | "transfer"): CatalogItem | null {
-  const key = catalogTldKey(tld);
-  const prefix = kind === "register" ? "hostingerin-domain-" : "hostingerin-domaintransfer-";
-  const byId = items.find((item) => item.category === "DOMAIN" && item.id === `${prefix}${key}`);
-  if (byId) return byId;
-
-  const dotted = `.${tld.toUpperCase()}`;
-  const label = kind === "register" ? `${dotted} Domain` : `${dotted} Domain Transfer`;
-  return (
-    items.find((item) => item.category === "DOMAIN" && item.name?.toLowerCase() === label.toLowerCase()) ??
-    items.find((item) => item.category === "DOMAIN" && item.name?.toLowerCase().includes(label.toLowerCase())) ??
-    null
-  );
+function catalogPrefixes(): string[] {
+  const custom = env("HOSTINGER_CATALOG_PREFIX");
+  if (custom) return [custom.replace(/-domain-?$/, "")];
+  return ["hostingercom", "hostinger", "hostingerin"];
 }
 
-function pricesFromCatalog(items: CatalogItem[], tld: string): Pick<NormalizedDomainQuote, "registrationPrice" | "renewalPrice" | "transferPrice" | "currency"> {
-  const registerItem = findCatalogItem(items, tld, "register");
-  const transferItem = findCatalogItem(items, tld, "transfer");
+function findCatalogItem(
+  items: CatalogItem[],
+  tld: string,
+  kind: "register" | "transfer",
+  storePrefix: string
+): CatalogItem | null {
+  const key = catalogTldKey(tld);
+  const prefix = kind === "register" ? `${storePrefix}-domain-` : `${storePrefix}-domaintransfer-`;
+  return items.find((item) => item.category === "DOMAIN" && item.id === `${prefix}${key}`) ?? null;
+}
+
+function pricesFromCatalogPrefix(
+  items: CatalogItem[],
+  tld: string,
+  storePrefix: string
+): Pick<NormalizedDomainQuote, "registrationPrice" | "renewalPrice" | "transferPrice" | "currency"> {
+  const registerItem = findCatalogItem(items, tld, "register", storePrefix);
+  const transferItem = findCatalogItem(items, tld, "transfer", storePrefix);
   const register = yearlyPrice(registerItem?.prices);
   const transfer = transferItem?.prices?.[0];
 
@@ -90,6 +96,31 @@ function pricesFromCatalog(items: CatalogItem[], tld: string): Pick<NormalizedDo
     transferPrice: minorToMajor(transfer?.price ?? transfer?.first_period_price),
     currency: register?.currency || transfer?.currency || "USD",
   };
+}
+
+function pricesFromCatalog(items: CatalogItem[], tld: string): Pick<NormalizedDomainQuote, "registrationPrice" | "renewalPrice" | "transferPrice" | "currency"> {
+  let best: Pick<NormalizedDomainQuote, "registrationPrice" | "renewalPrice" | "transferPrice" | "currency"> | null = null;
+
+  for (const prefix of catalogPrefixes()) {
+    const candidate = pricesFromCatalogPrefix(items, tld, prefix);
+    if (candidate.registrationPrice == null && candidate.renewalPrice == null) continue;
+    if (!best) {
+      best = candidate;
+      continue;
+    }
+    if (candidate.currency === "USD" && best.currency !== "USD") {
+      best = candidate;
+    }
+  }
+
+  return (
+    best ?? {
+      registrationPrice: null,
+      renewalPrice: null,
+      transferPrice: null,
+      currency: "USD",
+    }
+  );
 }
 
 async function loadCatalog(token: string): Promise<CatalogItem[]> {
