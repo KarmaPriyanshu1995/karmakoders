@@ -53,7 +53,11 @@ export async function compareDomain(tenantId: string, input: DomainLookupInput &
       if (cached && cached.expiresAt > now && cached.responseData) {
         try {
           const parsed = JSON.parse(cached.responseData) as NormalizedDomainQuote;
-          return { provider, quote: parsed, fromCache: true };
+          const hasPricing =
+            parsed.registrationPrice != null || parsed.renewalPrice != null || parsed.transferPrice != null;
+          if (parsed.status === "ok" && hasPricing) {
+            return { provider, quote: parsed, fromCache: true };
+          }
         } catch {
           // fall through to live lookup
         }
@@ -109,25 +113,33 @@ export async function compareDomain(tenantId: string, input: DomainLookupInput &
       quote.registrarSlug = provider.slug;
 
       const expiresAt = new Date(Date.now() + settings.cacheMinutes * 60 * 1000);
-      const cachePayload = {
-        tenantId,
-        domain: input.domain,
-        providerId: provider.id,
-        available: quote.available,
-        registrationPrice: quote.registrationPrice,
-        renewalPrice: quote.renewalPrice,
-        transferPrice: quote.transferPrice,
-        currency: quote.currency,
-        responseData: JSON.stringify(quote),
-        checkedAt: now,
-        expiresAt,
-      };
+      const hasPricing =
+        quote.registrationPrice != null || quote.renewalPrice != null || quote.transferPrice != null;
+      if (quote.status === "ok" && hasPricing) {
+        const cachePayload = {
+          tenantId,
+          domain: input.domain,
+          providerId: provider.id,
+          available: quote.available,
+          registrationPrice: quote.registrationPrice,
+          renewalPrice: quote.renewalPrice,
+          transferPrice: quote.transferPrice,
+          currency: quote.currency,
+          responseData: JSON.stringify(quote),
+          checkedAt: now,
+          expiresAt,
+        };
 
-      await prisma.domainSearchCache.upsert({
-        where: { tenantId_domain_providerId: { tenantId, domain: input.domain, providerId: provider.id } },
-        update: cachePayload,
-        create: cachePayload,
-      });
+        await prisma.domainSearchCache.upsert({
+          where: { tenantId_domain_providerId: { tenantId, domain: input.domain, providerId: provider.id } },
+          update: cachePayload,
+          create: cachePayload,
+        });
+      } else {
+        await prisma.domainSearchCache.deleteMany({
+          where: { tenantId, domain: input.domain, providerId: provider.id },
+        });
+      }
 
       if (quote.status === "ok") {
         await prisma.domainProvider.update({

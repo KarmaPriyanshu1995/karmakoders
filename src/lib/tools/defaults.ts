@@ -1,37 +1,130 @@
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_FREE_TOOLS_SETTINGS, FREE_TOOLS_SETTINGS_KEY } from "@/lib/tools/settings";
+import { HOSTINGER_DOMAIN_AFFILIATE_URL } from "@/lib/tools/hostinger-affiliate";
+import { DOMAIN_COMPARE_CONTENT, HOSTINGER_VS_NAMECHEAP_CONTENT } from "@/lib/tools/domain-compare-content";
 
-const DOMAIN_COMPARE_CONTENT = {
-  heroHeading: "Compare Domain Prices",
-  heroSubheading: "Check domain availability and compare registration and renewal prices across multiple registrars.",
-  sections: [
-    {
-      heading: "Compare Domain Prices",
-      body: "<p>Domain Compare checks a domain name against multiple registrars so you can see availability, first-year registration price, renewal price, and transfer price in one place. Use it before you buy a name for a startup, product, or personal project.</p>",
+export async function ensureDomainProviders(tenantId: string): Promise<void> {
+  const providers = [
+    { name: "GoDaddy", slug: "godaddy", adapterKey: "godaddy", websiteUrl: "https://www.godaddy.com", priority: 10, logoUrl: null as string | null },
+    { name: "Hostinger", slug: "hostinger", adapterKey: "hostinger", websiteUrl: "https://www.hostinger.com/in", priority: 15, logoUrl: null },
+    { name: "Namecheap", slug: "namecheap", adapterKey: "namecheap", websiteUrl: "https://www.namecheap.com", priority: 20, logoUrl: null },
+    { name: "Porkbun", slug: "porkbun", adapterKey: "porkbun", websiteUrl: "https://porkbun.com", priority: 30, logoUrl: null },
+  ];
+
+  for (const provider of providers) {
+    await prisma.domainProvider.upsert({
+      where: { tenantId_slug: { tenantId, slug: provider.slug } },
+      update: {
+        name: provider.name,
+        adapterKey: provider.adapterKey,
+        websiteUrl: provider.websiteUrl,
+        priority: provider.priority,
+      },
+      create: {
+        tenantId,
+        ...provider,
+        apiEnabled: true,
+        affiliateEnabled: false,
+        status: "active",
+      },
+    });
+  }
+
+  await ensureHostingerAffiliate(tenantId);
+}
+
+export async function ensureDomainCompareContent(tenantId: string): Promise<void> {
+  await prisma.freeTool.updateMany({
+    where: { tenantId, slug: "domain-compare" },
+    data: {
+      contentJson: JSON.stringify(DOMAIN_COMPARE_CONTENT),
+      longDescription:
+        "Check whether a domain is available and compare registration, renewal, and transfer prices from Hostinger, GoDaddy, Namecheap, Porkbun, and other connected registrars — with founder-focused guidance on total cost of ownership.",
+      seoDescription:
+        "Compare domain availability, first-year price, renewal, and 3-year cost across registrars. Built for founders choosing a startup domain name.",
+      seoKeywords:
+        "domain compare, domain prices, cheapest domain, domain registrar, startup domain, hostinger domain, namecheap domain",
     },
-    {
-      heading: "How Domain Pricing Works",
-      body: "<p>Registrars set their own retail prices. First-year promotions are common, which is why a cheap registration can be followed by a higher renewal. Premium names and some new extensions are priced separately from standard catalog rates. The prices shown here come from registrar APIs when they are connected, and may still change at checkout because of currency, taxes, or premium status.</p>",
+  });
+}
+
+export async function ensureHostingerAffiliate(tenantId: string): Promise<void> {
+  const hostinger = await prisma.domainProvider.findUnique({
+    where: { tenantId_slug: { tenantId, slug: "hostinger" } },
+  });
+  if (!hostinger) return;
+
+  await prisma.domainProvider.update({
+    where: { id: hostinger.id },
+    data: {
+      affiliateEnabled: true,
+      websiteUrl: "https://www.hostinger.com/in",
     },
-    {
-      heading: "Registration vs Renewal Price",
-      body: "<p>Registration is what you pay to get the name for the first year. Renewal is what you pay to keep it. A three-year or five-year view (first year plus renewals) is a more honest comparison than first-year price alone. Transfer price is the cost to move an existing name to that registrar.</p>",
+  });
+
+  const existing = await prisma.affiliateProgram.findFirst({
+    where: { tenantId, providerId: hostinger.id, programName: "Hostinger Domains" },
+  });
+
+  const payload = {
+    programName: "Hostinger Domains",
+    affiliateNetwork: "Hostinger",
+    trackingUrl: HOSTINGER_DOMAIN_AFFILIATE_URL,
+    status: "active",
+    commissionType: "percent",
+    commissionValue: 40,
+    cookieDuration: 30,
+    notes: "Referral code WBAKARMAKE6E. Domain commission on special affiliate offers only.",
+  };
+
+  if (existing) {
+    await prisma.affiliateProgram.update({ where: { id: existing.id }, data: payload });
+    return;
+  }
+
+  await prisma.affiliateProgram.create({
+    data: {
+      ...payload,
+      tenantId,
+      providerId: hostinger.id,
     },
-    {
-      heading: "How to Choose a Domain Registrar",
-      body: "<p>Look at renewal cost, whether WHOIS privacy is included, DNS quality, and how easy transfers are — not just the advertised first-year deal. If a registrar is temporarily unavailable in this tool, that does not mean the name is taken; it only means we could not reach that provider in time.</p>",
-    },
-  ],
-  faq: [
-    { question: "How much does a domain cost?", answer: "Standard .com names often cost between about $10 and $20 per year, but first-year promotions and premium names vary widely. Always check renewal price, not just the first year." },
-    { question: "What is the cheapest domain registrar?", answer: "It depends on the extension and the time horizon. A registrar that is cheapest for year one may be more expensive over three or five years. This tool ranks both first-year and multi-year cost when prices are available." },
-    { question: "Why are renewal prices different?", answer: "Each registrar sets its own retail catalog. Promotional registration pricing often does not apply to renewals." },
-    { question: "Is domain privacy included?", answer: "Some registrars include WHOIS privacy at no extra cost; others charge for it. We show privacy as included when the provider's standard offering includes it." },
-    { question: "Can I transfer my domain later?", answer: "Yes. After the initial 60-day lock that many registries apply, you can usually transfer to another registrar. Compare transfer prices if you expect to move later." },
-  ],
-};
+  });
+}
+
+export async function ensureRegistrarComparisons(tenantId: string): Promise<void> {
+  const hostinger = await prisma.domainProvider.findUnique({ where: { tenantId_slug: { tenantId, slug: "hostinger" } } });
+  const namecheap = await prisma.domainProvider.findUnique({ where: { tenantId_slug: { tenantId, slug: "namecheap" } } });
+
+  if (hostinger && namecheap) {
+    await prisma.registrarComparison.upsert({
+      where: { tenantId_slug: { tenantId, slug: HOSTINGER_VS_NAMECHEAP_CONTENT.slug } },
+      update: {
+        title: HOSTINGER_VS_NAMECHEAP_CONTENT.title,
+        seoTitle: HOSTINGER_VS_NAMECHEAP_CONTENT.seoTitle,
+        seoDescription: HOSTINGER_VS_NAMECHEAP_CONTENT.seoDescription,
+        content: HOSTINGER_VS_NAMECHEAP_CONTENT.content,
+        status: "published",
+      },
+      create: {
+        tenantId,
+        providerAId: hostinger.id,
+        providerBId: namecheap.id,
+        slug: HOSTINGER_VS_NAMECHEAP_CONTENT.slug,
+        title: HOSTINGER_VS_NAMECHEAP_CONTENT.title,
+        seoTitle: HOSTINGER_VS_NAMECHEAP_CONTENT.seoTitle,
+        seoDescription: HOSTINGER_VS_NAMECHEAP_CONTENT.seoDescription,
+        content: HOSTINGER_VS_NAMECHEAP_CONTENT.content,
+        status: "published",
+      },
+    });
+  }
+}
 
 export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
+  await ensureDomainProviders(tenantId);
+  await ensureDomainCompareContent(tenantId);
+  await ensureRegistrarComparisons(tenantId);
+
   const already = await prisma.freeTool.findFirst({
     where: { tenantId, slug: "domain-compare" },
     select: { id: true },
@@ -74,7 +167,7 @@ export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
       name: "Domain Compare",
       slug: "domain-compare",
       shortDescription: "Compare domain prices and availability across multiple registrars.",
-      longDescription: "Check whether a domain is available and compare registration, renewal, and transfer prices from GoDaddy, Namecheap, Porkbun, and other connected registrars.",
+      longDescription: "Check whether a domain is available and compare registration, renewal, and transfer prices from GoDaddy, Hostinger, Namecheap, Porkbun, and other connected registrars.",
       icon: "Globe",
       categoryId: domainsCategory?.id,
       status: "published",
@@ -92,26 +185,6 @@ export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
       contentJson: JSON.stringify(DOMAIN_COMPARE_CONTENT),
     },
   });
-
-  const providers = [
-    { name: "GoDaddy", slug: "godaddy", adapterKey: "godaddy", websiteUrl: "https://www.godaddy.com", priority: 10, logoUrl: null as string | null },
-    { name: "Namecheap", slug: "namecheap", adapterKey: "namecheap", websiteUrl: "https://www.namecheap.com", priority: 20, logoUrl: null },
-    { name: "Porkbun", slug: "porkbun", adapterKey: "porkbun", websiteUrl: "https://porkbun.com", priority: 30, logoUrl: null },
-  ];
-
-  for (const provider of providers) {
-    await prisma.domainProvider.upsert({
-      where: { tenantId_slug: { tenantId, slug: provider.slug } },
-      update: {},
-      create: {
-        tenantId,
-        ...provider,
-        apiEnabled: true,
-        affiliateEnabled: false,
-        status: "active",
-      },
-    });
-  }
 
   const tlds = [
     {

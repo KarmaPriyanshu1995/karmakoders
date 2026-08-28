@@ -4,40 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, Search, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface CompareRow {
-  registrar: string;
-  registrarSlug: string;
-  available: boolean | null;
-  registrationPrice: number | null;
-  renewalPrice: number | null;
-  transferPrice: number | null;
-  privacyIncluded: boolean | null;
-  currency: string;
-  lastChecked: string;
-  indicative: boolean;
-  features: string[];
-  status: string;
-  message?: string;
-  threeYearCost: number | null;
-  fiveYearCost: number | null;
-  overallScore: number | null;
-  badges: string[];
-  buyPath: string;
-}
-
-interface CompareResponse {
-  domain: string;
-  sld: string;
-  tld: string;
-  assumedTld?: boolean;
-  available: boolean | null;
-  alternatives: string[];
-  rows: CompareRow[];
-  lastChecked: string;
-  disclosure: string;
-  error?: string;
-}
+import { CompareColumnLegend, CompareResultsSummary, DomainCompareGuidance } from "@/components/tools/DomainCompareGuidance";
+import type { CompareResponse } from "@/components/tools/domain-compare-types";
 
 function money(value: number | null, currency = "USD") {
   if (value == null) return "—";
@@ -196,6 +164,8 @@ export function DomainCompareTool({
         </div>
       </form>
 
+      <DomainCompareGuidance />
+
       {error && (
         <p className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-200 text-sm">{error}</p>
       )}
@@ -259,6 +229,10 @@ export function DomainCompareTool({
             <p className="text-slate-400">We couldn&apos;t retrieve pricing right now. Please try again.</p>
           ) : (
             <>
+              {result.summary && <CompareResultsSummary rows={okRows} summary={result.summary} />}
+
+              <CompareColumnLegend />
+
               <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-white/5 text-slate-400">
@@ -266,6 +240,7 @@ export function DomainCompareTool({
                       <th className="p-4 font-medium">Registrar</th>
                       <th className="p-4 font-medium">First year</th>
                       <th className="p-4 font-medium">Renewal</th>
+                      <th className="p-4 font-medium">3-year</th>
                       <th className="p-4 font-medium">Transfer</th>
                       <th className="p-4 font-medium">Privacy</th>
                       <th className="p-4 font-medium">Best for</th>
@@ -275,12 +250,18 @@ export function DomainCompareTool({
                   <tbody className="divide-y divide-white/5">
                     {okRows.map((row) => (
                       <tr key={row.registrarSlug}>
-                        <td className="p-4 font-semibold text-white">{row.registrar}</td>
+                        <td className="p-4">
+                          <p className="font-semibold text-white">{row.registrar}</p>
+                          {row.features.length > 0 && (
+                            <p className="text-[10px] text-slate-500 mt-1">{row.features.slice(0, 2).join(" · ")}</p>
+                          )}
+                        </td>
                         <td className="p-4">
                           {money(row.registrationPrice, row.currency)}
                           {row.indicative && <span className="block text-[10px] text-slate-500">Indicative</span>}
                         </td>
                         <td className="p-4">{money(row.renewalPrice, row.currency)}</td>
+                        <td className="p-4">{money(row.threeYearCost, row.currency)}</td>
                         <td className="p-4">{money(row.transferPrice, row.currency)}</td>
                         <td className="p-4">
                           {row.privacyIncluded === true ? "Included" : row.privacyIncluded === false ? "Not included" : "—"}

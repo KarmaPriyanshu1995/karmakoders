@@ -160,7 +160,7 @@ export function ProvidersAdmin({
         </select>
         <input type="number" className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800" placeholder="Priority" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} />
         <p className="md:col-span-2 text-xs text-slate-500">
-          API secrets stay in server environment variables (GODADDY_API_KEY, NAMECHEAP_API_KEY, PORKBUN_API_KEY). They are never shown here.
+          API secrets stay in server environment variables (GODADDY_PAT or GODADDY_API_KEY + GODADDY_API_SECRET, HOSTINGER_API_TOKEN, NAMECHEAP_API_KEY, PORKBUN_API_KEY). They are never shown here.
         </p>
         <Button type="submit">Save provider</Button>
       </form>
