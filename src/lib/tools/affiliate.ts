@@ -15,7 +15,14 @@ export function appendDomainToTrackingUrl(trackingUrl: string, domain?: string |
   if (!domain) return trackingUrl;
   try {
     const url = new URL(trackingUrl);
-    if (!url.searchParams.has("domain")) {
+    if (url.searchParams.has("domain") || url.searchParams.has("q")) {
+      return url.toString();
+    }
+    if (url.hostname.includes("godaddy.com")) {
+      url.searchParams.set("domainToCheck", domain);
+    } else if (url.hostname.includes("porkbun.com")) {
+      url.searchParams.set("q", domain);
+    } else {
       url.searchParams.set("domain", domain);
     }
     return url.toString();

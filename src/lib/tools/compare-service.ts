@@ -5,6 +5,13 @@ import { availableConsensus, scoreQuotes, type ComparisonRow, type ComparisonSum
 import { getFreeToolsSettings } from "@/lib/tools/settings";
 import { alternativeDomains } from "@/lib/tools/domain";
 
+export interface AffiliateBuyOption {
+  name: string;
+  slug: string;
+  tagline: string;
+  buyPath: string;
+}
+
 export interface CompareResult {
   domain: string;
   sld: string;
@@ -13,11 +20,43 @@ export interface CompareResult {
   available: boolean | null;
   alternatives: string[];
   rows: ComparisonRow[];
+  affiliateOptions: AffiliateBuyOption[];
   summary: ComparisonSummary;
   currency: string;
   cacheMinutes: number;
   lastChecked: string;
   disclosure: string;
+}
+
+const AFFILIATE_TAGLINES: Record<string, string> = {
+  namecheap: "Free WhoisGuard privacy · Huge TLD catalog",
+  porkbun: "Free WHOIS privacy · Straightforward renewal pricing",
+  dynadot: "Competitive renewals · Bulk domain tools",
+};
+
+async function buildAffiliateOptions(
+  tenantId: string,
+  providers: Array<{ id: string; name: string; slug: string; affiliateEnabled: boolean; apiEnabled: boolean }>
+): Promise<AffiliateBuyOption[]> {
+  const affiliateOnly = providers.filter((provider) => provider.affiliateEnabled && !provider.apiEnabled);
+  const options: AffiliateBuyOption[] = [];
+
+  for (const provider of affiliateOnly) {
+    const program = await prisma.affiliateProgram.findFirst({
+      where: { tenantId, providerId: provider.id, status: "active" },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (!program?.trackingUrl) continue;
+
+    options.push({
+      name: provider.name,
+      slug: provider.slug,
+      tagline: AFFILIATE_TAGLINES[provider.slug] || "Check pricing on their site",
+      buyPath: `/go/domain-provider/${provider.slug}`,
+    });
+  }
+
+  return options;
 }
 
 function userSafeStatus(quote: NormalizedDomainQuote): NormalizedDomainQuote {
@@ -41,10 +80,12 @@ export async function compareDomain(tenantId: string, input: DomainLookupInput &
     where: { tenantId, status: "active" },
     orderBy: { priority: "asc" },
   });
+  const apiProviders = providers.filter((provider) => provider.apiEnabled);
+  const affiliateOptions = await buildAffiliateOptions(tenantId, providers);
 
   const now = new Date();
   const quotes = await Promise.all(
-    providers.map(async (provider) => {
+    apiProviders.map(async (provider) => {
       const cached = await prisma.domainSearchCache.findUnique({
         where: {
           tenantId_domain_providerId: { tenantId, domain: input.domain, providerId: provider.id },
@@ -196,6 +237,7 @@ export async function compareDomain(tenantId: string, input: DomainLookupInput &
     available,
     alternatives: available === false ? alternativeDomains(input.sld, input.tld) : [],
     rows,
+    affiliateOptions,
     summary,
     currency: settings.defaultCurrency,
     cacheMinutes: settings.cacheMinutes,

@@ -31,8 +31,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ provider: strin
   });
 
   if (!provider || !provider.affiliateEnabled) {
+    const parsed = domainParam ? parseDomainInput(domainParam) : null;
+    const domain = parsed?.ok ? parsed.value.domain : null;
     const fallback = provider?.websiteUrl;
     if (fallback && isSafeRedirectUrl(fallback)) {
+      const target = appendDomainToTrackingUrl(fallback, domain);
+      if (isSafeRedirectUrl(target)) {
+        return NextResponse.redirect(target);
+      }
       return NextResponse.redirect(fallback);
     }
     return NextResponse.redirect(new URL("/free-tools/domain-compare", req.url));

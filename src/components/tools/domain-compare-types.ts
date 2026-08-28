@@ -35,8 +35,16 @@ export interface CompareResponse {
   available: boolean | null;
   alternatives: string[];
   rows: CompareRow[];
+  affiliateOptions?: AffiliateBuyOption[];
   summary?: CompareSummary;
   lastChecked: string;
   disclosure: string;
   error?: string;
+}
+
+export interface AffiliateBuyOption {
+  name: string;
+  slug: string;
+  tagline: string;
+  buyPath: string;
 }

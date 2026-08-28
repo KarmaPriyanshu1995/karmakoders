@@ -120,7 +120,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
           </div>
         )}
 
-        <ToolSeoContent content={content} extraLinks={extraLinks} />
+        <ToolSeoContent content={content} extraLinks={extraLinks} compact={tool.slug === "domain-compare"} />
       </div>
       <Footer />
     </main>

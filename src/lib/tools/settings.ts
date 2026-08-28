@@ -18,7 +18,7 @@ export const DEFAULT_FREE_TOOLS_SETTINGS: FreeToolsSettings = {
   scoringWeights: { ...DEFAULT_SCORING_WEIGHTS },
   affiliateDisclosure:
     "Disclosure: Some links on this page may be affiliate links. We may earn a commission if you purchase through our links, at no additional cost to you.",
-  defaultProviderSlugs: ["godaddy", "hostinger", "namecheap", "porkbun"],
+  defaultProviderSlugs: ["godaddy", "hostinger"],
   toolsVisible: true,
 };
 

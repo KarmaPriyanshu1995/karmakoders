@@ -5,32 +5,91 @@ import { DOMAIN_COMPARE_CONTENT, HOSTINGER_VS_NAMECHEAP_CONTENT } from "@/lib/to
 
 export async function ensureDomainProviders(tenantId: string): Promise<void> {
   const providers = [
-    { name: "GoDaddy", slug: "godaddy", adapterKey: "godaddy", websiteUrl: "https://www.godaddy.com", priority: 10, logoUrl: null as string | null },
-    { name: "Hostinger", slug: "hostinger", adapterKey: "hostinger", websiteUrl: "https://www.hostinger.com/in", priority: 15, logoUrl: null },
-    { name: "Namecheap", slug: "namecheap", adapterKey: "namecheap", websiteUrl: "https://www.namecheap.com", priority: 20, logoUrl: null },
-    { name: "Porkbun", slug: "porkbun", adapterKey: "porkbun", websiteUrl: "https://porkbun.com", priority: 30, logoUrl: null },
+    {
+      name: "GoDaddy",
+      slug: "godaddy",
+      adapterKey: "godaddy",
+      websiteUrl: "https://www.godaddy.com/domainsearch/find?checkAvail=1",
+      priority: 10,
+      logoUrl: null as string | null,
+      apiEnabled: true,
+      affiliateEnabled: false,
+      status: "active" as const,
+    },
+    {
+      name: "Hostinger",
+      slug: "hostinger",
+      adapterKey: "hostinger",
+      websiteUrl: "https://www.hostinger.com/in",
+      priority: 15,
+      logoUrl: null,
+      apiEnabled: true,
+      affiliateEnabled: true,
+      status: "active" as const,
+    },
+    {
+      name: "Namecheap",
+      slug: "namecheap",
+      adapterKey: "namecheap",
+      websiteUrl: "https://www.namecheap.com",
+      priority: 20,
+      logoUrl: null,
+      apiEnabled: false,
+      affiliateEnabled: false,
+      status: "disabled" as const,
+    },
+    {
+      name: "Porkbun",
+      slug: "porkbun",
+      adapterKey: "porkbun",
+      websiteUrl: "https://porkbun.com",
+      priority: 30,
+      logoUrl: null,
+      apiEnabled: false,
+      affiliateEnabled: false,
+      status: "disabled" as const,
+    },
   ];
 
   for (const provider of providers) {
+    const { apiEnabled, affiliateEnabled, status, ...rest } = provider;
     await prisma.domainProvider.upsert({
       where: { tenantId_slug: { tenantId, slug: provider.slug } },
       update: {
-        name: provider.name,
-        adapterKey: provider.adapterKey,
-        websiteUrl: provider.websiteUrl,
-        priority: provider.priority,
+        name: rest.name,
+        adapterKey: rest.adapterKey,
+        websiteUrl: rest.websiteUrl,
+        priority: rest.priority,
+        apiEnabled,
+        affiliateEnabled,
+        status,
       },
       create: {
         tenantId,
-        ...provider,
-        apiEnabled: true,
-        affiliateEnabled: false,
-        status: "active",
+        ...rest,
+        apiEnabled,
+        affiliateEnabled,
+        status,
       },
     });
   }
 
   await ensureHostingerAffiliate(tenantId);
+  await disableLegacyAffiliatePrograms(tenantId);
+}
+
+async function disableLegacyAffiliatePrograms(tenantId: string): Promise<void> {
+  const legacySlugs = ["namecheap", "porkbun", "godaddy"];
+  for (const slug of legacySlugs) {
+    const provider = await prisma.domainProvider.findUnique({
+      where: { tenantId_slug: { tenantId, slug } },
+    });
+    if (!provider) continue;
+    await prisma.affiliateProgram.updateMany({
+      where: { tenantId, providerId: provider.id },
+      data: { status: "disabled" },
+    });
+  }
 }
 
 export async function ensureDomainCompareContent(tenantId: string): Promise<void> {
@@ -39,7 +98,7 @@ export async function ensureDomainCompareContent(tenantId: string): Promise<void
     data: {
       contentJson: JSON.stringify(DOMAIN_COMPARE_CONTENT),
       longDescription:
-        "Check whether a domain is available and compare registration, renewal, and transfer prices from Hostinger, GoDaddy, Namecheap, Porkbun, and other connected registrars — with founder-focused guidance on total cost of ownership.",
+        "Check whether a domain is available and compare registration, renewal, and transfer prices from GoDaddy and Hostinger — with founder-focused guidance on total cost of ownership.",
       seoDescription:
         "Compare domain availability, first-year price, renewal, and 3-year cost across registrars. Built for founders choosing a startup domain name.",
       seoKeywords:

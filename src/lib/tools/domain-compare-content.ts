@@ -1,13 +1,13 @@
 export const DOMAIN_COMPARE_CONTENT = {
   heroHeading: "Compare Domain Prices Before You Commit",
   heroSubheading:
-    "Check availability and compare registration, renewal, and transfer prices across registrars — built for founders who need a clear picture before naming a product, startup, or side project.",
+    "Live GoDaddy vs Hostinger pricing — first year, renewal, and 3-year cost in one interactive comparison built for founders.",
   sections: [
     {
       heading: "Why founders compare domains before buying",
       body: `<p>Your domain is often the first public decision a startup makes. A strong name helps customers remember you, improves trust in pitch decks, and becomes part of email addresses, app links, and invoices for years.</p>
 <p>But registrar pricing is deliberately confusing: a ₹69 or $0.99 first-year deal can hide a much higher renewal. Founders who only compare year-one prices often overpay from year two onward — or discover privacy, DNS, and transfer fees only after checkout.</p>
-<p>Domain Compare pulls live availability and catalog pricing from connected registrars (including Hostinger, GoDaddy, Namecheap, and Porkbun when API keys are configured) so you can make one decision with full context — not four separate tabs and promotional landing pages.</p>`,
+<p>Domain Compare pulls live availability and pricing from <strong>GoDaddy</strong> and <strong>Hostinger</strong> so you can compare two trusted registrars in one view — without juggling tabs or promotional landing pages.</p>`,
     },
     {
       heading: "What this tool shows you",
