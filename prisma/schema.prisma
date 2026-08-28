@@ -72,6 +72,18 @@ model Tenant {
   seoSearchConsole        SeoSearchConsole[]
   seoAutomationLogs       SeoAutomationLog[]
 
+  freeTools               FreeTool[]
+  toolCategories          ToolCategory[]
+  domainProviders         DomainProvider[]
+  affiliatePrograms       AffiliateProgram[]
+  affiliateClicks         AffiliateClick[]
+  domainSearchCache       DomainSearchCache[]
+  domainPrices            DomainPrice[]
+  domainExtensions        DomainExtension[]
+  registrarComparisons    RegistrarComparison[]
+  seoLandingPages         SeoLandingPage[]
+  toolAnalyticsEvents     ToolAnalyticsEvent[]
+
   @@index([status])
 }
 
@@ -663,4 +675,268 @@ model SeoAutomationLog {
 
   @@index([tenantId])
   @@map("seo_automation_logs")
+}
+
+// ===========================
+// FREE TOOLS
+// ===========================
+
+model ToolCategory {
+  id        String     @id @default(cuid())
+  tenantId  String
+  name      String
+  slug      String
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tools  FreeTool[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("tool_categories")
+}
+
+model FreeTool {
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  slug             String
+  shortDescription String
+  longDescription  String   @default("")
+  icon             String?
+  categoryId       String?
+  status           String   @default("draft") // draft | published | archived
+  isFeatured       Boolean  @default(false)
+  isPublic         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  toolUrl          String?
+  seoTitle         String?
+  seoDescription   String?
+  seoKeywords      String?
+  canonicalUrl     String?
+  ogTitle          String?
+  ogDescription    String?
+  ogImage          String?
+  robots           String?
+  contentJson      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        ToolCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  analyticsEvents ToolAnalyticsEvent[]
+  affiliateClicks AffiliateClick[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, isPublic])
+  @@index([categoryId])
+  @@map("tools")
+}
+
+model DomainProvider {
+  id               String    @id @default(cuid())
+  tenantId         String
+  name             String
+  slug             String
+  logoUrl          String?
+  websiteUrl       String?
+  apiEnabled       Boolean   @default(false)
+  affiliateEnabled Boolean   @default(false)
+  status           String    @default("active") // active | disabled
+  priority         Int       @default(100)
+  adapterKey       String
+  lastSuccessAt    DateTime?
+  lastErrorAt      DateTime?
+  lastError        String?
+  lastResponseMs   Int?
+  rateLimitedUntil DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant              Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  affiliatePrograms   AffiliateProgram[]
+  cache               DomainSearchCache[]
+  prices              DomainPrice[]
+  clicks              AffiliateClick[]
+  comparisonsA        RegistrarComparison[]  @relation("ComparisonProviderA")
+  comparisonsB        RegistrarComparison[]  @relation("ComparisonProviderB")
+  analyticsEvents     ToolAnalyticsEvent[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, priority])
+  @@map("domain_providers")
+}
+
+model AffiliateProgram {
+  id               String   @id @default(cuid())
+  tenantId         String
+  providerId       String
+  programName      String
+  affiliateNetwork String?
+  trackingUrl      String
+  status           String   @default("active") // active | disabled
+  commissionType   String?
+  commissionValue  Float?
+  cookieDuration   Int?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId])
+  @@map("affiliate_programs")
+}
+
+model AffiliateClick {
+  id         String   @id @default(cuid())
+  tenantId   String
+  toolId     String?
+  providerId String
+  domain     String?
+  sessionId  String?
+  referrer   String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool     FreeTool?      @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([providerId])
+  @@index([toolId])
+  @@map("affiliate_clicks")
+}
+
+model DomainSearchCache {
+  id                String   @id @default(cuid())
+  tenantId          String
+  domain            String
+  providerId        String
+  available         Boolean?
+  registrationPrice Float?
+  renewalPrice      Float?
+  transferPrice     Float?
+  currency          String   @default("USD")
+  responseData      String?
+  checkedAt         DateTime @default(now())
+  expiresAt         DateTime
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, domain, providerId])
+  @@index([expiresAt])
+  @@index([providerId])
+  @@map("domain_search_cache")
+}
+
+model DomainPrice {
+  id                String   @id @default(cuid())
+  tenantId          String
+  providerId        String
+  tld               String
+  registrationPrice Float?
+  renewalPrice      Float?
+  transferPrice     Float?
+  currency          String   @default("USD")
+  capturedAt        DateTime @default(now())
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, tld, capturedAt])
+  @@index([providerId])
+  @@map("domain_prices")
+}
+
+model DomainExtension {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tld            String
+  name           String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+  content        String?
+  faqJson        String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tld])
+  @@index([tenantId, status])
+  @@map("domain_extensions")
+}
+
+model RegistrarComparison {
+  id             String   @id @default(cuid())
+  tenantId       String
+  providerAId    String
+  providerBId    String
+  slug           String
+  title          String
+  content        String?
+  seoTitle       String?
+  seoDescription String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  providerA DomainProvider @relation("ComparisonProviderA", fields: [providerAId], references: [id], onDelete: Cascade)
+  providerB DomainProvider @relation("ComparisonProviderB", fields: [providerBId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("registrar_comparisons")
+}
+
+model SeoLandingPage {
+  id             String   @id @default(cuid())
+  tenantId       String
+  slug           String
+  pageType       String
+  title          String
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+  ogImage        String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("seo_landing_pages")
+}
+
+model ToolAnalyticsEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  toolId     String?
+  eventType  String
+  providerId String?
+  domain     String?
+  tld        String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool     FreeTool?       @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  provider DomainProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, eventType, createdAt])
+  @@index([tenantId, toolId, createdAt])
+  @@index([providerId])
+  @@map("tool_analytics_events")
 }

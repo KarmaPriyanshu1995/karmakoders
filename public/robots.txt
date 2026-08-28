@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /go/
 
 Sitemap: https://www.karmakoders.com/sitemap.xml
