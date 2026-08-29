@@ -236,7 +236,7 @@ export async function upsertPost(data: {
   const { id, ...postData } = data;
 
   let post;
-  if (id) {
+  if (id !== "new") {
     assertPermission(role, PERMISSIONS.BLOG_UPDATE, permissionOverrides);
     const existing = await prisma.post.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Post not found");
