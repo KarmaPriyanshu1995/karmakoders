@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface ContactProps {
   isSpace?: boolean;
@@ -22,6 +22,7 @@ function ContactFormInner({
   description = "Book a discovery call or request a free project scoping estimate. Get a response from a senior systems architect in less than 12 hours.",
   isFirstSection = false,
 }: ContactProps) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const typeParam = searchParams ? searchParams.get("type") : null;
   const serviceParam = searchParams ? searchParams.get("service") : null;
@@ -124,7 +125,7 @@ function ContactFormInner({
   const showAsFirst = isFirstSection || isSpace;
 
   return (
-    <section id="contact" aria-label="Contact us" className={`${isSpace && "pt-28 sm:pt-32"} ${window?.location?.pathname === "/contact" ? "pt-28 sm:pt-32" : "pt-0"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="contact" aria-label="Contact us" className={`${isSpace || pathname === "/contact" ? "pt-28 sm:pt-32" : "pt-0"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-indigo-500 opacity-[0.02] blur-[200px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
 

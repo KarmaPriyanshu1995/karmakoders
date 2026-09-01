@@ -8,6 +8,7 @@ import Link from "next/link";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/store/useThemeStore";
+import { usePathname } from "next/navigation";
 
 function AnimatedSphere() {
   const primaryColor = "#FFC300";
@@ -60,6 +61,7 @@ export function HeroSection({
   ctaPrimaryLink = "/contact",
   ctaSecondaryLink = "/contact?type=estimate",
 }: HeroProps) {
+  const pathname = usePathname();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const primaryColor = "#FFC300";
 
@@ -75,7 +77,7 @@ export function HeroSection({
   }, []);
 
   return (
-    <section id="hero" className={`${window?.location?.pathname === "/" ? "pt-12" : "pt-0"} relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950`}>
+    <section id="hero" className={`${pathname === "/" ? "pt-12" : "pt-0"} relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950`}>
       {/* 3D Background */}
       <div className="absolute inset-0 z-0 opacity-40">
         <Canvas camera={{ position: [0, 0, 5] }}>
