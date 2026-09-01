@@ -62,7 +62,7 @@ export async function CmsPageView({ slug, withTopPadding = true }: CmsPageViewPr
           dangerouslySetInnerHTML={{ __html: s.schemaJson }}
         />
       ))}
-      <div className={withTopPadding ? "pt-20" : undefined}>
+      <div className={withTopPadding ? "pt-12" : undefined}>
         <DynamicRenderer sections={sections} />
       </div>
       <Footer />

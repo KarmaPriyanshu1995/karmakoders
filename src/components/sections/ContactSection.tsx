@@ -124,7 +124,7 @@ function ContactFormInner({
   const showAsFirst = isFirstSection || isSpace;
 
   return (
-    <section id="contact" aria-label="Contact us" className={`${isSpace && "pt-28 sm:pt-32"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
+    <section id="contact" aria-label="Contact us" className={`${isSpace && "pt-28 sm:pt-32"} ${window?.location?.pathname === "/contact" ? "pt-28 sm:pt-32" : "pt-0"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
       {/* Background glowing orb */}
       <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-indigo-500 opacity-[0.02] blur-[200px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
 
@@ -134,7 +134,7 @@ function ContactFormInner({
           {/* Left Column: Contact Info */}
           <div>
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0 }}
               animate={showAsFirst ? { opacity: 1, x: 0 } : undefined}
               whileInView={showAsFirst ? undefined : { opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -144,7 +144,7 @@ function ContactFormInner({
             </motion.div>
             {showAsFirst ? (
               <motion.h1
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
                 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight"
@@ -153,7 +153,7 @@ function ContactFormInner({
               </motion.h1>
             ) : (
               <motion.h2
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
@@ -163,7 +163,7 @@ function ContactFormInner({
               </motion.h2>
             )}
             <motion.p
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0 }}
               animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
               whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}

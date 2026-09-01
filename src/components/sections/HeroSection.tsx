@@ -75,7 +75,7 @@ export function HeroSection({
   }, []);
 
   return (
-    <section id="hero" className="relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950">
+    <section id="hero" className={`${window?.location?.pathname === "/" ? "pt-12" : "pt-0"} relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950`}>
       {/* 3D Background */}
       <div className="absolute inset-0 z-0 opacity-40">
         <Canvas camera={{ position: [0, 0, 5] }}>
