@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, Mail } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Globe, Mail, Scale, Wrench } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { subscribeNewsletter } from "@/lib/actions";
@@ -34,6 +34,15 @@ const footerLinks = {
   ],
 };
 
+const footerTools = [
+  {
+    name: "Domain Compare",
+    href: "/free-tools/domain-compare",
+    description: "Compare registrar prices",
+    icon: Globe,
+  }
+];
+
 export function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
@@ -64,6 +73,50 @@ export function Footer() {
     <footer role="footer" className="relative bg-slate-950/95 border-t border-white/5 overflow-hidden">
       {/* Background Glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none" />
+
+      <div className="relative border-b border-white/5 bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-12 sm:py-16">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-10">
+            <div>
+              <p className="text-indigo-500 text-sm font-bold uppercase tracking-widest mb-3">Free Tools</p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+                Research, compare,{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-indigo-400">decide faster.</span>
+              </h2>
+            </div>
+            <Link
+              href="/free-tools"
+              className="shrink-0 inline-flex items-center gap-2 text-sm font-bold text-indigo-400 hover:text-white transition-colors"
+            >
+              View all tools
+              <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {footerTools.map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className="group flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-5 hover:border-indigo-500/40 hover:bg-indigo-500/5 hover:-translate-y-0.5 transition-all duration-300"
+              >
+                <span className="flex items-center gap-4 min-w-0">
+                  <span className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-colors">
+                    <tool.icon className="w-5 h-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-white font-bold text-base truncate">{tool.name}</span>
+                    <span className="mt-1 inline-flex items-center gap-1.5 text-slate-400 text-sm font-medium group-hover:text-indigo-400 transition-colors">
+                      {tool.description}
+                    </span>
+                  </span>
+                </span>
+                <ArrowUpRight className="w-5 h-5 text-slate-500 shrink-0 group-hover:text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* CTA Banner */}
       <div className="relative border-b border-white/5">
