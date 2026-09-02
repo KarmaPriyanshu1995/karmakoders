@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -48,16 +50,20 @@ const PRESET_CLUSTERS = [
 
 export async function GET() {
   try {
-    let clusters = await withDbRetry(() => prisma.seoCluster.findMany({ orderBy: { createdAt: "desc" } }));
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
+
+    let clusters = await withDbRetry(() => prisma.seoCluster.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } }));
 
     // Auto-seed if database is empty to ensure frontend is immediately populated with high-quality demo data
     if (clusters.length === 0) {
       await withDbRetry(async () => {
         for (const preset of PRESET_CLUSTERS) {
           await prisma.seoCluster.upsert({
-            where: { slug: preset.slug },
+            where: { tenantId_slug: { tenantId, slug: preset.slug } },
             update: {},
             create: {
+              tenantId,
               name: preset.name,
               slug: preset.slug,
               pillarPageId: preset.pillar,
@@ -70,7 +76,7 @@ export async function GET() {
           });
         }
       });
-      clusters = await withDbRetry(() => prisma.seoCluster.findMany({ orderBy: { createdAt: "desc" } }));
+      clusters = await withDbRetry(() => prisma.seoCluster.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } }));
     }
 
     // Format output
@@ -88,6 +94,9 @@ export async function GET() {
 
     return NextResponse.json({ clusters: result });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Authority GET]", error);
     return NextResponse.json({ error: "Failed to load topical authority data" }, { status: 500 });
   }
@@ -95,6 +104,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
     const body = await req.json();
     const { name, pillar, keywords } = body;
 
@@ -107,6 +119,7 @@ export async function POST(req: NextRequest) {
     const cluster = await withDbRetry(() =>
       prisma.seoCluster.create({
         data: {
+          tenantId,
           name,
           slug,
           pillarPageId: pillar,
@@ -134,6 +147,9 @@ export async function POST(req: NextRequest) {
       },
     }, { status: 201 });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Authority POST]", error);
     return NextResponse.json({ error: "Failed to create topic cluster" }, { status: 500 });
   }
@@ -141,6 +157,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -148,10 +167,16 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing cluster id" }, { status: 400 });
     }
 
-    await withDbRetry(() => prisma.seoCluster.delete({ where: { id } }));
+    const { count } = await withDbRetry(() => prisma.seoCluster.deleteMany({ where: { id, tenantId } }));
+    if (count === 0) {
+      return NextResponse.json({ error: "Cluster not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Authority DELETE]", error);
     return NextResponse.json({ error: "Failed to delete topic cluster" }, { status: 500 });
   }

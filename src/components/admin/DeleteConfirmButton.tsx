@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Trash2, AlertTriangle, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface DeleteConfirmButtonProps {
   /** Server action or async function to call on confirm */
@@ -33,9 +35,11 @@ export function DeleteConfirmButton({
     setLoading(true);
     try {
       await onDelete();
+      setOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete");
     } finally {
       setLoading(false);
-      setOpen(false);
     }
   };
 
@@ -56,58 +60,60 @@ export function DeleteConfirmButton({
       </button>
 
       {/* Modal Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-        >
+      {open &&
+        createPortal(
           <div
-            className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-6 animate-in"
-            style={{ animation: "modalIn 0.18s ease-out" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
           >
-            {/* Close button */}
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 p-1 text-slate-500 hover:text-white rounded-md transition-colors"
+            <div
+              className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-6 animate-in"
+              style={{ animation: "modalIn 0.18s ease-out" }}
             >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Icon */}
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 mb-4 mx-auto">
-              <AlertTriangle className="w-6 h-6 text-rose-400" />
-            </div>
-
-            {/* Title */}
-            <h3 className="text-lg font-bold text-white text-center mb-2">
-              {confirmTitle}
-            </h3>
-
-            {/* Message */}
-            <p className="text-slate-400 text-sm text-center mb-6">
-              {confirmMessage}
-            </p>
-
-            {/* Actions */}
-            <div className="flex gap-3">
+              {/* Close button */}
               <button
                 onClick={() => setOpen(false)}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="absolute top-4 right-4 p-1 text-slate-500 hover:text-white rounded-md transition-colors"
               >
-                Cancel
+                <X className="w-4 h-4" />
               </button>
-              <button
-                onClick={handleConfirm}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition-colors shadow-lg shadow-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading ? "Deleting…" : "Yes, Delete"}
-              </button>
+
+              {/* Icon */}
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 mb-4 mx-auto">
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
+              </div>
+
+              {/* Title */}
+              <h3 className="text-lg font-bold text-white text-center mb-2">
+                {confirmTitle}
+              </h3>
+
+              {/* Message */}
+              <p className="text-slate-400 text-sm text-center mb-6">
+                {confirmMessage}
+              </p>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setOpen(false)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition-colors shadow-lg shadow-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Deleting…" : "Yes, Delete"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       <style>{`
         @keyframes modalIn {

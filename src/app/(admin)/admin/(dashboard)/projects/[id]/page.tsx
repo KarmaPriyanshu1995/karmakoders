@@ -7,15 +7,19 @@ import { ArrowLeft, Save, Globe, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
+import { requireTenantContext } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProjectEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.PROJECT_VIEW, permissionOverrides);
   const isNew = id === "new";
-  const project = isNew 
+  const project = isNew
     ? { title: "", slug: "", description: "", imageUrl: "", content: "", link: "", tags: "" }
-    : await prisma.project.findUnique({ where: { id: id } });
+    : await prisma.project.findFirst({ where: { id, tenantId } });
 
   if (!project && !isNew) {
     redirect("/admin/projects");

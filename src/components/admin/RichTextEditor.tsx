@@ -219,9 +219,11 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
   }, [content, editor]);
 
   return (
-    <div className="w-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors">
+    <div className="w-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors flex flex-col">
       <MenuBar editor={editor} />
-      <EditorContent editor={editor} />
+      <div className="max-h-[min(560px,60vh)] overflow-y-auto overscroll-contain">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

@@ -16,11 +16,19 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Seeding database...");
 
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: "karmakoders" },
+    update: {},
+    create: { id: "default-tenant-karmakoders", name: "KarmaKoders", slug: "karmakoders", isPrimary: true },
+  });
+  const tenantId = tenant.id;
+
   // Default Theme Config
   await prisma.siteConfig.upsert({
-    where: { key: "theme" },
+    where: { tenantId_key: { tenantId, key: "theme" } },
     update: {},
     create: {
+      tenantId,
       key: "theme",
       value: JSON.stringify({
         colors: { primary: "#4f46e5", secondary: "#06b6d4", background: "#020617" },
@@ -31,9 +39,10 @@ async function main() {
 
   // Default SEO Config
   await prisma.siteConfig.upsert({
-    where: { key: "seoMeta" },
+    where: { tenantId_key: { tenantId, key: "seoMeta" } },
     update: {},
     create: {
+      tenantId,
       key: "seoMeta",
       value: JSON.stringify({
         title: "karmakoders – Premium AI Business Portfolio",
@@ -419,6 +428,15 @@ async function main() {
       },
       create: job,
     });
+  }
+
+  try {
+    const { ensureFreeToolsDefaults, seedDomainProviders } = await import("../src/lib/tools/defaults");
+    await ensureFreeToolsDefaults(tenantId);
+    await seedDomainProviders(tenantId);
+    console.log("🛠️  Free tools defaults ensured.");
+  } catch (error) {
+    console.warn("Free tools seed skipped:", error instanceof Error ? error.message : error);
   }
 
   console.log("✅ Seeding complete.");

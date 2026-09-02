@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
+
     const [seoPages, contentGaps] = await withDbRetry(() => Promise.all([
       prisma.seoPage.findMany({
+        where: { tenantId },
         select: {
           id: true,
           pageType: true,
@@ -24,6 +30,7 @@ export async function GET() {
         orderBy: { contentScore: "desc" },
       }),
       prisma.seoContentGap.findMany({
+        where: { tenantId },
         orderBy: { priority: "asc" },
       }),
     ]));
@@ -60,6 +67,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Content GET]", error);
     return NextResponse.json({ error: "Failed to load content intelligence data" }, { status: 500 });
   }

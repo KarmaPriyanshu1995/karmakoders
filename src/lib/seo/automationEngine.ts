@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { TenantAccessError } from "@/lib/errors";
 import { buildPageUrl } from "@/lib/sitePages";
 import { generateMetaTitle, generateMetaDescription, generateImageAlt, generateInternalLinkSuggestions, generateFaqQuestions } from "./aiRecommender";
 import { generateOrganizationSchema, generateWebsiteSchema, generateArticleSchema, generateServiceSchema, generateFaqSchema } from "./schemaGenerator";
@@ -85,7 +86,8 @@ export function traverseAndOptimizeAlts(obj: any, contextTitle: string): { modif
 export async function optimizePage(
   pageId: string,
   pageType: string,
-  rules: Record<string, boolean>
+  rules: Record<string, boolean>,
+  tenantId: string
 ): Promise<{ success: boolean; logs: string[] }> {
   const localLogs: string[] = [];
   let pageTitle = "";
@@ -97,8 +99,8 @@ export async function optimizePage(
 
   // 1. Fetch page data based on type
   if (pageType === "post") {
-    const post = await prisma.post.findUnique({ where: { id: pageId } });
-    if (!post) throw new Error(`Post not found: ${pageId}`);
+    const post = await prisma.post.findFirst({ where: { id: pageId, tenantId } });
+    if (!post) throw new TenantAccessError(`Post not found: ${pageId}`);
     pageTitle = post.title;
     pageSlug = post.slug;
     pageContent = post.content;
@@ -106,8 +108,8 @@ export async function optimizePage(
     createdAt = post.createdAt;
     pageUrl = `/blog/${post.slug}`;
   } else if (pageType === "project") {
-    const project = await prisma.project.findUnique({ where: { id: pageId } });
-    if (!project) throw new Error(`Project not found: ${pageId}`);
+    const project = await prisma.project.findFirst({ where: { id: pageId, tenantId } });
+    if (!project) throw new TenantAccessError(`Project not found: ${pageId}`);
     pageTitle = project.title;
     pageSlug = project.slug;
     pageContent = project.content;
@@ -116,8 +118,8 @@ export async function optimizePage(
     pageUrl = buildPageUrl(project.slug, "project");
   } else {
     // page
-    const page = await prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new Error(`Page not found: ${pageId}`);
+    const page = await prisma.page.findFirst({ where: { id: pageId, tenantId } });
+    if (!page) throw new TenantAccessError(`Page not found: ${pageId}`);
     pageTitle = page.title;
     pageSlug = page.slug;
     pageUrl = buildPageUrl(page.slug, "page");
@@ -126,12 +128,12 @@ export async function optimizePage(
   // 2. Fetch or parse existing seoMeta
   let currentMeta: { title?: string; description?: string } = {};
   if (pageType === "post") {
-    const post = await prisma.post.findUnique({ where: { id: pageId }, select: { seoMeta: true } });
+    const post = await prisma.post.findFirst({ where: { id: pageId, tenantId }, select: { seoMeta: true } });
     if (post?.seoMeta) {
       try { currentMeta = JSON.parse(post.seoMeta); } catch {}
     }
   } else if (pageType === "page") {
-    const page = await prisma.page.findUnique({ where: { id: pageId }, select: { seoMeta: true } });
+    const page = await prisma.page.findFirst({ where: { id: pageId, tenantId }, select: { seoMeta: true } });
     if (page?.seoMeta) {
       try { currentMeta = JSON.parse(page.seoMeta); } catch {}
     }
@@ -164,6 +166,7 @@ export async function optimizePage(
     // Log meta optimization success
     await prisma.seoAutomationLog.create({
       data: {
+        tenantId,
         action: `optimize_meta_tags`,
         pageId,
         pageType,
@@ -257,6 +260,7 @@ export async function optimizePage(
     if (altReplacedCount > 0) {
       await prisma.seoAutomationLog.create({
         data: {
+          tenantId,
           action: "generate_alt_tags",
           pageId,
           pageType,
@@ -315,9 +319,10 @@ export async function optimizePage(
     }
 
     if (schemaObj) {
-      await prisma.seoSchema.deleteMany({ where: { pageId, schemaType } });
+      await prisma.seoSchema.deleteMany({ where: { tenantId, pageId, schemaType } });
       await prisma.seoSchema.create({
         data: {
+          tenantId,
           pageType,
           pageId,
           schemaType,
@@ -332,6 +337,7 @@ export async function optimizePage(
 
       await prisma.seoAutomationLog.create({
         data: {
+          tenantId,
           action: "generate_schema",
           pageId,
           pageType,
@@ -351,9 +357,10 @@ export async function optimizePage(
       const faqs = generateFaqQuestions({ url: pageUrl, title: pageTitle, primaryKeyword: pageTitle });
       const faqSchema = generateFaqSchema({ questions: faqs });
       
-      await prisma.seoSchema.deleteMany({ where: { pageId, schemaType: "FAQ" } });
+      await prisma.seoSchema.deleteMany({ where: { tenantId, pageId, schemaType: "FAQ" } });
       await prisma.seoSchema.create({
         data: {
+          tenantId,
           pageType,
           pageId,
           schemaType: "FAQ",
@@ -371,9 +378,9 @@ export async function optimizePage(
   let internalLinksCount = 0;
   if (rules.internal_links) {
     const [pages, posts, projects] = await Promise.all([
-      prisma.page.findMany({ select: { id: true, slug: true, title: true } }),
-      prisma.post.findMany({ select: { id: true, slug: true, title: true } }),
-      prisma.project.findMany({ select: { id: true, slug: true, title: true } }),
+      prisma.page.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
+      prisma.post.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
+      prisma.project.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true } }),
     ]);
 
     const allPagesWithType = [
@@ -392,7 +399,7 @@ export async function optimizePage(
     
     // Clear old suggested internal links
     await prisma.seoInternalLink.deleteMany({
-      where: { fromPageId: pageId, isSuggested: true },
+      where: { tenantId, fromPageId: pageId, isSuggested: true },
     });
 
     for (const sug of linkSuggestions) {
@@ -401,6 +408,7 @@ export async function optimizePage(
       if (matchPage) {
         await prisma.seoInternalLink.create({
           data: {
+            tenantId,
             fromPageId: pageId,
             toPageId: matchPage.id,
             url: sug.url,
@@ -416,6 +424,7 @@ export async function optimizePage(
       localLogs.push(`Generated ${internalLinksCount} internal link suggestions based on semantic topical overlap.`);
       await prisma.seoAutomationLog.create({
         data: {
+          tenantId,
           action: "suggest_links",
           pageId,
           pageType,
@@ -441,11 +450,11 @@ export async function optimizePage(
   const entities = detectEntities((pageContent || "") + " " + pageTitle);
   const entityScore = calcEntityScore(entities.length, 10);
 
-  const existingSchemaEntries = await prisma.seoSchema.findMany({ where: { pageId } });
+  const existingSchemaEntries = await prisma.seoSchema.findMany({ where: { tenantId, pageId } });
   const hasPageSchema = existingSchemaEntries.length > 0;
   const pageSchemaTypes = existingSchemaEntries.map((s) => s.schemaType);
 
-  const internalLinks = await prisma.seoInternalLink.findMany({ where: { fromPageId: pageId } });
+  const internalLinks = await prisma.seoInternalLink.findMany({ where: { tenantId, fromPageId: pageId } });
 
   const scoreData = calcPageScores({
     hasMetaTitle: !!analysisResult.metaTitle,
@@ -469,8 +478,9 @@ export async function optimizePage(
   });
 
   await prisma.seoPage.upsert({
-    where: { pageType_pageId: { pageType: pageType || "page", pageId } },
+    where: { tenantId_pageType_pageId: { tenantId, pageType: pageType || "page", pageId } },
     create: {
+      tenantId,
       pageType,
       pageId,
       url: pageUrl,
@@ -527,19 +537,19 @@ export async function optimizePage(
 }
 
 // Function to generate the Weekly Health Report
-export async function runWeeklyHealthReport(): Promise<{ success: boolean; reportId: string; logs: string[] }> {
+export async function runWeeklyHealthReport(tenantId: string): Promise<{ success: boolean; reportId: string; logs: string[] }> {
   const localLogs: string[] = [];
 
   // 1. Gather all pages, posts, and projects
   const [pages, posts, projects, seoPages, latestAudit, issues, brand, searchConsole] = await Promise.all([
-    prisma.page.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, isPublished: true } }),
-    prisma.post.findMany({ select: { id: true, slug: true, title: true, seoMeta: true, published: true, content: true } }),
-    prisma.project.findMany({ select: { id: true, slug: true, title: true, content: true } }),
-    prisma.seoPage.findMany(),
-    prisma.seoAudit.findFirst({ orderBy: { runAt: "desc" } }),
-    prisma.seoIssue.findMany({ where: { isFixed: false } }),
-    prisma.seoBrand.findFirst(),
-    prisma.seoSearchConsole.findFirst({ orderBy: { fetchedAt: "desc" } }),
+    prisma.page.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true, isPublished: true } }),
+    prisma.post.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, seoMeta: true, published: true, content: true } }),
+    prisma.project.findMany({ where: { tenantId }, select: { id: true, slug: true, title: true, content: true } }),
+    prisma.seoPage.findMany({ where: { tenantId } }),
+    prisma.seoAudit.findFirst({ where: { tenantId }, orderBy: { runAt: "desc" } }),
+    prisma.seoIssue.findMany({ where: { tenantId, isFixed: false } }),
+    prisma.seoBrand.findFirst({ where: { tenantId } }),
+    prisma.seoSearchConsole.findFirst({ where: { tenantId }, orderBy: { fetchedAt: "desc" } }),
   ]);
 
   const auditPages: AuditPage[] = [
@@ -606,6 +616,7 @@ export async function runWeeklyHealthReport(): Promise<{ success: boolean; repor
 
   const report = await prisma.seoReport.create({
     data: {
+      tenantId,
       type: "weekly",
       title: reportTitle,
       summaryJson: JSON.stringify(summary),
@@ -613,9 +624,10 @@ export async function runWeeklyHealthReport(): Promise<{ success: boolean; repor
   });
 
   localLogs.push(`Successfully compiled and archived Weekly SEO Health Report: "${reportTitle}".`);
-  
+
   await prisma.seoAutomationLog.create({
     data: {
+      tenantId,
       action: "generate_report",
       before: "Pre-audit state",
       after: `Archived Weekly Report ID: ${report.id} | Health Score: ${siteScores.overall}`,

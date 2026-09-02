@@ -17,17 +17,22 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (res?.error) {
-      setError("Invalid credentials");
-      setLoading(false);
-    } else {
+      if (res?.error) {
+        setError("Invalid credentials");
+        setLoading(false);
+        return;
+      }
       router.push("/admin");
+    } catch {
+      setError("Sign-in failed. Try again.");
+      setLoading(false);
     }
   };
 

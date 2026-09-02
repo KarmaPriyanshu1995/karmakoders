@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { generateOrganizationSchema, generatePersonSchema, generateWebsiteSchema } from "@/lib/seo/schemaGenerator";
+import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
+import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    let brand = await withDbRetry(() => prisma.seoBrand.findFirst());
-    
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_VIEW, permissionOverrides);
+
+    let brand = await withDbRetry(() => prisma.seoBrand.findFirst({ where: { tenantId } }));
+
     if (!brand) {
       const defaultBrandData = {
+        tenantId,
         brandName: "karmakoders",
         businessName: "karmakoders Private Limited",
         tagline: "Architecting the Future of Web & AI Platforms",
@@ -39,12 +45,15 @@ export async function GET() {
           }
         ])
       };
-      
+
       brand = await withDbRetry(() => prisma.seoBrand.create({ data: defaultBrandData }));
     }
-    
+
     return NextResponse.json({ brand });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Brand GET]", error);
     return NextResponse.json({ error: "Failed to load brand" }, { status: 500 });
   }
@@ -52,6 +61,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { tenantId, role, permissionOverrides } = await requireTenantContext();
+    assertPermission(role, PERMISSIONS.SEO_UPDATE, permissionOverrides);
+
     const body = await req.json();
 
     const services = body.services ? JSON.parse(body.services) : [];
@@ -126,14 +138,17 @@ export async function POST(req: NextRequest) {
     };
 
     const brand = await withDbRetry(async () => {
-      const existing = await prisma.seoBrand.findFirst();
+      const existing = await prisma.seoBrand.findFirst({ where: { tenantId } });
       return existing
         ? await prisma.seoBrand.update({ where: { id: existing.id }, data })
-        : await prisma.seoBrand.create({ data });
+        : await prisma.seoBrand.create({ data: { ...data, tenantId } });
     });
 
     return NextResponse.json({ brand, schema: schemaBundle });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("[SEO Brand]", error);
     return NextResponse.json({ error: "Failed to save brand" }, { status: 500 });
   }

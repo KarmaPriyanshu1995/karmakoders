@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Cloud, CloudOff, Loader2, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { ImagePreview } from "./ImagePreview";
 import { RichTextEditor } from "./RichTextEditor";
 import { upsertPost } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useBlogAutosave } from "@/hooks/useBlogAutosave";
+import { BLOG_DRAFT_VERSION, readBlogDraft, type BlogDraftSnapshot } from "@/lib/blog-draft-storage";
 
 interface PostEditorFormProps {
   post: any;
@@ -16,82 +17,214 @@ interface PostEditorFormProps {
   id?: string;
 }
 
+function parseSeoMeta(raw: unknown) {
+  if (!raw) return {};
+  try {
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    return {};
+  }
+}
+
+function charBadge(length: number, min: number, max: number) {
+  const optimal = length >= min && length <= max;
+  return `text-xs px-2 py-0.5 rounded-full ${
+    optimal
+      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+      : length > 0
+        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+        : "bg-slate-800 text-slate-400 border border-transparent"
+  }`;
+}
+
+function loadDraftOrPost(postId: string | undefined, post: any, seoMetaObj: Record<string, unknown>) {
+  const draft = readBlogDraft(postId);
+  const hasDraft = Boolean(
+    draft && (draft.title.trim() || draft.content.replace(/<[^>]*>/g, "").trim())
+  );
+  const src = hasDraft ? draft! : null;
+
+  return {
+    restoredFromLocal: hasDraft,
+    title: src?.title ?? post?.title ?? "",
+    slug: src?.slug ?? post?.slug ?? "",
+    content: src?.content ?? post?.content ?? "",
+    summary: src?.summary ?? post?.excerpt ?? (seoMetaObj.description as string) ?? "",
+    metaTitle: src?.metaTitle ?? (seoMetaObj.title as string) ?? "",
+    imageAlt: src?.imageAlt ?? (seoMetaObj.imageAlt as string) ?? "",
+    focusKeyword: src?.focusKeyword ?? (seoMetaObj.focusKeyword as string) ?? "",
+    noIndex: src?.noIndex ?? Boolean(seoMetaObj.noIndex),
+    image: src?.image ?? post?.image ?? "",
+    category: src?.category ?? post?.category ?? "",
+    author: src?.author ?? post?.author ?? "",
+    type: src?.type ?? post?.type ?? "blog",
+    published: src?.published ?? post?.published ?? false,
+  };
+}
+
+function AutosaveIndicator({ status, lastSavedAt }: { status: string; lastSavedAt: Date | null }) {
+  const time = lastSavedAt
+    ? lastSavedAt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-2 text-xs text-indigo-300">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving draft…
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="inline-flex items-center gap-2 text-xs text-emerald-400">
+        <Cloud className="w-3.5 h-3.5" /> Saved{time ? ` · ${time}` : ""}
+      </span>
+    );
+  }
+  if (status === "local") {
+    return (
+      <span className="inline-flex items-center gap-2 text-xs text-amber-300">
+        <Cloud className="w-3.5 h-3.5" /> Backed up on this device{time ? ` · ${time}` : ""}
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="inline-flex items-center gap-2 text-xs text-rose-400">
+        <CloudOff className="w-3.5 h-3.5" /> Offline — saved locally only
+      </span>
+    );
+  }
+  return <span className="text-xs text-slate-500">Auto-save enabled</span>;
+}
+
 export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
+  const seoMetaObj = parseSeoMeta(post?.seoMeta) as Record<string, unknown>;
+  const initial = useMemo(() => loadDraftOrPost(isNew ? undefined : id, post, seoMetaObj), [id, isNew, post, seoMetaObj]);
+  const restoredToastRef = useRef(false);
+
   const [savedPostId, setSavedPostId] = useState<string | undefined>(isNew ? undefined : id);
-  const [content, setContent] = useState(post?.content || "");
-  const [image, setImage] = useState(post?.image || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [title, setTitle] = useState(initial.title);
+  const [slug, setSlug] = useState(initial.slug);
+  const [content, setContent] = useState(initial.content);
+  const [summary, setSummary] = useState(initial.summary);
+  const [metaTitle, setMetaTitle] = useState(initial.metaTitle);
+  const [imageAlt, setImageAlt] = useState(initial.imageAlt);
+  const [focusKeyword, setFocusKeyword] = useState(initial.focusKeyword);
+  const [noIndex, setNoIndex] = useState(initial.noIndex);
+  const [image, setImage] = useState(initial.image);
+  const [category, setCategory] = useState(initial.category);
+  const [author, setAuthor] = useState(initial.author);
+  const [type, setType] = useState(initial.type);
+  const [published, setPublished] = useState(initial.published);
 
-  // SEO Fields State Hooks
-  const seoMetaObj = (() => {
-    if (!post?.seoMeta) return {};
-    try {
-      return typeof post.seoMeta === "string" ? JSON.parse(post.seoMeta) : post.seoMeta;
-    } catch (e) {
-      return {};
+  useEffect(() => {
+    if (initial.restoredFromLocal && !restoredToastRef.current) {
+      restoredToastRef.current = true;
+      toast.info("Restored your unsaved draft from this device");
     }
-  })();
+  }, [initial.restoredFromLocal]);
 
-  const [title, setTitle] = useState(post?.title || "");
-  const [slug, setSlug] = useState(post?.slug || "");
-  const [metaTitle, setMetaTitle] = useState(seoMetaObj.title || "");
-  const [metaDesc, setMetaDesc] = useState(seoMetaObj.description || "");
-  const [imageAlt, setImageAlt] = useState(seoMetaObj.imageAlt || "");
-  const [focusKeyword, setFocusKeyword] = useState(seoMetaObj.focusKeyword || "");
-  const [canonicalUrl, setCanonicalUrl] = useState(seoMetaObj.canonicalUrl || "");
-  const [noIndex, setNoIndex] = useState(seoMetaObj.noIndex || false);
-  const [tags, setTags] = useState(seoMetaObj.tags || "");
+  const snapshot: BlogDraftSnapshot = useMemo(
+    () => ({
+      version: BLOG_DRAFT_VERSION,
+      savedAt: new Date().toISOString(),
+      postId: savedPostId,
+      title,
+      slug,
+      content,
+      summary,
+      metaTitle,
+      imageAlt,
+      focusKeyword,
+      noIndex,
+      image,
+      category,
+      author,
+      type,
+      published,
+    }),
+    [
+      savedPostId,
+      title,
+      slug,
+      content,
+      summary,
+      metaTitle,
+      imageAlt,
+      focusKeyword,
+      noIndex,
+      image,
+      category,
+      author,
+      type,
+      published,
+    ]
+  );
 
-  // Word count and reading time calculations
+  const { status, lastSavedAt, saveToServer, clearDraft } = useBlogAutosave({
+    postId: savedPostId,
+    isNew: !savedPostId,
+    snapshot,
+    seoMetaExtras: seoMetaObj,
+    onPostCreated: (newId) => {
+      setSavedPostId(newId);
+      router.replace(`/admin/blog/${newId}`, { scroll: false });
+    },
+  });
+
   const cleanText = content.replace(/<[^>]*>/g, " ");
   const wordCount = cleanText.trim().split(/\s+/).filter(Boolean).length;
   const readingTime = Math.ceil(wordCount / 200);
 
-  // Focus Keyword Density calculation
+  const serpTitle = (metaTitle.trim() || title.trim() || "Untitled post").slice(0, 60);
+  const serpDesc = (summary.trim() || "Add a 150–160 character summary for search and social previews.").slice(0, 160);
+  const serpPath = `karmakoders.com › blog › ${slug.trim() || "your-slug"}`;
+
   const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  let keywordStats = null;
+  let keywordStats: { titleCount: number; contentCount: number; density: string } | null = null;
   if (focusKeyword.trim()) {
     const kw = focusKeyword.toLowerCase().trim();
     const escapedKw = escapeRegExp(kw);
-    const titleCount = (title.toLowerCase().match(new RegExp(escapedKw, 'g')) || []).length;
-    const contentCount = (cleanText.toLowerCase().match(new RegExp(escapedKw, 'g')) || []).length;
+    const titleCount = (title.toLowerCase().match(new RegExp(escapedKw, "g")) || []).length;
+    const contentCount = (cleanText.toLowerCase().match(new RegExp(escapedKw, "g")) || []).length;
     const density = wordCount > 0 ? ((contentCount / wordCount) * 100).toFixed(2) : "0.00";
     keywordStats = { titleCount, contentCount, density };
   }
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setIsSaving(true);
     try {
-      // Serialize SEO meta properties to JSON string
       const seoMeta = JSON.stringify({
-        title: metaTitle,
-        description: metaDesc,
-        imageAlt,
-        focusKeyword,
-        canonicalUrl,
+        title: metaTitle.trim(),
+        description: summary.trim(),
+        imageAlt: imageAlt.trim(),
+        focusKeyword: focusKeyword.trim(),
+        canonicalUrl: seoMetaObj.canonicalUrl || "",
         noIndex,
-        tags,
+        tags: seoMetaObj.tags || "",
       });
 
-      const data = {
+      const saved = await upsertPost({
         id: savedPostId,
-        title: title,
-        slug: slug,
-        excerpt: formData.get("excerpt") as string,
-        content: content, // Use state instead of formData
-        image: formData.get("image") as string,
-        category: formData.get("category") as string,
-        author: formData.get("author") as string,
-        type: formData.get("type") as string,
-        published: formData.get("published") === "on",
-        seoMeta: seoMeta,
-      };
-
-      const saved = await upsertPost(data);
+        title,
+        slug,
+        excerpt: summary,
+        content,
+        image,
+        category,
+        author,
+        type,
+        published,
+        seoMeta,
+      });
       if (!savedPostId) {
         setSavedPostId(saved.id);
       }
+      clearDraft();
       toast.success("Post saved successfully!");
       router.push("/admin/blog");
       router.refresh();
@@ -104,275 +237,227 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+        <AutosaveIndicator status={status} lastSavedAt={lastSavedAt} />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-slate-400 hover:text-white h-8"
+          onClick={() => void saveToServer()}
+        >
+          Save draft now
+        </Button>
+      </div>
+
       <div className="glass-card rounded-xl p-8 space-y-6">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between ml-1">
+            <label className="text-sm font-medium text-slate-300">Title</label>
+            <span className={charBadge((metaTitle || title).length, 50, 60)}>
+              {(metaTitle || title).length} / 60 for Google
+            </span>
+          </div>
+          <input
+            name="title"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="The H1 on the page. Keep the idea in the first 60 characters."
+            className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 ml-1">Title</label>
-            <input
-              name="title"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 ml-1">Slug</label>
+            <label className="text-sm font-medium text-slate-300 ml-1">URL slug</label>
             <input
               name="slug"
               required
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
+              placeholder="nextjs-seo-guide"
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
             />
+            <p className="text-xs text-slate-500 ml-1">Becomes /blog/{slug.trim() || "your-slug"}</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 ml-1">Focus keyword</label>
+            <input
+              name="focusKeyword"
+              value={focusKeyword}
+              onChange={(e) => setFocusKeyword(e.target.value)}
+              placeholder="e.g. next.js seo"
+              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
+            />
+            {keywordStats && (
+              <div className="flex flex-wrap gap-2 mt-1 ml-1 text-xs">
+                <span
+                  className={`px-2 py-0.5 rounded-md border ${
+                    keywordStats.titleCount > 0
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                  }`}
+                >
+                  In title: {keywordStats.titleCount > 0 ? "yes" : "missing"}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-md border ${
+                    parseFloat(keywordStats.density) >= 0.5 && parseFloat(keywordStats.density) <= 2.5
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  }`}
+                >
+                  In body: {keywordStats.density}% ({keywordStats.contentCount}×)
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 ml-1">Content Type</label>
+            <label className="text-sm font-medium text-slate-300 ml-1">Type</label>
             <select
               name="type"
-              defaultValue={post?.type || "blog"}
+              value={type}
+              onChange={(e) => setType(e.target.value)}
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none appearance-none"
             >
-              <option value="blog">Normal Blog</option>
-              <option value="case-study">Case Study / Success Story</option>
+              <option value="blog">Blog</option>
+              <option value="case-study">Case study</option>
             </select>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300 ml-1">Category</label>
             <input
               name="category"
-              defaultValue={post?.category || ""}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 ml-1">Author Name</label>
+            <label className="text-sm font-medium text-slate-300 ml-1">Author</label>
             <input
               name="author"
-              defaultValue={post?.author || ""}
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
             />
           </div>
         </div>
 
-        <ImagePreview initialUrl={post?.image} name="image" />
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-slate-300 ml-1">Featured image</label>
+          <ImagePreview initialUrl={post?.image} name="image" value={image} onChange={setImage} />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 ml-1">Image alt text</label>
+            <input
+              name="imageAlt"
+              value={imageAlt}
+              onChange={(e) => setImageAlt(e.target.value)}
+              placeholder="Describe the image for accessibility and image search"
+              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
+            />
+          </div>
+        </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300 ml-1">Excerpt</label>
+          <div className="flex items-center justify-between ml-1">
+            <label className="text-sm font-medium text-slate-300">Summary</label>
+            <span className={charBadge(summary.length, 150, 160)}>
+              {summary.length} / 160 chars {summary.length >= 150 && summary.length <= 160 ? "(optimal)" : ""}
+            </span>
+          </div>
           <textarea
             name="excerpt"
-            rows={2}
-            defaultValue={post?.excerpt || ""}
+            rows={3}
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="One summary for blog cards, Google, and social previews. Aim for 150–160 characters."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none"
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between ml-1">
-            <label className="text-sm font-medium text-slate-300">Content (Pro Editor)</label>
+            <label className="text-sm font-medium text-slate-300">Content</label>
             <div className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-              Word Count: <span className="font-bold">{wordCount}</span> ({readingTime} min read)
+              {wordCount} words · {readingTime} min read
             </div>
           </div>
-          <RichTextEditor 
-            content={content} 
-            onChange={setContent} 
-            placeholder="Write your blog post content here..." 
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Write the article. Put the focus keyword in the first 100 words and at least one H2."
           />
-          <input type="hidden" name="content" value={content} />
+        </div>
+      </div>
+
+      <div className="glass-card rounded-xl p-8 space-y-6 border border-slate-800/80">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Search appearance</h3>
+          <p className="text-xs text-slate-400 mt-1">
+            Title and summary above are used as-is. Override the Google title only if the H1 is too long.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl border border-slate-800">
+        <div className="rounded-xl border border-slate-800 bg-white p-4 max-w-xl">
+          <p className="text-[13px] text-emerald-800 truncate">{serpPath}</p>
+          <p className="text-xl text-[#1a0dab] leading-snug mt-0.5 line-clamp-2">{serpTitle}</p>
+          <p className="text-sm text-[#4d5156] mt-1 line-clamp-2">{serpDesc}</p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between ml-1">
+            <label className="text-sm font-medium text-slate-300">Google title override (optional)</label>
+            <span className={charBadge(metaTitle.length, 50, 60)}>{metaTitle.length} / 60</span>
+          </div>
           <input
-            type="checkbox"
-            name="published"
-            id="published"
-            defaultChecked={post?.published}
-            className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+            name="metaTitle"
+            value={metaTitle}
+            onChange={(e) => setMetaTitle(e.target.value)}
+            placeholder={title.trim() ? `Defaults to: ${title.trim()}` : "Leave blank to use the post title"}
+            className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
           />
-          <label htmlFor="published" className="text-sm font-medium text-slate-200">
-            Publish this post immediately
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-800/30 rounded-xl border border-slate-800">
+          <label className="flex items-center gap-3 flex-1 cursor-pointer">
+            <input
+              type="checkbox"
+              name="published"
+              id="published"
+              checked={published}
+              onChange={(e) => setPublished(e.target.checked)}
+              className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-medium text-slate-200">Published</span>
+          </label>
+          <label className="flex items-center gap-3 flex-1 cursor-pointer">
+            <input
+              type="checkbox"
+              name="noIndex"
+              id="noIndex"
+              checked={noIndex}
+              onChange={(e) => setNoIndex(e.target.checked)}
+              className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-medium text-slate-200">Hide from Google</span>
           </label>
         </div>
       </div>
 
-      {/* Premium SEO Optimizer Section */}
-      <div className="glass-card rounded-xl p-8 space-y-6 border border-slate-800/80 bg-slate-900/30 backdrop-blur-md relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-        <div className="flex items-center justify-between border-b border-slate-800/60 pb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="p-1 rounded bg-indigo-500/10 text-indigo-400">⚡</span>
-              SEO Meta & Indexing Optimization
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">Configure search engine behavior, snippets, and indexing controls</p>
-          </div>
-        </div>
-
-        {/* High-Priority Section */}
-        <div className="space-y-6">
-          <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">High-Priority Fields (Essential for SEO)</div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Meta Title */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-sm font-medium text-slate-300">Meta Title</label>
-                <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-300 ${
-                  metaTitle.length >= 50 && metaTitle.length <= 60 
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                    : metaTitle.length > 0 
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "bg-slate-800 text-slate-400 border border-transparent"
-                }`}>
-                  {metaTitle.length} / 60 chars {metaTitle.length >= 50 && metaTitle.length <= 60 ? "(Optimal)" : ""}
-                </span>
-              </div>
-              <input
-                name="metaTitle"
-                value={metaTitle}
-                onChange={(e) => setMetaTitle(e.target.value)}
-                placeholder="Recommended: 50–60 characters"
-                className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none transition-colors"
-              />
-            </div>
-
-            {/* Focus / Target Keyword */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Focus / Target Keyword</label>
-              <input
-                name="focusKeyword"
-                value={focusKeyword}
-                onChange={(e) => setFocusKeyword(e.target.value)}
-                placeholder="e.g. Next.js SEO Tutorial"
-                className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none transition-colors"
-              />
-              {/* Dynamic keyword density indicator */}
-              {keywordStats && (
-                <div className="flex gap-3 mt-2 text-xs ml-1 transition-all duration-300 animate-fadeIn">
-                  <span className={`px-2 py-0.5 rounded-md border ${
-                    keywordStats.titleCount > 0 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                  }`}>
-                    Title: {keywordStats.titleCount > 0 ? "Found" : "Missing"}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-md border ${
-                    parseFloat(keywordStats.density) >= 0.5 && parseFloat(keywordStats.density) <= 2.5
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                  }`}>
-                    Density: {keywordStats.density}% ({keywordStats.contentCount} times)
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Meta Description */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between ml-1">
-              <label className="text-sm font-medium text-slate-300">Meta Description</label>
-              <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-300 ${
-                metaDesc.length >= 150 && metaDesc.length <= 160 
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                  : metaDesc.length > 0
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    : "bg-slate-800 text-slate-400 border border-transparent"
-              }`}>
-                {metaDesc.length} / 160 chars {metaDesc.length >= 150 && metaDesc.length <= 160 ? "(Optimal)" : ""}
-              </span>
-            </div>
-            <textarea
-              name="metaDescription"
-              value={metaDesc}
-              onChange={(e) => setMetaDesc(e.target.value)}
-              placeholder="Recommended: 150–160 characters summary copy"
-              rows={3}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none transition-colors resize-none"
-            />
-          </div>
-
-          {/* Image Alt Text */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 ml-1">Featured Image Alt Text (Alternative Text)</label>
-            <input
-              name="imageAlt"
-              value={imageAlt}
-              onChange={(e) => setImageAlt(e.target.value)}
-              placeholder="Describe what the featured image represents for search engine crawlers & accessibility"
-              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none transition-colors"
-            />
-          </div>
-        </div>
-
-        <div className="border-t border-slate-800/60 my-6"></div>
-
-        {/* Medium-Priority Section */}
-        <div className="space-y-6">
-          <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Medium-Priority Fields (Structure & Indexing)</div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Canonical URL */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Canonical URL</label>
-              <input
-                name="canonicalUrl"
-                value={canonicalUrl}
-                onChange={(e) => setCanonicalUrl(e.target.value)}
-                placeholder="https://example.com/original-source-url"
-                className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none transition-colors"
-              />
-            </div>
-
-            {/* Tags */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Tags (Comma-separated)</label>
-              <input
-                name="tags"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="react, nextjs, marketing"
-                className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none transition-colors"
-              />
-            </div>
-          </div>
-
-          {/* Index / NoIndex Toggle */}
-          <div className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl border border-slate-800 hover:bg-slate-800/40 transition-colors">
-            <div className="flex flex-col gap-0.5">
-              <label className="text-sm font-medium text-slate-200">Search Engine Indexing</label>
-              <span className="text-xs text-slate-400">By default, posts are visible. Toggle to hide from search engine queries.</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="noIndex"
-                id="noIndex"
-                checked={noIndex}
-                onChange={(e) => setNoIndex(e.target.checked)}
-                className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-              />
-              <label htmlFor="noIndex" className="text-sm font-medium text-slate-200 cursor-pointer select-none">
-                NoIndex (Hide this post)
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="flex justify-end gap-4">
-        {!isNew && (
+        {savedPostId && (
           <Button type="button" variant="ghost" className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10">
             <Trash2 className="w-4 h-4 mr-2" /> Delete Post
           </Button>
         )}
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isSaving}
           className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 h-12 shadow-[0_0_20px_rgba(79,70,229,0.4)]"
         >

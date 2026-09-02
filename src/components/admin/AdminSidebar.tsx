@@ -23,15 +23,22 @@ import {
   BarChart3,
   Globe,
   Settings2,
+  Shield,
+  Sparkles,
+  Tags,
+  Handshake,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import type { MembershipRole } from "@prisma/client";
+import { canViewSection, type PermissionOverrides, type SectionKey } from "@/lib/permissions";
 
 interface NavItem {
   href: string;
   label: string;
   icon: any;
   exact?: boolean;
+  section?: SectionKey;
   children?: {
     href: string;
     label: string;
@@ -42,18 +49,34 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/pages", label: "Pages & Sections", icon: Layers },
-  { href: "/admin/blog", label: "Blog Posts", icon: FileText },
-  { href: "/admin/projects", label: "Projects", icon: Briefcase },
-  { href: "/admin/careers", label: "Careers", icon: Building },
-  { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare },
-  { href: "/admin/media", label: "Media Library", icon: ImageIcon },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/appearance", label: "Appearance", icon: Palette },
+  { href: "/admin/pages", label: "Pages & Sections", icon: Layers, section: "PAGES" },
+  { href: "/admin/blog", label: "Blog Posts", icon: FileText, section: "BLOG" },
+  { href: "/admin/projects", label: "Projects", icon: Briefcase, section: "PROJECTS" },
+  { href: "/admin/careers", label: "Careers", icon: Building, section: "CAREERS" },
+  { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare, section: "INQUIRIES" },
+  { href: "/admin/media", label: "Media Library", icon: ImageIcon, section: "MEDIA" },
+  {
+    href: "/admin/tools",
+    label: "Tools",
+    icon: Sparkles,
+    section: "TOOLS",
+    children: [
+      { href: "/admin/tools", label: "All Tools", icon: LayoutDashboard, exact: true },
+      { href: "/admin/tools/new", label: "Add Tool", icon: Sparkles },
+      { href: "/admin/tools/categories", label: "Categories", icon: Tags },
+      { href: "/admin/tools/providers", label: "Providers", icon: Globe },
+      { href: "/admin/tools/affiliates", label: "Affiliate Programs", icon: Handshake },
+      { href: "/admin/tools/seo-pages", label: "SEO Pages", icon: FileText },
+      { href: "/admin/tools/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  { href: "/admin/users", label: "Users", icon: Users, section: "USERS" },
+  { href: "/admin/appearance", label: "Appearance", icon: Palette, section: "SETTINGS" },
   {
     href: "/admin/seo",
     label: "SEO Intelligence",
     icon: Activity,
+    section: "SEO",
     children: [
       { href: "/admin/seo", label: "SEO Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin/seo/sitemap", label: "Site Crawl & Sitemap", icon: Globe },
@@ -62,18 +85,34 @@ const navItems: NavItem[] = [
       { href: "/admin/seo/settings", label: "Settings", icon: Settings2 },
     ],
   },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/settings", label: "Settings", icon: Settings, section: "SETTINGS" },
 ];
 
-export function AdminSidebar() {
+const platformNavItem: NavItem = {
+  href: "/admin/platform/tenants",
+  label: "Platform · Tenants",
+  icon: Shield,
+};
+
+interface AdminSidebarProps {
+  isSuperAdmin?: boolean;
+  role?: MembershipRole | null;
+  permissionOverrides?: PermissionOverrides | null;
+}
+
+export function AdminSidebar({ isSuperAdmin = false, role = null, permissionOverrides = null }: AdminSidebarProps) {
   const pathname = usePathname();
+  const visibleItems = isSuperAdmin
+    ? navItems
+    : navItems.filter((item) => !item.section || (role && canViewSection(role, item.section, permissionOverrides)));
+  const items = isSuperAdmin ? [...visibleItems, platformNavItem] : visibleItems;
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   // Auto-expand parent items when on a sub-route
   useEffect(() => {
     const initialExpanded: Record<string, boolean> = {};
-    navItems.forEach((item) => {
+    items.forEach((item) => {
       if (item.children && pathname.startsWith(item.href)) {
         initialExpanded[item.href] = true;
       }
@@ -116,7 +155,7 @@ export function AdminSidebar() {
           </span>
         </div>
         <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const hasChildren = !!item.children;
             const isExpanded = !!expandedItems[item.href];
             

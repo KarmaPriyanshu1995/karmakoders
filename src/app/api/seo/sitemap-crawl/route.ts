@@ -7,6 +7,7 @@ import {
   toSitemapXml,
 } from "@/lib/seo/sitemap-builder";
 import { crawlPaths } from "@/lib/seo/site-crawler";
+import { getContextualTenantId } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,7 +19,8 @@ export async function GET() {
   }
 
   try {
-    const entries = await collectSitemapEntries();
+    const tenantId = await getContextualTenantId();
+    const entries = await collectSitemapEntries(tenantId);
     return NextResponse.json({
       siteUrl: SITE_URL,
       sitemapUrl: `${SITE_URL}/sitemap.xml`,
@@ -39,7 +41,8 @@ export async function POST() {
   }
 
   try {
-    const entries = await collectSitemapEntries();
+    const tenantId = await getContextualTenantId();
+    const entries = await collectSitemapEntries(tenantId);
     const paths = entries.map((e) => e.path);
     const results = await crawlPaths(SITE_URL, paths);
 
