@@ -19,6 +19,7 @@ interface PostEditorFormProps {
 export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [savedPostId, setSavedPostId] = useState<string | undefined>(isNew ? undefined : id);
   const [content, setContent] = useState(post?.content || "");
   const [image, setImage] = useState(post?.image || "");
 
@@ -74,7 +75,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
       });
 
       const data = {
-        id: isNew ? undefined : id,
+        id: savedPostId,
         title: title,
         slug: slug,
         excerpt: formData.get("excerpt") as string,
@@ -86,8 +87,11 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         published: formData.get("published") === "on",
         seoMeta: seoMeta,
       };
-      
-      await upsertPost(data);
+
+      const saved = await upsertPost(data);
+      if (!savedPostId) {
+        setSavedPostId(saved.id);
+      }
       toast.success("Post saved successfully!");
       router.push("/admin/blog");
       router.refresh();

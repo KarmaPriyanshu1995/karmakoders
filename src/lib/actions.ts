@@ -4,12 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
 import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
+import { getContextualTenantId } from "@/lib/tenant-context";
+
+async function tenantId() {
+  return getContextualTenantId();
+}
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
 export async function syncSitePages() {
+  const tid = await tenantId();
   const existingPages = await prisma.page.findMany({
-    select: { id: true, slug: true, title: true }
+    where: { tenantId: tid },
+    select: { id: true, slug: true, title: true },
   });
   const existingMap = new Map(existingPages.map((p) => [p.slug, p]));
 
@@ -45,6 +52,7 @@ export async function syncSitePages() {
 
       await prisma.page.create({
         data: {
+          tenantId: tid,
           slug: sitePage.slug,
           title: sitePage.title,
           isPublished: true,
@@ -62,14 +70,17 @@ export async function syncSitePages() {
 
 export async function getPages() {
   await syncSitePages();
+  const tid = await tenantId();
   return prisma.page.findMany({
+    where: { tenantId: tid },
     include: { sections: { orderBy: { order: "asc" } } },
     orderBy: { title: "asc" },
   });
 }
 
 export async function createPage(data: { slug: string; title: string }) {
-  const page = await prisma.page.create({ data });
+  const tid = await tenantId();
+  const page = await prisma.page.create({ data: { ...data, tenantId: tid } });
   revalidatePath("/admin/pages");
   return page;
 }
@@ -117,15 +128,19 @@ export async function upsertSections(
 // ─── SiteConfig Actions ────────────────────────────────────────────────────────
 
 export async function getSiteConfig(key: string) {
-  const record = await prisma.siteConfig.findUnique({ where: { key } });
+  const tid = await tenantId();
+  const record = await prisma.siteConfig.findUnique({
+    where: { tenantId_key: { tenantId: tid, key } },
+  });
   return record ? JSON.parse(record.value) : null;
 }
 
 export async function setSiteConfig(key: string, value: object) {
+  const tid = await tenantId();
   await prisma.siteConfig.upsert({
-    where: { key },
+    where: { tenantId_key: { tenantId: tid, key } },
     update: { value: JSON.stringify(value) },
-    create: { key, value: JSON.stringify(value) },
+    create: { tenantId: tid, key, value: JSON.stringify(value) },
   });
   revalidatePath("/");
   revalidatePath("/admin");
@@ -139,11 +154,14 @@ export async function submitContact(data: {
   phone?: string;
   message: string;
 }) {
-  return prisma.contactSubmission.create({ data });
+  const tid = await tenantId();
+  return prisma.contactSubmission.create({ data: { ...data, tenantId: tid } });
 }
 
 export async function getContactSubmissions() {
+  const tid = await tenantId();
   return prisma.contactSubmission.findMany({
+    where: { tenantId: tid },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -151,18 +169,25 @@ export async function getContactSubmissions() {
 // ─── Newsletter Actions ────────────────────────────────────────────────────────
 
 export async function subscribeNewsletter(email: string) {
+  const tid = await tenantId();
+  const normalized = email.trim().toLowerCase();
   return prisma.newsletterSubscriber.upsert({
-    where: { email },
+    where: { tenantId_email: { tenantId: tid, email: normalized } },
     update: {},
-    create: { email },
+    create: { tenantId: tid, email: normalized },
   });
 }
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────
 
-export async function getPosts(type?: string) {
+export async function getPosts(type?: string, opts?: { includeDrafts?: boolean }) {
+  const tid = await tenantId();
   return prisma.post.findMany({
-    where: type ? { type } : undefined,
+    where: {
+      tenantId: tid,
+      ...(type ? { type } : {}),
+      ...(opts?.includeDrafts ? {} : { published: true }),
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -171,10 +196,14 @@ export async function getCaseStudies() {
   return getPosts("case-study");
 }
 
-export async function getPostBySlug(slug: string) {
-  return prisma.post.findUnique({
-    where: { slug },
+export async function getPostBySlug(slug: string, opts?: { includeDrafts?: boolean }) {
+  const tid = await tenantId();
+  const post = await prisma.post.findUnique({
+    where: { tenantId_slug: { tenantId: tid, slug } },
   });
+  if (!post) return null;
+  if (!opts?.includeDrafts && !post.published) return null;
+  return post;
 }
 
 export async function upsertPost(data: {
@@ -190,12 +219,21 @@ export async function upsertPost(data: {
   published: boolean;
   seoMeta?: string;
 }) {
+  const tid = await tenantId();
   const { id, ...postData } = data;
-  const post = await prisma.post.upsert({
-    where: { id: id || "new-id" },
-    update: postData,
-    create: postData,
-  });
+
+  if (id && id !== "new") {
+    const post = await prisma.post.update({
+      where: { id },
+      data: postData,
+    });
+    revalidatePath("/blog");
+    revalidatePath("/portfolio");
+    revalidatePath("/admin/blog");
+    return post;
+  }
+
+  const post = await prisma.post.create({ data: { ...postData, tenantId: tid } });
   revalidatePath("/blog");
   revalidatePath("/portfolio");
   revalidatePath("/admin/blog");
@@ -211,14 +249,17 @@ export async function deletePost(id: string) {
 // ─── Project Actions ──────────────────────────────────────────────────────────
 
 export async function getProjects() {
+  const tid = await tenantId();
   return prisma.project.findMany({
+    where: { tenantId: tid },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getProjectBySlug(slug: string) {
+  const tid = await tenantId();
   return prisma.project.findUnique({
-    where: { slug },
+    where: { tenantId_slug: { tenantId: tid, slug } },
   });
 }
 
@@ -232,12 +273,20 @@ export async function upsertProject(data: {
   link?: string;
   tags: string;
 }) {
+  const tid = await tenantId();
   const { id, ...projectData } = data;
-  const project = await prisma.project.upsert({
-    where: { id: id || "new-id" },
-    update: projectData,
-    create: projectData,
-  });
+
+  if (id && id !== "new") {
+    const project = await prisma.project.update({
+      where: { id },
+      data: projectData,
+    });
+    revalidatePath("/portfolio");
+    revalidatePath("/admin/projects");
+    return project;
+  }
+
+  const project = await prisma.project.create({ data: { ...projectData, tenantId: tid } });
   revalidatePath("/portfolio");
   revalidatePath("/admin/projects");
   return project;
@@ -252,7 +301,9 @@ export async function deleteProject(id: string) {
 // ─── Career Actions ──────────────────────────────────────────────────────────
 
 export async function getJobs() {
+  const tid = await tenantId();
   return prisma.jobOpening.findMany({
+    where: { tenantId: tid },
     orderBy: { createdAt: "desc" },
     include: {
       _count: {
@@ -263,8 +314,9 @@ export async function getJobs() {
 }
 
 export async function getJobBySlug(slug: string) {
+  const tid = await tenantId();
   return prisma.jobOpening.findUnique({
-    where: { slug },
+    where: { tenantId_slug: { tenantId: tid, slug } },
   });
 }
 
@@ -278,12 +330,20 @@ export async function upsertJob(data: {
   description: string;
   isActive: boolean;
 }) {
+  const tid = await tenantId();
   const { id, ...jobData } = data;
-  const job = await prisma.jobOpening.upsert({
-    where: { id: id || "new-id" },
-    update: jobData,
-    create: jobData,
-  });
+
+  if (id && id !== "new") {
+    const job = await prisma.jobOpening.update({
+      where: { id },
+      data: jobData,
+    });
+    revalidatePath("/careers");
+    revalidatePath("/admin/careers");
+    return job;
+  }
+
+  const job = await prisma.jobOpening.create({ data: { ...jobData, tenantId: tid } });
   revalidatePath("/careers");
   revalidatePath("/admin/careers");
   return job;
@@ -304,7 +364,8 @@ export async function submitJobApplication(data: {
   cvUrl: string;
   coverLetter?: string;
 }) {
-  return prisma.jobApplication.create({ data });
+  const tid = await tenantId();
+  return prisma.jobApplication.create({ data: { ...data, tenantId: tid } });
 }
 
 export async function getJobApplications(jobId?: string) {
@@ -352,11 +413,13 @@ export async function deleteJobApplication(id: string) {
 // ─── Database Seeding & Recovery Actions ─────────────────────────────────────
 
 export async function seedDatabase(type: "sections" | "all") {
-  // 1. Create or upsert "/" page
+  const tid = await tenantId();
+
+  // 1. Create or upsert home page
   const homePage = await prisma.page.upsert({
-    where: { slug: "/" },
+    where: { tenantId_slug: { tenantId: tid, slug: "home" } },
     update: { isPublished: true },
-    create: { slug: "/", title: "Home", isPublished: true },
+    create: { tenantId: tid, slug: "home", title: "Home", isPublished: true },
   });
 
   // 2. Define homepage sections content
@@ -468,9 +531,10 @@ export async function seedDatabase(type: "sections" | "all") {
 
   // 3. Seed site config default themes
   await prisma.siteConfig.upsert({
-    where: { key: "globalTheme" },
+    where: { tenantId_key: { tenantId: tid, key: "globalTheme" } },
     update: {},
     create: {
+      tenantId: tid,
       key: "globalTheme",
       // value: JSON.stringify({
       //   mode: "dark",
@@ -496,9 +560,10 @@ export async function seedDatabase(type: "sections" | "all") {
     const { DEFAULT_PROJECTS } = await import("@/lib/constants");
     for (const project of DEFAULT_PROJECTS) {
       await prisma.project.upsert({
-        where: { slug: project.slug },
+        where: { tenantId_slug: { tenantId: tid, slug: project.slug } },
         update: {},
         create: {
+          tenantId: tid,
           title: project.title,
           slug: project.slug,
           description: project.description,
@@ -514,9 +579,10 @@ export async function seedDatabase(type: "sections" | "all") {
     const { DEFAULT_POSTS } = await import("@/lib/constants");
     for (const post of DEFAULT_POSTS) {
       await prisma.post.upsert({
-        where: { slug: post.slug },
+        where: { tenantId_slug: { tenantId: tid, slug: post.slug } },
         update: {},
         create: {
+          tenantId: tid,
           title: post.title,
           slug: post.slug,
           excerpt: post.excerpt,
@@ -557,9 +623,9 @@ export async function seedDatabase(type: "sections" | "all") {
 
     for (const cs of caseStudies) {
       await prisma.post.upsert({
-        where: { slug: cs.slug },
+        where: { tenantId_slug: { tenantId: tid, slug: cs.slug } },
         update: {},
-        create: cs,
+        create: { ...cs, tenantId: tid },
       });
     }
 
@@ -596,9 +662,9 @@ export async function seedDatabase(type: "sections" | "all") {
 
     for (const job of jobs) {
       await prisma.jobOpening.upsert({
-        where: { slug: job.slug },
+        where: { tenantId_slug: { tenantId: tid, slug: job.slug } },
         update: {},
-        create: job,
+        create: { ...job, tenantId: tid },
       });
     }
   }

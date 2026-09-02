@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 export const dynamic = "force-dynamic";
 
 export default async function AdminBlogList() {
-  const posts = await getPosts();
+  const posts = await getPosts(undefined, { includeDrafts: true });
 
   return (
     <div className="space-y-6">
