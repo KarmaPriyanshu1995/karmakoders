@@ -32,9 +32,11 @@ export default async function FreeToolsPage() {
     <main className="min-h-screen bg-slate-950 flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <Navbar />
-      <div className="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto w-full">
+      <div className="pt-40 pb-32 px-6 md:px-12 max-w-7xl mx-auto w-full">
         <header className="max-w-3xl mb-14">
-          <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">Free Tools</p>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase mb-6">
+            Free Tools
+          </div>
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6">Free Tools</h1>
           <p className="text-lg text-slate-400 leading-relaxed">
             Powerful tools to help you research, compare and make better business decisions.

@@ -73,7 +73,7 @@ export function BlogSection({
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex flex-col md:flex-row md:items-end items-center justify-between mb-20 gap-8">
-          <div className="text-center max-w-2xl">
+          <div className="text-center w-full">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}

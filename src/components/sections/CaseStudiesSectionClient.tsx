@@ -132,14 +132,14 @@ export function CaseStudiesSectionClient({
                   <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between">
                     <div>
                       <div className="text-white/60 text-sm font-bold uppercase tracking-widest mb-1">{item.category || item.client || "Success Story"}</div>
-                      <h3 className="text-3xl font-black text-white">{item.title}</h3>
+                      <h3 className="text-md sm:text-3xl font-black text-white">{item.title}</h3>
                     </div>
                     {/* Only rendered when a real result is on file — never a fabricated
                         placeholder like "Outstanding" for genuine case studies */}
                     {item.result && (
                       <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
                         <div className="text-xs text-white/60 uppercase font-bold mb-1">{isFallback ? "Target" : "Impact"}</div>
-                        <div className="text-xl font-bold text-white">{item.result}</div>
+                        <div className="text-xs sm:text-xl font-bold text-white">{item.result}</div>
                       </div>
                     )}
                   </div>
