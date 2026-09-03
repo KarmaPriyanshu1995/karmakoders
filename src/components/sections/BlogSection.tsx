@@ -40,10 +40,10 @@ export function BlogSection({
   heading = "Latest Insights & Digital Trends",
   posts: propPosts,
   showViewAll = true,
-  postsPerPage = 12,
+  postsPerPage = 9,
   isFirstSection = false,
 }: BlogProps) {
-  const itemsPerPage = postsPerPage ?? 12;
+  const itemsPerPage = postsPerPage ?? 9;
   const [livePosts, setLivePosts] = useState<PostData[]>(propPosts ?? []);
   const [loading, setLoading] = useState(!propPosts);
   const [currentPage, setCurrentPage] = useState(1);
