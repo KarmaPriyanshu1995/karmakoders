@@ -6,7 +6,7 @@ import { Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from "lucide-re
 import Link from "next/link";
 import Image from "next/image";
 
-import { DEFAULT_POSTS, type PostData } from "@/lib/constants";
+import type { PostData } from "@/lib/constants";
 import { getPosts } from "@/lib/actions";
 
 interface BlogProps {
@@ -18,46 +18,72 @@ interface BlogProps {
   isFirstSection?: boolean;
 }
 
+function BlogCardSkeleton() {
+  return (
+    <div className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 animate-pulse">
+      <div className="rounded-[2rem] aspect-[16/10] mb-8 bg-white/[0.06]" />
+      <div className="px-3 pb-3">
+        <div className="flex items-center gap-6 mb-5">
+          <div className="h-4 w-28 bg-white/[0.06] rounded" />
+          <div className="h-4 w-20 bg-white/[0.06] rounded" />
+        </div>
+        <div className="h-7 bg-white/[0.06] rounded-lg w-5/6 mb-3" />
+        <div className="h-7 bg-white/[0.06] rounded-lg w-2/3 mb-6" />
+        <div className="h-4 bg-white/[0.06] rounded w-32" />
+      </div>
+    </div>
+  );
+}
+
 export function BlogSection({
   tagline = "Our Blog",
   heading = "Latest Insights & Digital Trends",
   posts: propPosts,
   showViewAll = true,
-  postsPerPage = 9,
+  postsPerPage = 12,
   isFirstSection = false,
 }: BlogProps) {
-  const [livePosts, setLivePosts] = useState<PostData[]>([]);
-
-  useEffect(() => {
-    if (!propPosts) {
-      getPosts()
-        .then((data) => {
-          if (data && data.length > 0) {
-            setLivePosts(data as unknown as PostData[]);
-          } else {
-            setLivePosts(DEFAULT_POSTS);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load live posts:", err);
-          setLivePosts(DEFAULT_POSTS);
-        });
-    }
-  }, [propPosts]);
-
-  const posts = propPosts || (livePosts.length > 0 ? livePosts : DEFAULT_POSTS);
+  const itemsPerPage = postsPerPage ?? 12;
+  const [livePosts, setLivePosts] = useState<PostData[]>(propPosts ?? []);
+  const [loading, setLoading] = useState(!propPosts);
   const [currentPage, setCurrentPage] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const itemsPerPage = postsPerPage || 9;
-  const totalPages = Math.ceil(posts.length / itemsPerPage);
+  
+  useEffect(() => {
+    if (propPosts) return;
 
-  // Reset to page 1 if posts change
+    let cancelled = false;
+    setLoading(true);
+
+    getPosts()
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.length > 0) {
+          setLivePosts(data as unknown as PostData[]);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load live posts:", err);
+        if (!cancelled) setLivePosts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [propPosts]);
+
+  const posts = propPosts ?? livePosts;
+  const totalPages = Math.max(1, Math.ceil(posts.length / itemsPerPage));
+
   useEffect(() => {
     setCurrentPage(1);
   }, [posts.length]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPosts = postsPerPage ? posts.slice(startIndex, startIndex + itemsPerPage) : posts;
+  const paginatedPosts = posts.slice(startIndex, startIndex + itemsPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -65,9 +91,14 @@ export function BlogSection({
       sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
+
   return (
-    <section ref={sectionRef} id="blog" aria-label="Latest blog posts" className="pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden">
-      {/* Background glowing orb */}
+    <section
+      ref={sectionRef}
+      id="blog"
+      aria-label="Latest blog posts"
+      className="pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden"
+    >
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
@@ -111,110 +142,140 @@ export function BlogSection({
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <Link href="/blog" className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all flex items-center justify-center shadow-indigo-500/5 hover:shadow-indigo-500/20">
+              <Link
+                href="/blog"
+                className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-white/10 text-white font-bold rounded-xl transition-all flex items-center justify-center shadow-indigo-500/5 hover:shadow-indigo-500/20"
+              >
                 View All Posts
               </Link>
             </motion.div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {paginatedPosts.map((post, i) => {
-            const seoMeta = post.seoMeta ? (typeof post.seoMeta === 'string' ? JSON.parse(post.seoMeta) : post.seoMeta) : {};
-            const imageAlt = seoMeta.imageAlt || post.title;
-            return (
-              <motion.div
-                key={post.slug || post.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: (i % itemsPerPage) * 0.1, duration: 0.5 }}
-                className="group cursor-pointer p-5 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
-              >
-                <Link href={`/blog/${post.slug || '#'}`}>
-                  <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
-                    <Image
-                      src={post.image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"}
-                      alt={imageAlt}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
-                    <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
-                      {post.category || "Design"}
-                    </div>
-                  </div>
-                
-                <div className="px-3 pb-3">
-                  <div className="flex items-center gap-6 mb-5 text-[#D6D6D6] text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-indigo-500" />
-                      <span suppressHydrationWarning>
-                        {post.date || (post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        }) : "Recently")}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-indigo-500" />
-                      {post.author || "karmakoders"}
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-2xl font-bold text-white mb-6 group-hover:text-indigo-400 transition-colors duration-300 line-clamp-2 leading-tight">
-                    {post.title}
-                  </h3>
-                  
-                  <div className="inline-flex items-center text-white font-bold group-hover:text-indigo-400 transition-colors gap-2 text-sm uppercase tracking-widest">
-                    Read Article <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          )})}
-        </div>
-
-        {postsPerPage && totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-16">
-            <button
-              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-              className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, idx) => {
-              const pageNum = idx + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => handlePageChange(pageNum)}
-                  className={`w-12 h-12 rounded-xl border flex items-center justify-center font-bold transition-all duration-300 active:scale-95 cursor-pointer ${
-                    currentPage === pageNum
-                      ? "bg-indigo-500 text-slate-950 border-indigo-500 shadow-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-                      : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
-              aria-label="Next page"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+        {loading ? (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            aria-busy="true"
+            aria-label="Loading posts"
+          >
+            {Array.from({ length: itemsPerPage }, (_, i) => (
+              <BlogCardSkeleton key={i} />
+            ))}
           </div>
+        ) : posts.length === 0 ? (
+          <p className="text-center text-slate-400 text-lg">No posts published yet.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {paginatedPosts.map((post, i) => {
+                const seoMeta = post.seoMeta
+                  ? typeof post.seoMeta === "string"
+                    ? JSON.parse(post.seoMeta)
+                    : post.seoMeta
+                  : {};
+                const imageAlt = seoMeta.imageAlt || post.title;
+                return (
+                  <motion.div
+                    key={post.slug || post.title}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: (i % itemsPerPage) * 0.1, duration: 0.5 }}
+                    className="group cursor-pointer p-5 rounded-[2.5rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+                  >
+                    <Link href={`/blog/${post.slug || "#"}`}>
+                      <div className="relative rounded-[2rem] overflow-hidden aspect-[16/10] mb-8">
+                        <Image
+                          src={
+                            post.image ||
+                            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800"
+                          }
+                          alt={imageAlt}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
+                        <div className="absolute top-4 left-4 px-4 py-1.5 bg-indigo-500 rounded-xl text-slate-950 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                          {post.category || "Design"}
+                        </div>
+                      </div>
+
+                      <div className="px-3 pb-3">
+                        <div className="flex items-center gap-6 mb-5 text-[#D6D6D6] text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-indigo-500" />
+                            <span suppressHydrationWarning>
+                              {post.createdAt
+                                  ? new Date(post.createdAt).toLocaleDateString(undefined, {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })
+                                  : "Recently"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-indigo-500" />
+                            {post.author || "karmakoders"}
+                          </div>
+                        </div>
+
+                        <h3 className="text-2xl font-bold text-white mb-6 group-hover:text-indigo-400 transition-colors duration-300 line-clamp-2 leading-tight">
+                          {post.title}
+                        </h3>
+
+                        <div className="inline-flex items-center text-white font-bold group-hover:text-indigo-400 transition-colors gap-2 text-sm uppercase tracking-widest">
+                          Read Article{" "}
+                          <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-16">
+                <button
+                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, idx) => {
+                  const pageNum = idx + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-12 h-12 rounded-xl border flex items-center justify-center font-bold transition-all duration-300 active:scale-95 cursor-pointer ${
+                        currentPage === pageNum
+                          ? "bg-indigo-500 text-slate-950 border-indigo-500 shadow-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                          : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 hover:border-indigo-500 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white disabled:hover:border-white/10 hover:shadow-indigo-500/20 active:scale-95 transition-all duration-300 disabled:pointer-events-none cursor-pointer"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
