@@ -17,6 +17,7 @@ export interface BlogDraftSnapshot {
   author: string;
   type: string;
   published: boolean;
+  createdAt?: string;
 }
 
 export function draftStorageKey(postId?: string): string {
