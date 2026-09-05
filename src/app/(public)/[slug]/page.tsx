@@ -2,7 +2,7 @@ import { CmsPageView, generateCmsMetadata } from "@/components/CmsPageView";
 import { getPageBySlug } from "@/lib/pageQueries";
 import { getPublishedSeoLandingPage } from "@/lib/tools/queries";
 import { SeoLandingView, seoLandingMetadata } from "@/components/tools/SeoLandingView";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +30,5 @@ export default async function DynamicPage({ params }: PageProps) {
     return <SeoLandingView page={landing} />;
   }
 
-  notFound();
+  redirect("/404");
 }

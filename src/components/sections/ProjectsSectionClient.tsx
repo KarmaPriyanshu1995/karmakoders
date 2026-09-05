@@ -75,8 +75,8 @@ export function ProjectsSectionClient({
   return (
     <MotionConfig reducedMotion="user">
     <section id="portfolio" aria-label="Selected projects" className={cn(
-      "pb-24 px-6 md:px-12 bg-slate-950 relative overflow-hidden",
-      isCentered ? "pt-28 sm:pt-32" : "py-24"
+      "pb-16 px-6 md:px-12 bg-slate-950 relative overflow-hidden",
+      isCentered ? "pt-28 sm:pt-32" : "pt-28 sm:pt-32"
     )}>
       {/* Background glow */}
       <div className="absolute bottom-0 right-0 h-[600px] w-[600px] bg-indigo-500 opacity-[0.015] blur-[150px] rounded-full pointer-events-none" />

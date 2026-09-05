@@ -16,7 +16,18 @@ export default async function AdminBlogEditor({ params }: { params: Promise<{ id
   const isNew = id === "new";
 
   const post = isNew
-    ? { title: "", slug: "", content: "", excerpt: "", image: "", category: "", author: "", type: "blog", published: false }
+    ? {
+        title: "",
+        slug: "",
+        content: "",
+        excerpt: "",
+        image: "",
+        category: "",
+        author: "",
+        type: "blog",
+        published: false,
+        createdAt: new Date(),
+      }
     : await prisma.post.findFirst({ where: { id, tenantId } });
 
   if (!post && !isNew) {

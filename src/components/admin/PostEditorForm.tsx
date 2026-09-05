@@ -37,6 +37,14 @@ function charBadge(length: number, min: number, max: number) {
   }`;
 }
 
+function toDatetimeLocalValue(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function loadDraftOrPost(postId: string | undefined, post: any, seoMetaObj: Record<string, unknown>) {
   const draft = readBlogDraft(postId);
   const hasDraft = Boolean(
@@ -59,6 +67,7 @@ function loadDraftOrPost(postId: string | undefined, post: any, seoMetaObj: Reco
     author: src?.author ?? post?.author ?? "",
     type: src?.type ?? post?.type ?? "blog",
     published: src?.published ?? post?.published ?? false,
+    createdAt: src?.createdAt ?? toDatetimeLocalValue(post?.createdAt),
   };
 }
 
@@ -119,6 +128,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const [author, setAuthor] = useState(initial.author);
   const [type, setType] = useState(initial.type);
   const [published, setPublished] = useState(initial.published);
+  const [createdAt, setCreatedAt] = useState(initial.createdAt);
 
   useEffect(() => {
     if (initial.restoredFromLocal && !restoredToastRef.current) {
@@ -145,6 +155,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
       author,
       type,
       published,
+      createdAt,
     }),
     [
       savedPostId,
@@ -161,6 +172,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
       author,
       type,
       published,
+      createdAt,
     ]
   );
 
@@ -220,6 +232,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         type,
         published,
         seoMeta,
+        createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
       });
       if (!savedPostId) {
         setSavedPostId(saved.id);
@@ -316,7 +329,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300 ml-1">Type</label>
             <select
@@ -346,6 +359,20 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
               onChange={(e) => setAuthor(e.target.value)}
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none"
             />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="createdAt" className="text-sm font-medium text-slate-300 ml-1">
+              Created At
+            </label>
+            <input
+              id="createdAt"
+              name="createdAt"
+              type="datetime-local"
+              value={createdAt}
+              onChange={(e) => setCreatedAt(e.target.value)}
+              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none [color-scheme:dark]"
+            />
+            <p className="text-xs text-slate-500 ml-1">Shown as the article date on the blog</p>
           </div>
         </div>
 
