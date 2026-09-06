@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const defaultModels = [
   {
@@ -66,8 +67,11 @@ export function EngagementSection({
   subheading = "Choose a structured collaboration model designed to fit your project scope, timeline, and compliance needs.",
   models = defaultModels,
 }: EngagementProps) {
+  const pathname = usePathname();
+  const isPricingPage = pathname === "/pricing";
+  
   return (
-    <section id="engagement" aria-label="Engagement models" className="py-24 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden border-y border-white/5">
+    <section id="engagement" aria-label="Engagement models" className={`${isPricingPage ? "pt-32" : "pt-24"} pb-24 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden border-y border-white/5`}>
       {/* Radial lights */}
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-indigo-500 opacity-[0.01] blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-indigo-500 opacity-[0.01] blur-[130px] rounded-full pointer-events-none" />

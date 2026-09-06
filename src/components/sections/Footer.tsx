@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, ArrowUpRight, Globe, Mail, Scale, Wrench } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Globe, ImageDown, Mail, Scale, Wrench } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -41,7 +41,13 @@ const footerTools = [
     href: "/free-tools/domain-compare",
     description: "Compare registrar prices",
     icon: Globe,
-  }
+  },
+  {
+    name: "Image Compressor",
+    href: "/free-tools/compress-image",
+    description: "Shrink JPG, PNG, WebP",
+    icon: ImageDown,
+  },
 ];
 
 export function Footer() {

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { DomainCompareTool } from "@/components/tools/DomainCompareTool";
+import { CompressImageTool } from "@/components/tools/CompressImageTool";
 import { ToolSeoContent } from "@/components/tools/ToolSeoContent";
 import { getPublishedToolBySlug } from "@/lib/tools/queries";
 import { getFreeToolsSettings } from "@/lib/tools/settings";
@@ -60,7 +61,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
   const { slug } = await params;
   const query = await searchParams;
   const tool = await getPublishedToolBySlug(slug);
-  if (!tool) notFound();
+  if (!tool) redirect("/404");
 
   const tenantId = await getPrimaryTenantId();
   const settings = await getFreeToolsSettings(tenantId);
@@ -114,6 +115,8 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
 
         {tool.slug === "domain-compare" ? (
           <DomainCompareTool initialDomain={query.domain || ""} disclosure={settings.affiliateDisclosure} />
+        ) : tool.slug === "compress-image" ? (
+          <CompressImageTool />
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-slate-300">
             This tool is published and ready for an interactive implementation.
