@@ -55,7 +55,7 @@ export function BlogSection({
     let cancelled = false;
     setLoading(true);
 
-    getPosts()
+    getPosts("blog")
       .then((data) => {
         if (cancelled) return;
         if (data && data.length > 0) {

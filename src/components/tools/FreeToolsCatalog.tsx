@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Globe, Search, Sparkles, Wrench } from "lucide-react";
+import { ArrowRight, Globe, ImageDown, Search, Sparkles, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   Globe,
+  ImageDown,
   Search,
   Sparkles,
   Wrench,
