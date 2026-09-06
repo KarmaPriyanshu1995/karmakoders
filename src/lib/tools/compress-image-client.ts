@@ -1,5 +1,5 @@
 export const IMAGE_COMPRESSOR_API_BASE = (
-  process.env.NEXT_PUBLIC_IMAGE_COMPRESSOR_API || "http://compressor.karmakoders.com"
+  process.env.NEXT_PUBLIC_IMAGE_COMPRESSOR_API || "https://compressor.karmakoders.com"
 ).replace(/\/$/, "");
 
 export const COMPRESS_ENDPOINT = `${IMAGE_COMPRESSOR_API_BASE}/api/v1/compress`;
