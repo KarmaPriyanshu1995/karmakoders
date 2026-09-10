@@ -49,16 +49,11 @@ const nextConfig: NextConfig = {
         destination: "/contact",
         permanent: true,
       },
-      // Specific GSC bad slug (must be before the generic leading-hyphen rule)
+      // Specific GSC bad slug (exact path — do not use /blog/-:slug* ;
+      // path-to-regexp rejects repeating params without a / prefix before :name)
       {
         source: "/blog/-to-build-a-saas-product-from-scratch-in-90-days",
         destination: "/blog/how-to-build-a-saas-product-from-scratch-in-90-days",
-        permanent: true,
-      },
-      // Other leading-hyphen blog slugs → strip the "-"
-      {
-        source: "/blog/-:slug*",
-        destination: "/blog/:slug*",
         permanent: true,
       },
     ];
