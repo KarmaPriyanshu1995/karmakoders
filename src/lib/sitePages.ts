@@ -78,7 +78,19 @@ export const SITE_PAGES: SitePageDefinition[] = [
       description: "Get in touch with the karmakoders support team for technical assistance, troubleshooting, or billing inquiries.",
     },
   },
+  // NOTE: Public URL /contact-support 301s to /contact (next.config). Kept in SITE_PAGES
+  // so admin CMS sync/editing still works; excluded from sitemap via SITEMAP_EXCLUDED_PAGE_SLUGS.
 ];
+
+/**
+ * CMS page slugs that may still exist for admin/content, but must not appear in
+ * the public sitemap because next.config.ts 301s them to a canonical URL.
+ * Do NOT put these in LEGACY_PAGE_SLUGS — that would migrate/delete CMS rows
+ * via syncSitePages and break admin page editing.
+ */
+export const SITEMAP_EXCLUDED_PAGE_SLUGS = new Set([
+  "contact-support",
+]);
 
 /** Legacy slugs from older seeds that should be migrated to the canonical slug. */
 export const LEGACY_PAGE_SLUGS: Record<string, string> = {

@@ -37,6 +37,30 @@ const nextConfig: NextConfig = {
         destination: "https://www.karmakoders.com/:path*",
         permanent: true,
       },
+      // Canonical public URLs — old paths keep working; Google consolidates to one URL.
+      // Admin routes like /admin/projects are NOT matched by these sources.
+      {
+        source: "/projects",
+        destination: "/portfolio",
+        permanent: true,
+      },
+      {
+        source: "/contact-support",
+        destination: "/contact",
+        permanent: true,
+      },
+      // Specific GSC bad slug (must be before the generic leading-hyphen rule)
+      {
+        source: "/blog/-to-build-a-saas-product-from-scratch-in-90-days",
+        destination: "/blog/how-to-build-a-saas-product-from-scratch-in-90-days",
+        permanent: true,
+      },
+      // Other leading-hyphen blog slugs → strip the "-"
+      {
+        source: "/blog/-:slug*",
+        destination: "/blog/:slug*",
+        permanent: true,
+      },
     ];
   },
   async headers() {

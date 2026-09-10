@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-import { buildPageUrl } from "@/lib/sitePages";
+import { buildPageUrl, SITEMAP_EXCLUDED_PAGE_SLUGS } from "@/lib/sitePages";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { getFreeToolsSitemapEntries } from "@/lib/tools/sitemap-entries";
 
@@ -11,11 +11,10 @@ const SITE_URL = "https://www.karmakoders.com";
 // build time and never pick up pages/posts/projects/jobs added afterward.
 export const dynamic = "force-dynamic";
 
-// Real routes that aren't backed by a CMS Page record, so they can't be
-// discovered via the prisma.page query below.
-const STATIC_ENTRIES: MetadataRoute.Sitemap = [
-  { url: `${SITE_URL}/projects`, changeFrequency: "weekly" },
-];
+function isIndexablePostSlug(slug: string): boolean {
+  // Leading hyphens are broken SEO slugs (GSC discovered e.g. /-to-build-...).
+  return Boolean(slug) && !slug.startsWith("-");
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tenantId = await getPrimaryTenantId();
@@ -39,30 +38,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getFreeToolsSitemapEntries(tenantId),
   ]);
 
-  const pageEntries: MetadataRoute.Sitemap = pages.map((page) => ({
-    url: `${SITE_URL}${buildPageUrl(page.slug, "page")}`,
-    changeFrequency: "monthly",
-  }));
+  const pageEntries: MetadataRoute.Sitemap = pages
+    .filter((page) => !SITEMAP_EXCLUDED_PAGE_SLUGS.has(page.slug))
+    .map((page) => ({
+      url: `${SITE_URL}${buildPageUrl(page.slug, "page")}`,
+      changeFrequency: "monthly" as const,
+    }));
 
-  const postEntries: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `${SITE_URL}${buildPageUrl(post.slug, "post")}`,
-    lastModified: post.createdAt,
-    changeFrequency: "monthly",
-  }));
+  const postEntries: MetadataRoute.Sitemap = posts
+    .filter((post) => isIndexablePostSlug(post.slug))
+    .map((post) => ({
+      url: `${SITE_URL}${buildPageUrl(post.slug, "post")}`,
+      lastModified: post.createdAt,
+      changeFrequency: "monthly" as const,
+    }));
 
+  // Project details use canonical /portfolio/[slug] (not /projects)
   const projectEntries: MetadataRoute.Sitemap = projects.map((project) => ({
     url: `${SITE_URL}${buildPageUrl(project.slug, "project")}`,
     lastModified: project.createdAt,
-    changeFrequency: "monthly",
+    changeFrequency: "monthly" as const,
   }));
 
   const jobEntries: MetadataRoute.Sitemap = jobs.map((job) => ({
     url: `${SITE_URL}/careers/${job.slug}`,
     lastModified: job.createdAt,
-    changeFrequency: "weekly",
+    changeFrequency: "weekly" as const,
   }));
 
-  return [...STATIC_ENTRIES, ...pageEntries, ...postEntries, ...projectEntries, ...jobEntries, ...toolEntries].filter(
+  return [...pageEntries, ...postEntries, ...projectEntries, ...jobEntries, ...toolEntries].filter(
     (entry, index, all) => all.findIndex((item) => item.url === entry.url) === index
   );
 }
