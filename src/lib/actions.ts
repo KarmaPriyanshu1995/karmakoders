@@ -193,11 +193,30 @@ export async function getContactSubmissions() {
 
 export async function subscribeNewsletter(email: string) {
   const tenantId = await getContextualTenantId();
+  const normalized = email.trim().toLowerCase();
   return prisma.newsletterSubscriber.upsert({
-    where: { tenantId_email: { tenantId, email } },
+    where: { tenantId_email: { tenantId, email: normalized } },
     update: {},
-    create: { tenantId, email },
+    create: { tenantId, email: normalized },
   });
+}
+
+export async function getNewsletterSubscribers() {
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);
+  return prisma.newsletterSubscriber.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, email: true, createdAt: true },
+  });
+}
+
+export async function deleteNewsletterSubscriber(id: string) {
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);
+  const { count } = await prisma.newsletterSubscriber.deleteMany({ where: { id, tenantId } });
+  if (count === 0) throw new TenantAccessError("Subscriber not found");
+  revalidatePath("/admin/subscribers");
 }
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────

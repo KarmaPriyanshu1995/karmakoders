@@ -13,6 +13,7 @@ import {
   FileText,
   Briefcase,
   MessageSquare,
+  Mail,
   Palette,
   Building,
   Menu,
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
   { href: "/admin/projects", label: "Projects", icon: Briefcase, section: "PROJECTS" },
   { href: "/admin/careers", label: "Careers", icon: Building, section: "CAREERS" },
   { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare, section: "INQUIRIES" },
+  { href: "/admin/subscribers", label: "Subscribers", icon: Mail, section: "INQUIRIES" },
   { href: "/admin/media", label: "Media Library", icon: ImageIcon, section: "MEDIA" },
   {
     href: "/admin/tools",
