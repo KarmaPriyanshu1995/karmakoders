@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, User, ArrowRight } from "lucide-react";
+import { Calendar, User, ArrowRight, Eye } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { getPosts } from "@/lib/actions";
@@ -58,6 +58,10 @@ export async function ContentHub({
                   <span className="inline-flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
                     {new Date(post.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" />
+                    {(post.viewCount ?? 0).toLocaleString()}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <User className="w-4 h-4" />

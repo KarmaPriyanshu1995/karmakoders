@@ -2,12 +2,14 @@ import { getPostBySlug } from "@/lib/actions";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { notFound, permanentRedirect } from "next/navigation";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock, User, Eye } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RelatedToolLinks } from "@/components/tools/RelatedToolLinks";
 import { PostBody } from "@/components/content/PostBody";
 import { FormatCta } from "@/components/content/FormatCta";
+import { RecordPostView } from "@/components/content/RecordPostView";
+import { postViewCount } from "@/lib/content/view-count";
 import { parseContentBlocks, parseFormatMeta, plainTextFromBlocks, wordCountFromText, computeReadTimeMinutes } from "@/lib/content/blocks";
 import {
   SITE_URL,
@@ -133,6 +135,7 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+        <RecordPostView postId={post.id} />
         <Navbar />
 
         <article className="pt-32 pb-24 px-8 md:px-24 max-w-5xl mx-auto w-full">
@@ -148,6 +151,11 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
               <div className="flex items-center gap-2 text-slate-400">
                 <Clock className="w-4 h-4" />
                 {readTime} min read
+              </div>
+              <span className="text-slate-500">•</span>
+              <div className="flex items-center gap-2 text-slate-400">
+                <Eye className="w-4 h-4" />
+                {(postViewCount(post)).toLocaleString()} views
               </div>
             </div>
 

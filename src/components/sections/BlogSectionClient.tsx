@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, User, ArrowRight, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -161,6 +161,10 @@ export function BlogSectionClient({
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-indigo-500" />
                             {post.author || "karmakoders"}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-indigo-500" />
+                            {(post.viewCount ?? 0).toLocaleString()}
                           </div>
                         </div>
 

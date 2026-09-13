@@ -235,6 +235,7 @@ model Post {
   author          String?
   type            String   @default("blog") // blog | case-study | success-story | startup-idea | prompt
   published       Boolean  @default(false)
+  viewCount       Int      @default(0)
   seoMeta         String?  // JSON stringified
   createdAt       DateTime @default(now())
 

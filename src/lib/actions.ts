@@ -18,6 +18,7 @@ import {
   wordCountFromText,
 } from "@/lib/content/blocks";
 import type { ContentBlock, FormatMeta } from "@/types/content";
+import { postViewCount } from "@/lib/content/view-count";
 import { normalizePostType } from "@/lib/content/post-types";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
@@ -221,10 +222,14 @@ export async function deleteNewsletterSubscriber(id: string) {
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────
 
+function withViewCount<T>(post: T) {
+  return { ...post, viewCount: postViewCount(post) };
+}
+
 export async function getPosts(type?: string, options?: { includeDrafts?: boolean }) {
   const tenantId = await getContextualTenantId();
   const includeDrafts = options?.includeDrafts ?? false;
-  return prisma.post.findMany({
+  const posts = await prisma.post.findMany({
     where: {
       tenantId,
       ...(type ? { type } : {}),
@@ -232,6 +237,7 @@ export async function getPosts(type?: string, options?: { includeDrafts?: boolea
     },
     orderBy: { createdAt: "desc" },
   });
+  return posts.map((post) => withViewCount(post));
 }
 
 export async function getCaseStudies() {
@@ -245,7 +251,7 @@ export async function getPostBySlug(slug: string, options?: { includeDrafts?: bo
     where: { tenantId_slug: { tenantId, slug } },
   });
   if (!post || (!includeDrafts && !post.published)) return null;
-  return post;
+  return withViewCount(post);
 }
 
 function parsePostCreatedAt(value?: string | Date | null): Date | undefined {

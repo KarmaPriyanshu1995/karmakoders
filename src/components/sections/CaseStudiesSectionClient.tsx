@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, MotionConfig } from "framer-motion";
-import { ArrowRight, BarChart, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart, Eye } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -12,6 +12,7 @@ export interface CaseStudyCardLike {
   category?: string | null;
   result?: string | null;
   image?: string | null;
+  viewCount?: number | null;
 }
 
 interface CaseStudiesSectionClientProps {
@@ -150,8 +151,14 @@ export function CaseStudiesSectionClient({
                     <BarChart className="w-5 h-5 text-indigo-500" />
                     Read Full Success Story
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-all duration-300 shadow-indigo-500/5 group-hover:shadow-indigo-500/20">
-                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                      <Eye className="w-4 h-4" />
+                      {(item.viewCount ?? 0).toLocaleString()}
+                    </span>
+                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:bg-indigo-500 group-hover:text-slate-950 group-hover:border-indigo-500 transition-all duration-300 shadow-indigo-500/5 group-hover:shadow-indigo-500/20">
+                      <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
                 </div>
               </Link>

@@ -1,4 +1,6 @@
 import { getContactSubmissions } from "@/lib/actions";
+import { getContentViewStats } from "@/lib/content/views";
+import { getToolsAnalytics } from "@/lib/tool-actions";
 import { TenantAccessError } from "@/lib/errors";
 import { MessageSquare, Eye, MousePointerClick, Users, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
@@ -7,11 +9,36 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   let submissions: Awaited<ReturnType<typeof getContactSubmissions>> = [];
+  let contentViews = 0;
+  let toolViews = 0;
+  let byType: Awaited<ReturnType<typeof getContentViewStats>>["byType"] = [];
+
   try {
     submissions = await getContactSubmissions();
   } catch (error) {
     if (!(error instanceof TenantAccessError)) throw error;
   }
+
+  try {
+    const stats = await getContentViewStats();
+    contentViews = stats.contentViews;
+    byType = stats.byType;
+  } catch (error) {
+    if (!(error instanceof TenantAccessError)) {
+      console.error("[dashboard] content views unavailable", error);
+    }
+  }
+
+  try {
+    const tools = await getToolsAnalytics();
+    toolViews = tools.views;
+  } catch (error) {
+    if (!(error instanceof TenantAccessError)) {
+      console.error("[dashboard] tool views unavailable", error);
+    }
+  }
+
+  const totalViews = contentViews + toolViews;
   const recent = submissions.slice(0, 5);
 
   return (
@@ -30,15 +57,17 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="p-6 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.1)]">
+        <div className="p-6 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#FFC300]/30 transition-all duration-300 hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.1)] group">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-[#D6D6D6] uppercase tracking-wider">Page Views</h3>
+            <h3 className="text-sm font-bold text-[#D6D6D6] uppercase tracking-wider">Total Views</h3>
             <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20">
               <Eye className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-black text-white">—</p>
-          <p className="mt-4 text-xs font-medium text-slate-500">Connect analytics to track</p>
+          <p className="text-4xl font-black text-white group-hover:text-[#FFC300] transition-colors">{totalViews.toLocaleString()}</p>
+          <p className="mt-4 text-xs font-medium text-slate-500">
+            Content {contentViews.toLocaleString()} · Tools {toolViews.toLocaleString()}
+          </p>
         </div>
 
         <div className="p-6 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#FFC300]/30 transition-all duration-300 hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.1)] group">
@@ -54,15 +83,30 @@ export default async function AdminDashboardPage() {
           <p className="mt-4 text-xs font-medium text-slate-500">Based on contact emails</p>
         </div>
 
-        <div className="p-6 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.1)]">
+        <div className="p-6 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#FFC300]/30 transition-all duration-300 hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.1)] group">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-[#D6D6D6] uppercase tracking-wider">Engagement</h3>
+            <h3 className="text-sm font-bold text-[#D6D6D6] uppercase tracking-wider">Content Views</h3>
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20">
               <MousePointerClick className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-black text-white">—</p>
-          <p className="mt-4 text-xs font-medium text-slate-500">Connect analytics to track</p>
+          <p className="text-4xl font-black text-white group-hover:text-[#FFC300] transition-colors">{contentViews.toLocaleString()}</p>
+          <Link href="/admin/blog" className="mt-4 text-xs font-bold text-[#FFC300] uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1">
+            View posts <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="p-8 rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10">
+        <h3 className="text-xl font-bold text-white mb-6">Views by content type</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {byType.map((item) => (
+            <div key={item.type} className="rounded-2xl border border-white/10 bg-[#1C1B1A]/40 p-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{item.label}</p>
+              <p className="text-3xl font-black text-white mt-2">{item.views.toLocaleString()}</p>
+              <p className="text-xs text-slate-500 mt-2">{item.posts} {item.posts === 1 ? "post" : "posts"}</p>
+            </div>
+          ))}
         </div>
       </div>
 
