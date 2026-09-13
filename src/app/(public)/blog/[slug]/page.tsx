@@ -1,10 +1,11 @@
 import { getPostBySlug } from "@/lib/actions";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Calendar, User, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { RelatedToolLinks } from "@/components/tools/RelatedToolLinks";
 
@@ -12,12 +13,29 @@ export const dynamic = "force-dynamic";
 
 const SITE_URL = "https://www.karmakoders.com";
 
+/** GSC discovered a few leading-hyphen slugs; map known ones, else strip "-". */
+function canonicalizeBlogSlug(slug: string): string | null {
+  if (!slug.startsWith("-")) return null;
+  if (slug === "-to-build-a-saas-product-from-scratch-in-90-days") {
+    return "how-to-build-a-saas-product-from-scratch-in-90-days";
+  }
+  return slug.replace(/^-+/, "");
+}
+
 async function resolvePost(slug: string) {
   return getPostBySlug(slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  const canonicalSlug = canonicalizeBlogSlug(slug);
+  if (canonicalSlug) {
+    return {
+      title: "Redirecting…",
+      alternates: { canonical: `${SITE_URL}/blog/${canonicalSlug}` },
+      robots: { index: false, follow: true },
+    };
+  }
   const post = await resolvePost(slug);
 
   if (!post) {
@@ -48,6 +66,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BlogPostDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const canonicalSlug = canonicalizeBlogSlug(slug);
+  if (canonicalSlug) {
+    permanentRedirect(`/blog/${canonicalSlug}`);
+  }
   const post = await resolvePost(slug);
 
   if (!post) {
@@ -137,6 +159,32 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
           className="prose prose-invert prose-indigo max-w-none prose-lg prose-p:leading-relaxed prose-headings:text-white prose-a:text-indigo-400"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
+
+        {/* Crawlable funnel links — helps Google discover commercial pages from indexed blogs */}
+        <nav
+          aria-label="Related pages"
+          className="mt-14 pt-10 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4"
+        >
+          <Link
+            href="/services"
+            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white hover:border-indigo-500/40 hover:bg-white/10 transition-colors"
+          >
+            Our Services →
+          </Link>
+          <Link
+            href="/case-studies"
+            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white hover:border-indigo-500/40 hover:bg-white/10 transition-colors"
+          >
+            Case Studies →
+          </Link>
+          <Link
+            href="/contact"
+            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white hover:border-indigo-500/40 hover:bg-white/10 transition-colors"
+          >
+            Start a Project →
+          </Link>
+        </nav>
+
         {/domain/i.test(`${post.title} ${post.content} ${post.category || ""}`) && (
           <RelatedToolLinks
             links={[

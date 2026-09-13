@@ -25,12 +25,16 @@ export function Navbar() {
   const navLinks = [
     { name: "Services", href: "/services" },
     { name: "Portfolio", href: "/portfolio" },
+    { name: "Case Studies", href: "/case-studies" },
     { name: "Pricing", href: "/pricing" },
     { name: "About", href: "/about" },
     { name: "Blog", href: "/blog" },
     { name: "Free Tools", href: "/free-tools" },
     { name: "Careers", href: "/careers" },
   ];
+
+  const isNavActive = (href: string) =>
+    mounted && (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
 
   return (
     <motion.header 
@@ -52,8 +56,7 @@ export function Navbar() {
         {/* Desktop Navigation */}
         <nav className="[display:none] lg:[display:flex] gap-8 text-sm font-medium text-slate-300">
           {navLinks.map((link) => {
-            const isActive =
-              mounted && (link.href === "/free-tools" ? pathname.startsWith("/free-tools") : pathname === link.href);
+            const isActive = isNavActive(link.href);
             return (
               <Link 
                 key={link.name} 
@@ -110,8 +113,7 @@ export function Navbar() {
           >
             <nav className="flex flex-col gap-5 items-center">
               {navLinks.map((link) => {
-                const isActive =
-              mounted && (link.href === "/free-tools" ? pathname.startsWith("/free-tools") : pathname === link.href);
+                const isActive = isNavActive(link.href);
                 return (
                   <Link
                     key={link.name}
