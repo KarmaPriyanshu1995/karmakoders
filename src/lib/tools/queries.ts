@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { ensureFreeToolsDefaults } from "@/lib/tools/defaults";
 
+const ensureDefaults = cache(ensureFreeToolsDefaults);
+
 export const getPublishedTools = cache(async () => {
   const tenantId = await getPrimaryTenantId();
-  await ensureFreeToolsDefaults(tenantId);
+  await ensureDefaults(tenantId);
   return prisma.freeTool.findMany({
     where: { tenantId, status: "published", isPublic: true },
     include: { category: true },
@@ -15,7 +17,7 @@ export const getPublishedTools = cache(async () => {
 
 export const getPublishedToolBySlug = cache(async (slug: string) => {
   const tenantId = await getPrimaryTenantId();
-  await ensureFreeToolsDefaults(tenantId);
+  await ensureDefaults(tenantId);
   return prisma.freeTool.findFirst({
     where: { tenantId, slug, status: "published", isPublic: true },
     include: { category: true },
@@ -24,7 +26,7 @@ export const getPublishedToolBySlug = cache(async (slug: string) => {
 
 export const getToolCategories = cache(async () => {
   const tenantId = await getPrimaryTenantId();
-  await ensureFreeToolsDefaults(tenantId);
+  await ensureDefaults(tenantId);
   return prisma.toolCategory.findMany({
     where: { tenantId },
     orderBy: { sortOrder: "asc" },

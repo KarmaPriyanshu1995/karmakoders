@@ -219,6 +219,13 @@ export async function getPostBySlug(slug: string, options?: { includeDrafts?: bo
   return post;
 }
 
+function parsePostCreatedAt(value?: string | Date | null): Date | undefined {
+  if (value == null || value === "") return undefined;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed;
+}
+
 export async function upsertPost(data: {
   id?: string;
   title: string;
@@ -231,9 +238,12 @@ export async function upsertPost(data: {
   type?: string;
   published: boolean;
   seoMeta?: string;
+  createdAt?: string | Date | null;
 }) {
   const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
-  const { id, ...postData } = data;
+  const { id, createdAt: createdAtRaw, ...postData } = data;
+  const createdAt = parsePostCreatedAt(createdAtRaw);
+  const payload = createdAt ? { ...postData, createdAt } : postData;
 
   let post;
   if (id !== "new") {
@@ -241,11 +251,11 @@ export async function upsertPost(data: {
     const existing = await prisma.post.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Post not found");
     assertOwnership(existing.tenantId, tenantId);
-    post = await prisma.post.update({ where: { id }, data: postData });
+    post = await prisma.post.update({ where: { id }, data: payload });
     await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_UPDATED, resource: "Post", resourceId: post.id });
   } else {
     assertPermission(role, PERMISSIONS.BLOG_CREATE, permissionOverrides);
-    post = await prisma.post.create({ data: { ...postData, tenantId } });
+    post = await prisma.post.create({ data: { ...payload, tenantId } });
     await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_CREATED, resource: "Post", resourceId: post.id });
   }
   if (postData.published) {

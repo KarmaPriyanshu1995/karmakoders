@@ -147,7 +147,7 @@ export function ProjectEstimatorSection() {
               <label className="text-white font-bold text-sm uppercase tracking-widest block mb-4">
                 1. Project Stage
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { id: "idea", label: "Idea / Concept" },
                   { id: "wireframes", label: "UX / Wireframes" },
@@ -295,10 +295,10 @@ export function ProjectEstimatorSection() {
             <div className="mt-12 space-y-4">
               <Link
                 href={getMessageUrl()}
-                className="w-full h-14 bg-[#FFC300] hover:bg-[#FFC300]/90 text-[#1C1B1A] font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-[0_4px_20px_rgba(255,195,0,0.15)] cursor-pointer"
+                className="w-full h-14 bg-[#FFC300] hover:bg-[#FFC300]/90 text-[#1C1B1A] font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-[0_4px_20px_rgba(255,195,0,0.15)] cursor-pointer max-sm:h-16 max-sm:px-4 max-sm:justify-between max-sm:text-left max-sm:leading-tight"
               >
                 Discuss Scope & Estimates
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 shrink-0" />
               </Link>
               <p className="text-[#A39F97] text-center text-xs font-semibold">
                 Estimations are tentative based on typical scope benchmarks

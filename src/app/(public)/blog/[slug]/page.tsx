@@ -8,7 +8,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { RelatedToolLinks } from "@/components/tools/RelatedToolLinks";
-import { DEFAULT_POSTS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +23,7 @@ function canonicalizeBlogSlug(slug: string): string | null {
 }
 
 async function resolvePost(slug: string) {
-  let post: any = await getPostBySlug(slug);
-  if (!post) {
-    post = DEFAULT_POSTS.find((p) => p.slug === slug);
-  }
-  return post;
+  return getPostBySlug(slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -81,7 +76,7 @@ export default async function BlogPostDetail({ params }: { params: Promise<{ slu
     notFound();
   }
 
-  const postDate = post.createdAt ? new Date(post.createdAt) : new Date(post.date);
+  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
   const postUrl = `${SITE_URL}/blog/${slug}`;
 
   const jsonLd = {

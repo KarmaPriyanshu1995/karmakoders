@@ -31,6 +31,7 @@ function snapshotSignature(snapshot: BlogDraftSnapshot): string {
     author: snapshot.author,
     type: snapshot.type,
     published: snapshot.published,
+    createdAt: snapshot.createdAt,
   });
 }
 
@@ -105,6 +106,7 @@ export function useBlogAutosave(options: {
         type: draft.type,
         published: draft.published,
         seoMeta,
+        createdAt: draft.createdAt ? new Date(draft.createdAt).toISOString() : undefined,
       });
 
       lastServerSigRef.current = sig;

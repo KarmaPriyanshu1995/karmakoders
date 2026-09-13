@@ -22,8 +22,8 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 const fontVariables = `${inter.variable} ${roboto.variable} ${poppins.variable} ${outfit.variable} ${playfair.variable}`;
 
 export const metadata: Metadata = {
-  title: "AI Business Portfolio",
-  description: "Premium AI-powered business portfolio platform",
+  title: "KarmaKoders — Enterprise Software Development for US Businesses",
+  description: "KarmaKoders is a custom software development company serving US businesses. Build scalable web, mobile, SaaS and AI solutions with experienced engineers.",
   metadataBase: new URL("https://www.karmakoders.com"),
   icons: {
     icon: "/webicon.png",

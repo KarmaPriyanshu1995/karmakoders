@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { DEFAULT_FREE_TOOLS_SETTINGS, FREE_TOOLS_SETTINGS_KEY } from "@/lib/tools/settings";
 import { HOSTINGER_DOMAIN_AFFILIATE_URL } from "@/lib/tools/hostinger-affiliate";
 import { DOMAIN_COMPARE_CONTENT, HOSTINGER_VS_NAMECHEAP_CONTENT } from "@/lib/tools/domain-compare-content";
+import { COMPRESS_IMAGE_CONTENT } from "@/lib/tools/compress-image-content";
 
 export async function ensureDomainProviders(tenantId: string): Promise<void> {
   const providers = [
@@ -236,8 +237,56 @@ export async function ensureRegistrarComparisons(tenantId: string): Promise<void
   }
 }
 
+export async function ensureCompressImageTool(tenantId: string): Promise<void> {
+  const developmentCategory = await prisma.toolCategory.upsert({
+    where: { tenantId_slug: { tenantId, slug: "development" } },
+    update: { name: "Development", sortOrder: 40 },
+    create: { tenantId, name: "Development", slug: "development", sortOrder: 40 },
+  });
+
+  const existing = await prisma.freeTool.findFirst({
+    where: { tenantId, slug: "compress-image" },
+    select: { id: true },
+  });
+  if (existing) return;
+
+  try {
+    await prisma.freeTool.create({
+      data: {
+        tenantId,
+        name: "Image Compressor",
+        slug: "compress-image",
+        shortDescription: "Compress JPG, PNG, and WebP images with quality, format, and resize controls.",
+        longDescription:
+          "Upload an image and compress or convert it through our /api/v1/compress service. Preview before/after size, then download. Files are processed and deleted — never stored.",
+        icon: "ImageDown",
+        categoryId: developmentCategory.id,
+        status: "published",
+        isFeatured: true,
+        isPublic: true,
+        sortOrder: 20,
+        toolUrl: "/free-tools/compress-image",
+        seoTitle: "Free Image Compressor — JPG, PNG, WebP",
+        seoDescription:
+          "Compress JPG, PNG, and WebP images in the browser. Adjust quality, format, and max size. Nothing is stored on our servers.",
+        seoKeywords: "image compressor, compress jpg, compress png, webp converter, reduce image size",
+        canonicalUrl: "https://www.karmakoders.com/free-tools/compress-image",
+        ogTitle: "Free Image Compressor",
+        ogDescription: "Compress JPG, PNG, and WebP images. Preview savings, then download.",
+        robots: "index,follow",
+        contentJson: JSON.stringify(COMPRESS_IMAGE_CONTENT),
+      },
+    });
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+    if (code === "P2002") return;
+    throw error;
+  }
+}
+
 export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
   await ensureDomainProviders(tenantId);
+  await ensureCompressImageTool(tenantId);
 
   const already = await prisma.freeTool.findFirst({
     where: { tenantId, slug: "domain-compare" },
