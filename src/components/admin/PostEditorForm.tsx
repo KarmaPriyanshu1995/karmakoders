@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Cloud, CloudOff, Loader2, Save, Trash2 } from "lucide-react";
+import { Cloud, CloudOff, Loader2, Save, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImagePreview } from "./ImagePreview";
 import { RichTextEditor } from "./RichTextEditor";
@@ -10,8 +10,8 @@ import { upsertPost } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useBlogAutosave } from "@/hooks/useBlogAutosave";
-import { BLOG_DRAFT_VERSION, readBlogDraft, type BlogDraftSnapshot } from "@/lib/blog-draft-storage";
-import { parseContentBlocks, parseFormatMeta, plainTextFromBlocks, starterBlocksFor, wordCountFromText } from "@/lib/content/blocks";
+import { BLOG_DRAFT_VERSION, readBlogDraft, slugifyDraftTitle, type BlogDraftSnapshot } from "@/lib/blog-draft-storage";
+import { parseContentBlocks, parseFormatMeta, parsePostImport, plainTextFromBlocks, starterBlocksFor, wordCountFromText } from "@/lib/content/blocks";
 import { POST_TYPES } from "@/types/content";
 import { POST_TYPE_LABELS, normalizePostType } from "@/lib/content/post-types";
 import type { ContentBlock, FormatMeta } from "@/types/content";
@@ -156,6 +156,8 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const [formatMeta, setFormatMeta] = useState<FormatMeta>(initial.formatMeta);
   const [published, setPublished] = useState(initial.published);
   const [createdAt, setCreatedAt] = useState(initial.createdAt);
+  const [importJson, setImportJson] = useState("");
+  const importFileRef = useRef<HTMLInputElement>(null);
   const previousTypeRef = useRef(initial.type);
 
   useEffect(() => {
@@ -244,6 +246,52 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
     previousTypeRef.current = type;
     if (blocks.length === 0) setBlocks(starterBlocksFor(type));
   }, [blocks.length, type]);
+
+  function applyImportedJson(source?: string) {
+    const parsed = parsePostImport(source ?? importJson);
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
+
+    if (blocks.length > 0 && !window.confirm("Replace the current fields and content blocks with this JSON?")) {
+      return;
+    }
+
+    const data = parsed.data;
+    if (data.type) {
+      const nextType = normalizePostType(data.type);
+      previousTypeRef.current = nextType;
+      setType(nextType);
+    }
+    if (data.title) setTitle(data.title);
+    if (data.slug) setSlug(data.slug);
+    else if (data.title && !slug.trim()) setSlug(slugifyDraftTitle(data.title));
+    if (data.excerpt) setSummary(data.excerpt);
+    if (data.metaTitle) setMetaTitle(data.metaTitle);
+    if (data.focusKeyword) setFocusKeyword(data.focusKeyword);
+    if (data.category) setCategory(data.category);
+    if (data.author) setAuthor(data.author);
+    if (data.image) setImage(data.image);
+    if (data.imageAlt) setImageAlt(data.imageAlt);
+    if (typeof data.noIndex === "boolean") setNoIndex(data.noIndex);
+    if (data.formatMeta) setFormatMeta((current) => ({ ...current, ...data.formatMeta }));
+    setBlocks(data.blocks);
+    toast.success(`Imported ${data.blocks.length} content block${data.blocks.length === 1 ? "" : "s"}`);
+  }
+
+  async function onImportFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setImportJson(text);
+      applyImportedJson(text);
+    } catch {
+      toast.error("Could not read that file.");
+    } finally {
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  }
 
   const serpTitle = (metaTitle.trim() || title.trim() || "Untitled post").slice(0, 60);
   const serpDesc = (summary.trim() || "Add a 150–160 character summary for search and social previews.").slice(0, 160);
@@ -462,6 +510,43 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
             placeholder="One summary for blog cards, Google, and social previews. Aim for 150–160 characters."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none"
           />
+        </div>
+
+        <div className="space-y-3 rounded-xl border border-dashed border-indigo-500/30 bg-indigo-500/5 p-4">
+          <div>
+            <p className="text-sm font-medium text-slate-200">Import JSON</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Paste the AI JSON or upload a .json file. This fills title, type, SEO fields, and replaces content blocks.
+            </p>
+          </div>
+          <textarea
+            value={importJson}
+            onChange={(e) => setImportJson(e.target.value)}
+            rows={6}
+            placeholder='{"type":"blog","title":"...","blocks":[{"type":"TLDR","items":["..."]}]}'
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 font-mono outline-none focus:border-indigo-500 resize-y"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => applyImportedJson()} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+              Apply JSON
+            </Button>
+            <label className="inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-700 text-sm text-slate-300 cursor-pointer hover:border-indigo-500">
+              <Upload className="w-4 h-4" />
+              Upload .json
+              <input
+                ref={importFileRef}
+                type="file"
+                accept="application/json,.json,text/plain"
+                className="hidden"
+                onChange={(e) => void onImportFile(e.target.files?.[0])}
+              />
+            </label>
+            {importJson ? (
+              <Button type="button" variant="ghost" className="text-slate-400" onClick={() => setImportJson("")}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-2">

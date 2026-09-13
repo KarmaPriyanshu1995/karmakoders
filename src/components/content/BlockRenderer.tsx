@@ -5,6 +5,7 @@ import type { ContentBlock } from "@/types/content";
 import { MermaidDiagram } from "@/components/content/MermaidDiagram";
 import { ToolEmbed } from "@/components/content/ToolEmbed";
 import { CopyPromptButton } from "@/components/content/CopyPromptButton";
+import { NewsletterCta } from "@/components/content/NewsletterSubscribeForm";
 
 function ListItems({ items }: { items: string[] }) {
   return (
@@ -264,21 +265,48 @@ export function BlockRenderer({ blocks }: { blocks: ContentBlock[] }) {
                 {block.caption ? <figcaption className="px-4 py-3 text-xs text-slate-500">{block.caption}</figcaption> : null}
               </figure>
             );
-          case "CTA":
+          case "CTA": {
+            if (block.variant === "newsletter") {
+              return (
+                <NewsletterCta
+                  key={block.id}
+                  heading={block.heading}
+                  body={block.body}
+                  submitLabel={block.label}
+                />
+              );
+            }
+            const href = block.href || "/contact";
+            const external = href.startsWith("http");
             return (
-              <div key={block.id} className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold text-white">{block.heading}</h3>
-                  <p className="text-slate-300 mt-1">{block.body}</p>
+              <div
+                key={block.id}
+                className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/[0.03] p-6 md:flex-row md:items-center md:justify-between md:p-8"
+              >
+                <div className="max-w-2xl">
+                  <h3 className="text-xl font-bold text-white md:text-2xl">{block.heading}</h3>
+                  <p className="mt-2 leading-relaxed text-slate-400">{block.body}</p>
                 </div>
-                <Link
-                  href={block.href || "/contact"}
-                  className="inline-flex px-5 py-3 rounded-xl bg-indigo-500 text-slate-950 font-bold shrink-0"
-                >
-                  {block.label}
-                </Link>
+                {external ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#FFC300] px-5 py-3 font-black text-[#1C1B1A] transition-all hover:bg-[#FFD60A]"
+                  >
+                    {block.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={href}
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#FFC300] px-5 py-3 font-black text-[#1C1B1A] transition-all hover:bg-[#FFD60A]"
+                  >
+                    {block.label}
+                  </Link>
+                )}
               </div>
             );
+          }
           default:
             return null;
         }

@@ -22,7 +22,7 @@ import {
   isBlockType,
 } from "@/lib/content/blocks";
 import { normalizePostType } from "@/lib/content/post-types";
-import { TOOL_EMBED_IDS, type BlockType, type ContentBlock, type ToolEmbedId } from "@/types/content";
+import { TOOL_EMBED_IDS, type BlockType, type ContentBlock, type CtaVariant, type ToolEmbedId } from "@/types/content";
 
 function updateBlock<T extends ContentBlock>(blocks: ContentBlock[], id: string, patch: Partial<T>): ContentBlock[] {
   return blocks.map((block) => (block.id === id ? ({ ...block, ...patch } as T) : block));
@@ -401,10 +401,28 @@ function BlockFields({ block, onChange }: { block: ContentBlock; onChange: (patc
     case "CTA":
       return (
         <div className="space-y-3">
+          <label className="block text-sm text-slate-300 space-y-1">
+            Action
+            <select
+              value={block.variant}
+              onChange={(e) => onChange({ variant: e.target.value as CtaVariant })}
+              className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-3 text-white [color-scheme:dark]"
+            >
+              <option value="newsletter">Newsletter signup</option>
+              <option value="contact">Contact link</option>
+              <option value="cal">Cal.com</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="custom">Custom link</option>
+            </select>
+          </label>
           <TextInput label="Heading" value={block.heading} onChange={(heading) => onChange({ heading })} />
           <TextArea label="Body" value={block.body} onChange={(body) => onChange({ body })} />
           <TextInput label="Button label" value={block.label} onChange={(label) => onChange({ label })} />
-          <TextInput label="Link" value={block.href} onChange={(href) => onChange({ href })} />
+          {block.variant === "newsletter" ? (
+            <p className="text-xs text-slate-500">The public page shows an email field. Visitors subscribe in place.</p>
+          ) : (
+            <TextInput label="Link" value={block.href} onChange={(href) => onChange({ href })} />
+          )}
         </div>
       );
     default:

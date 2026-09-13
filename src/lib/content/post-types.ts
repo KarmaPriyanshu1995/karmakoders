@@ -101,3 +101,10 @@ export function defaultCta(type: PostType, meta: FormatMeta = {}) {
 
   return presets[type];
 }
+
+export function usesNewsletterSignup(type: PostType, meta: FormatMeta = {}) {
+  if (type !== "blog") return false;
+  if (meta.ctaOverrideHref) return false;
+  const href = meta.newsletterHref || "/blog";
+  return !/^https?:\/\//i.test(href);
+}

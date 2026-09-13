@@ -213,6 +213,40 @@ export function parseContentBlocks(raw: unknown): ContentBlock[] {
   return blocks;
 }
 
+function coerceComparisonMatrix(id: string, rec: Record<string, unknown>): ContentBlock {
+  const columnsRaw = asStringArray(rec.columns);
+  const rowsRaw = Array.isArray(rec.rows) ? rec.rows : [];
+  const rows = rowsRaw.map((row) => {
+    if (Array.isArray(row)) {
+      const cells = row.map((cell) => asString(cell));
+      return { label: cells[0] ?? "", values: cells.slice(1) };
+    }
+    const r = asRecord(row);
+    if (r && Array.isArray(r.values)) {
+      return { label: asString(r.label), values: asStringArray(r.values) };
+    }
+    if (r && Array.isArray(r.cells)) {
+      const cells = asStringArray(r.cells);
+      return { label: asString(r.label) || cells[0] || "", values: asString(r.label) ? cells : cells.slice(1) };
+    }
+    return { label: "", values: [] as string[] };
+  });
+
+  const valueWidth = rows.reduce((max, row) => Math.max(max, row.values.length), 0);
+  const labelHeaders = new Set(["", "criterion", "criteria", "feature", "factor", "metric", "category", "item", "dimension"]);
+  let columns = columnsRaw.length ? columnsRaw : ["Option A", "Option B"];
+  if (columns.length === valueWidth + 1 && (labelHeaders.has(columns[0].trim().toLowerCase()) || valueWidth > 0)) {
+    columns = columns.slice(1);
+  }
+
+  return {
+    id,
+    type: "COMPARISON_MATRIX",
+    columns: columns.length ? columns : ["Option A", "Option B"],
+    rows,
+  };
+}
+
 function coerceBlock(id: string, rec: Record<string, unknown>): ContentBlock | null {
   const type = rec.type;
   if (!isBlockType(type)) return null;
@@ -224,7 +258,12 @@ function coerceBlock(id: string, rec: Record<string, unknown>): ContentBlock | n
     case "PARAGRAPH":
       return { id, type, html: asString(rec.html ?? rec.paragraphText) };
     case "PRO_TIP":
-      return { id, type, title: asString(rec.title ?? rec.tipTitle, "Pro tip"), message: asString(rec.message ?? rec.tipMessage) };
+      return {
+        id,
+        type,
+        title: asString(rec.title ?? rec.tipTitle, "Pro tip"),
+        message: asString(rec.message ?? rec.tipMessage ?? rec.text ?? rec.body),
+      };
     case "QUOTE":
       return { id, type, text: asString(rec.text ?? rec.quoteText), author: asString(rec.author ?? rec.quoteAuthor) };
     case "CODE":
@@ -232,22 +271,16 @@ function coerceBlock(id: string, rec: Record<string, unknown>): ContentBlock | n
     case "TOOL_EMBED":
       return { id, type, tool: isToolEmbedId(rec.tool ?? rec.selectedTool) ? (rec.tool ?? rec.selectedTool) as ToolEmbedId : "MVP_COST_CALCULATOR" };
     case "MERMAID":
-      return { id, type, chart: asString(rec.chart ?? rec.mermaidCode, MERMAID_WRITER_TEMPLATE), caption: asString(rec.caption, "System Architecture") };
-    case "TLDR":
-      return { id, type, items: asStringArray(rec.items).length ? asStringArray(rec.items) : ["", "", ""] };
-    case "COMPARISON_MATRIX": {
-      const columns = asStringArray(rec.columns);
-      const rowsRaw = Array.isArray(rec.rows) ? rec.rows : [];
       return {
         id,
         type,
-        columns: columns.length ? columns : ["Option A", "Option B"],
-        rows: rowsRaw.map((row) => {
-          const r = asRecord(row);
-          return { label: asString(r?.label), values: asStringArray(r?.values) };
-        }),
+        chart: asString(rec.chart ?? rec.mermaidCode ?? rec.code, MERMAID_WRITER_TEMPLATE),
+        caption: asString(rec.caption, "System Architecture"),
       };
-    }
+    case "TLDR":
+      return { id, type, items: asStringArray(rec.items).length ? asStringArray(rec.items) : ["", "", ""] };
+    case "COMPARISON_MATRIX":
+      return coerceComparisonMatrix(id, rec);
     case "STAT_BADGES": {
       const statsRaw = Array.isArray(rec.stats) ? rec.stats : [];
       return {
@@ -342,8 +375,8 @@ function coerceBlock(id: string, rec: Record<string, unknown>): ContentBlock | n
         id,
         type,
         variant: rec.variant === "cal" || rec.variant === "whatsapp" || rec.variant === "newsletter" || rec.variant === "custom" ? rec.variant : "contact",
-        heading: asString(rec.heading),
-        body: asString(rec.body),
+        heading: asString(rec.heading ?? rec.title, asString(rec.label, "Start Project")),
+        body: asString(rec.body ?? rec.text ?? rec.description ?? rec.message),
         href: asString(rec.href, "/contact"),
         label: asString(rec.label, "Start Project"),
       };
@@ -368,6 +401,92 @@ export function parseFormatMeta(raw: unknown): FormatMeta {
     newsletterHref: asString(rec.newsletterHref) || undefined,
     ctaOverrideHref: asString(rec.ctaOverrideHref) || undefined,
     ctaOverrideLabel: asString(rec.ctaOverrideLabel) || undefined,
+  };
+}
+
+export interface ParsedPostImport {
+  type?: string;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  metaTitle?: string;
+  focusKeyword?: string;
+  category?: string;
+  author?: string;
+  image?: string;
+  imageAlt?: string;
+  noIndex?: boolean;
+  formatMeta?: FormatMeta;
+  blocks: ContentBlock[];
+}
+
+function unwrapJsonText(raw: string): string {
+  let trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) trimmed = fenced[1].trim();
+  const objStart = trimmed.indexOf("{");
+  const arrStart = trimmed.indexOf("[");
+  if (objStart < 0 && arrStart < 0) return trimmed;
+  const useArray = arrStart >= 0 && (objStart < 0 || arrStart < objStart);
+  if (useArray) {
+    const end = trimmed.lastIndexOf("]");
+    return end > arrStart ? trimmed.slice(arrStart, end + 1) : trimmed;
+  }
+  const end = trimmed.lastIndexOf("}");
+  return end > objStart ? trimmed.slice(objStart, end + 1) : trimmed;
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+export function parsePostImport(raw: unknown): { ok: true; data: ParsedPostImport } | { ok: false; error: string } {
+  let value = raw;
+  if (typeof raw === "string") {
+    const text = unwrapJsonText(raw);
+    if (!text) return { ok: false, error: "Paste JSON first." };
+    try {
+      value = JSON.parse(text);
+    } catch {
+      return { ok: false, error: "Invalid JSON. Check for missing commas or trailing text." };
+    }
+  }
+
+  if (Array.isArray(value)) {
+    const blocks = parseContentBlocks(value);
+    if (!blocks.length) return { ok: false, error: "No valid content blocks found in that JSON." };
+    return { ok: true, data: { blocks } };
+  }
+
+  const rec = asRecord(value);
+  if (!rec) return { ok: false, error: "JSON must be an object or an array of blocks." };
+
+  const seo = asRecord(rec.seoMeta) ?? {};
+  const blocks = parseContentBlocks(rec.blocks ?? rec.contentBlocks);
+  if (!blocks.length) return { ok: false, error: "No valid content blocks found. Each block needs a known type." };
+
+  const formatMeta = parseFormatMeta(rec.formatMeta);
+  const hasMeta = Object.values(formatMeta).some(Boolean);
+
+  return {
+    ok: true,
+    data: {
+      type: optionalString(rec.type ?? rec.format),
+      title: optionalString(rec.title),
+      slug: optionalString(rec.slug),
+      excerpt: optionalString(rec.excerpt ?? rec.summary ?? seo.description),
+      metaTitle: optionalString(rec.metaTitle ?? seo.title),
+      focusKeyword: optionalString(rec.focusKeyword ?? seo.focusKeyword),
+      category: optionalString(rec.category),
+      author: optionalString(rec.author),
+      image: optionalString(rec.image),
+      imageAlt: optionalString(rec.imageAlt ?? seo.imageAlt),
+      noIndex: typeof rec.noIndex === "boolean" ? rec.noIndex : typeof seo.noIndex === "boolean" ? seo.noIndex : undefined,
+      formatMeta: hasMeta ? formatMeta : undefined,
+      blocks,
+    },
   };
 }
 
