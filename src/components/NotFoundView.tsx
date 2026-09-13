@@ -8,8 +8,8 @@ import { Footer } from "@/components/sections/Footer";
 
 const quickLinks = [
   { name: "Services", href: "/services", description: "What we build" },
-  { name: "Portfolio", href: "/portfolio", description: "Our work" },
-  { name: "Blog", href: "/blog", description: "Latest news" },
+  { name: "Work", href: "/work", description: "Portfolio and proof" },
+  { name: "Insights", href: "/insights", description: "Blog, ideas, tools" },
   { name: "Contact", href: "/contact", description: "Get in touch" },
 ];
 

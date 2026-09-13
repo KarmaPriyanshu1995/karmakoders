@@ -6,7 +6,8 @@ import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_ACTIONS, logAudit } from "@/lib/audit";
 import { ensureFreeToolsDefaults } from "@/lib/tools/defaults";
-import { getFreeToolsSettings, saveFreeToolsSettings, parseFreeToolsSettings, type FreeToolsSettings } from "@/lib/tools/settings";
+import { parseFreeToolsSettings, type FreeToolsSettings } from "@/lib/tools/settings";
+import { getFreeToolsSettings, saveFreeToolsSettings } from "@/lib/tools/settings-db";
 import { isSafeRedirectUrl } from "@/lib/tools/affiliate";
 
 function slugify(value: string): string {

@@ -66,7 +66,15 @@ export default async function AdminBlogList() {
                       ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' 
                       : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
                   }`}>
-                    {post.type === 'case-study' ? 'Success Story' : 'Blog Post'}
+                    {post.type === "case-study"
+                      ? "Case Study"
+                      : post.type === "success-story"
+                        ? "Success Story"
+                        : post.type === "startup-idea"
+                          ? "Startup Idea"
+                          : post.type === "prompt"
+                            ? "Prompt"
+                            : "Blog Post"}
                   </span>
                 </td>
                 <td className="p-4">

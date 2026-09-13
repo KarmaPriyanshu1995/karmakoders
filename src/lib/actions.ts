@@ -1,12 +1,24 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
 import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
 import { getContextualTenantId, requireTenantContext, TenantAccessError, assertOwnership } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_ACTIONS, logAudit } from "@/lib/audit";
+import { slugifyDraftTitle } from "@/lib/blog-draft-storage";
+import {
+  computeReadTimeMinutes,
+  htmlFromBlocks,
+  parseContentBlocks,
+  parseFormatMeta,
+  plainTextFromBlocks,
+  wordCountFromText,
+} from "@/lib/content/blocks";
+import type { ContentBlock, FormatMeta } from "@/types/content";
+import { normalizePostType } from "@/lib/content/post-types";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -232,6 +244,8 @@ export async function upsertPost(data: {
   slug: string;
   excerpt?: string;
   content: string;
+  blocks?: ContentBlock[] | null;
+  formatMeta?: FormatMeta | null;
   image?: string;
   category?: string;
   author?: string;
@@ -241,12 +255,31 @@ export async function upsertPost(data: {
   createdAt?: string | Date | null;
 }) {
   const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
-  const { id, createdAt: createdAtRaw, ...postData } = data;
+  const { id, createdAt: createdAtRaw, blocks: blocksRaw, formatMeta: formatMetaRaw, ...postData } = data;
   const createdAt = parsePostCreatedAt(createdAtRaw);
-  const payload = createdAt ? { ...postData, createdAt } : postData;
+  const blocks = parseContentBlocks(blocksRaw);
+  const formatMeta = parseFormatMeta(formatMetaRaw);
+  const type = normalizePostType(postData.type);
+  const slug = slugifyDraftTitle(postData.slug || postData.title) || `post-${Date.now().toString(36)}`;
+  const blockText = plainTextFromBlocks(blocks);
+  const htmlText = postData.content?.replace(/<[^>]*>/g, " ") ?? "";
+  const wordCount = wordCountFromText(`${postData.title} ${blockText || htmlText}`);
+  const readTimeMinutes = computeReadTimeMinutes(wordCount);
+  const content = postData.content?.trim() ? postData.content : htmlFromBlocks(blocks);
+
+  const payload = {
+    ...postData,
+    slug,
+    type,
+    content,
+    blocks: blocks as unknown as Prisma.InputJsonValue,
+    formatMeta: formatMeta as unknown as Prisma.InputJsonValue,
+    readTimeMinutes,
+    ...(createdAt ? { createdAt } : {}),
+  };
 
   let post;
-  if (id !== "new") {
+  if (id && id !== "new") {
     assertPermission(role, PERMISSIONS.BLOG_UPDATE, permissionOverrides);
     const existing = await prisma.post.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Post not found");
@@ -263,6 +296,12 @@ export async function upsertPost(data: {
   }
 
   revalidatePath("/blog");
+  revalidatePath("/insights");
+  revalidatePath("/work");
+  revalidatePath("/case-studies");
+  revalidatePath("/success-stories");
+  revalidatePath("/startup-ideas");
+  revalidatePath("/prompts");
   revalidatePath("/portfolio");
   revalidatePath("/admin/blog");
   return post;
@@ -275,6 +314,12 @@ export async function deletePost(id: string) {
   if (count === 0) throw new TenantAccessError("Post not found");
   await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_DELETED, resource: "Post", resourceId: id });
   revalidatePath("/blog");
+  revalidatePath("/insights");
+  revalidatePath("/work");
+  revalidatePath("/case-studies");
+  revalidatePath("/success-stories");
+  revalidatePath("/startup-ideas");
+  revalidatePath("/prompts");
   revalidatePath("/admin/blog");
 }
 

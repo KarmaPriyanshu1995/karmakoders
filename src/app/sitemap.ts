@@ -15,6 +15,11 @@ export const dynamic = "force-dynamic";
 // discovered via the prisma.page query below.
 const STATIC_ENTRIES: MetadataRoute.Sitemap = [
   { url: `${SITE_URL}/projects`, changeFrequency: "weekly" },
+  { url: `${SITE_URL}/work`, changeFrequency: "weekly" },
+  { url: `${SITE_URL}/insights`, changeFrequency: "weekly" },
+  { url: `${SITE_URL}/success-stories`, changeFrequency: "weekly" },
+  { url: `${SITE_URL}/startup-ideas`, changeFrequency: "weekly" },
+  { url: `${SITE_URL}/prompts`, changeFrequency: "weekly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
