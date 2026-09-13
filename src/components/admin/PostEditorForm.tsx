@@ -113,7 +113,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const initial = useMemo(() => loadDraftOrPost(isNew ? undefined : id, post, seoMetaObj), [id, isNew, post, seoMetaObj]);
   const restoredToastRef = useRef(false);
 
-  const [savedPostId, setSavedPostId] = useState(id);
+  const [savedPostId, setSavedPostId] = useState<string | undefined>(isNew ? undefined : id);
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState(initial.title);
   const [slug, setSlug] = useState(initial.slug);
@@ -220,7 +220,7 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         tags: seoMetaObj.tags || "",
       });
 
-      await upsertPost({
+      const saved = await upsertPost({
         id: savedPostId,
         title,
         slug,
@@ -234,6 +234,9 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         seoMeta,
         createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
       });
+      if (!savedPostId) {
+        setSavedPostId(saved.id);
+      }
       clearDraft();
       toast.success("Post saved successfully!");
       router.push("/admin/blog");
