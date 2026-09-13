@@ -125,13 +125,11 @@ export async function upsertSections(
   if (!page) throw new TenantAccessError("Page not found");
   assertOwnership(page.tenantId, tenantId);
 
-  // Delete removed sections first
   const incomingIds = sections.map((s) => s.id);
   await prisma.section.deleteMany({
     where: { pageId, id: { notIn: incomingIds } },
   });
 
-  // Upsert all incoming sections
   for (const section of sections) {
     await prisma.section.upsert({
       where: { id: section.id },
@@ -354,7 +352,7 @@ export async function upsertProject(data: {
   const { id, ...projectData } = data;
 
   let project;
-  if (id) {
+  if (id && id !== "new") {
     assertPermission(role, PERMISSIONS.PROJECT_UPDATE, permissionOverrides);
     const existing = await prisma.project.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Project not found");
@@ -415,7 +413,7 @@ export async function upsertJob(data: {
   const { id, ...jobData } = data;
 
   let job;
-  if (id) {
+  if (id && id !== "new") {
     assertPermission(role, PERMISSIONS.CAREER_UPDATE, permissionOverrides);
     const existing = await prisma.jobOpening.findUnique({ where: { id }, select: { tenantId: true } });
     if (!existing) throw new TenantAccessError("Job opening not found");
@@ -504,14 +502,12 @@ export async function seedDatabase(type: "sections" | "all") {
   const { tenantId, role, permissionOverrides } = await requireTenantContext();
   assertPermission(role, PERMISSIONS.SETTINGS_UPDATE, permissionOverrides);
 
-  // 1. Create or upsert "/" page
   const homePage = await prisma.page.upsert({
-    where: { tenantId_slug: { tenantId, slug: "/" } },
+    where: { tenantId_slug: { tenantId, slug: "home" } },
     update: { isPublished: true },
-    create: { tenantId, slug: "/", title: "Home", isPublished: true },
+    create: { tenantId, slug: "home", title: "Home", isPublished: true },
   });
 
-  // 2. Define homepage sections content
   const sections = [
     {
       id: `section-hero-home-${tenantId}`,
@@ -618,7 +614,6 @@ export async function seedDatabase(type: "sections" | "all") {
     });
   }
 
-  // 3. Seed site config default themes
   await prisma.siteConfig.upsert({
     where: { tenantId_key: { tenantId, key: "globalTheme" } },
     update: {},
@@ -637,7 +632,6 @@ export async function seedDatabase(type: "sections" | "all") {
   });
 
   if (type === "all") {
-    // 4. Seed Projects
     const { DEFAULT_PROJECTS } = await import("@/lib/constants");
     for (const project of DEFAULT_PROJECTS) {
       await prisma.project.upsert({
@@ -656,7 +650,6 @@ export async function seedDatabase(type: "sections" | "all") {
       });
     }
 
-    // 5. Seed Blogs & Case Studies
     const { DEFAULT_POSTS } = await import("@/lib/constants");
     for (const post of DEFAULT_POSTS) {
       await prisma.post.upsert({
@@ -676,7 +669,6 @@ export async function seedDatabase(type: "sections" | "all") {
       });
     }
 
-    // Seed supplemental case studies
     const caseStudies = [
       {
         title: "Revolutionizing Fintech UX",
@@ -710,7 +702,6 @@ export async function seedDatabase(type: "sections" | "all") {
       });
     }
 
-    // 6. Seed Job Openings
     const jobs = [
       {
         title: "Lead AI Solutions Engineer",
