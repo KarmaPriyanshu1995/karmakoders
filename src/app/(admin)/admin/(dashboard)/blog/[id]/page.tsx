@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { PostEditorForm } from "@/components/admin/PostEditorForm";
 import { requireTenantContext } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
+import { postViewCount } from "@/lib/content/view-count";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,9 @@ export default async function AdminBlogEditor({ params }: { params: Promise<{ id
             <h2 className="text-2xl font-bold text-white tracking-tight">
               {isNew ? "Create New Post" : "Edit Post"}
             </h2>
+            {!isNew && post ? (
+              <p className="text-slate-400 text-sm mt-1">{postViewCount(post).toLocaleString()} views</p>
+            ) : null}
           </div>
         </div>
       </div>

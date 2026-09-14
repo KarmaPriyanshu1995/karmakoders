@@ -221,24 +221,29 @@ model Project {
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  tenantId  String
-  title     String
-  slug      String
-  excerpt   String?
-  content   String
-  image     String?
-  category  String?
-  author    String?
-  type      String   @default("blog") // "blog" or "case-study"
-  published Boolean  @default(false)
-  seoMeta   String?  // JSON stringified
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  tenantId        String
+  title           String
+  slug            String
+  excerpt         String?
+  content         String
+  blocks          Json?
+  formatMeta      Json?
+  readTimeMinutes Int?
+  image           String?
+  category        String?
+  author          String?
+  type            String   @default("blog") // blog | case-study | success-story | startup-idea | prompt
+  published       Boolean  @default(false)
+  viewCount       Int      @default(0)
+  seoMeta         String?  // JSON stringified
+  createdAt       DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, slug])
   @@index([tenantId])
+  @@index([tenantId, type])
 }
 
 model ContactSubmission {

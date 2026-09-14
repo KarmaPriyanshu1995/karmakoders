@@ -3,6 +3,7 @@ import { DEFAULT_FREE_TOOLS_SETTINGS, FREE_TOOLS_SETTINGS_KEY } from "@/lib/tool
 import { HOSTINGER_DOMAIN_AFFILIATE_URL } from "@/lib/tools/hostinger-affiliate";
 import { DOMAIN_COMPARE_CONTENT, HOSTINGER_VS_NAMECHEAP_CONTENT } from "@/lib/tools/domain-compare-content";
 import { COMPRESS_IMAGE_CONTENT } from "@/lib/tools/compress-image-content";
+import { MVP_COST_CONTENT } from "@/lib/tools/mvp-cost-content";
 
 export async function ensureDomainProviders(tenantId: string): Promise<void> {
   const providers = [
@@ -284,9 +285,65 @@ export async function ensureCompressImageTool(tenantId: string): Promise<void> {
   }
 }
 
+export async function ensureMvpCostCalculatorTool(tenantId: string): Promise<void> {
+  const businessCategory = await prisma.toolCategory.upsert({
+    where: { tenantId_slug: { tenantId, slug: "business" } },
+    update: { name: "Business", sortOrder: 50 },
+    create: { tenantId, name: "Business", slug: "business", sortOrder: 50 },
+  });
+
+  const existing = await prisma.freeTool.findFirst({
+    where: { tenantId, slug: "mvp-cost-calculator" },
+    select: { id: true, contentJson: true },
+  });
+  if (existing) {
+    if (existing.contentJson?.includes("fixed bid")) {
+      await prisma.freeTool.update({
+        where: { id: existing.id },
+        data: { contentJson: JSON.stringify(MVP_COST_CONTENT) },
+      });
+    }
+    return;
+  }
+
+  try {
+    await prisma.freeTool.create({
+      data: {
+        tenantId,
+        name: "MVP Cost Calculator",
+        slug: "mvp-cost-calculator",
+        shortDescription: "Estimate a 4–14 week MVP from user load, feature tier, and compliance.",
+        longDescription:
+          "Founders can generate a planning budget and timeline, then export a technical roadmap via WhatsApp or email.",
+        icon: "Calculator",
+        categoryId: businessCategory.id,
+        status: "published",
+        isFeatured: true,
+        isPublic: true,
+        sortOrder: 30,
+        toolUrl: "/free-tools/mvp-cost-calculator",
+        seoTitle: "Free MVP Cost Calculator for Startups",
+        seoDescription:
+          "Estimate MVP cost and timeline from user load, feature tier, and compliance. Export a KarmaKoders technical roadmap.",
+        seoKeywords: "mvp cost calculator, startup mvp budget, saas build cost",
+        canonicalUrl: "https://www.karmakoders.com/free-tools/mvp-cost-calculator",
+        ogTitle: "MVP Cost Calculator",
+        ogDescription: "Instant MVP budget and timeline range for founders.",
+        robots: "index,follow",
+        contentJson: JSON.stringify(MVP_COST_CONTENT),
+      },
+    });
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+    if (code === "P2002") return;
+    throw error;
+  }
+}
+
 export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
   await ensureDomainProviders(tenantId);
   await ensureCompressImageTool(tenantId);
+  await ensureMvpCostCalculatorTool(tenantId);
 
   const already = await prisma.freeTool.findFirst({
     where: { tenantId, slug: "domain-compare" },

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getDomainAdapter } from "@/lib/tools/providers/registry";
 import type { NormalizedDomainQuote, DomainLookupInput } from "@/lib/tools/providers/types";
 import { availableConsensus, scoreQuotes, type ComparisonRow, type ComparisonSummary } from "@/lib/tools/scoring";
-import { getFreeToolsSettings } from "@/lib/tools/settings";
+import { getFreeToolsSettings } from "@/lib/tools/settings-db";
 import { alternativeDomains } from "@/lib/tools/domain";
 import { convertQuotePrices } from "@/lib/tools/currency";
 

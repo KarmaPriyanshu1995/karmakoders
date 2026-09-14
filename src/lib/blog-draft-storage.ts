@@ -1,12 +1,16 @@
-export const BLOG_DRAFT_VERSION = 1;
+import type { ContentBlock, FormatMeta } from "@/types/content";
+
+export const BLOG_DRAFT_VERSION = 2;
 
 export interface BlogDraftSnapshot {
-  version: typeof BLOG_DRAFT_VERSION;
+  version: number;
   savedAt: string;
   postId?: string;
   title: string;
   slug: string;
   content: string;
+  blocks?: ContentBlock[];
+  formatMeta?: FormatMeta;
   summary: string;
   metaTitle: string;
   imageAlt: string;
@@ -34,8 +38,12 @@ export function readBlogDraft(postId?: string): BlogDraftSnapshot | null {
     const raw = localStorage.getItem(draftStorageKey(postId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as BlogDraftSnapshot;
-    if (parsed.version !== BLOG_DRAFT_VERSION) return null;
-    return parsed;
+    if (parsed.version < 1 || parsed.version > BLOG_DRAFT_VERSION) return null;
+    return {
+      ...parsed,
+      blocks: parsed.blocks ?? [],
+      formatMeta: parsed.formatMeta ?? {},
+    };
   } catch {
     return null;
   }

@@ -41,6 +41,7 @@ export default async function AdminBlogList() {
               <th className="p-4 font-medium text-slate-300">Title</th>
               <th className="p-4 font-medium text-slate-300">Type</th>
               <th className="p-4 font-medium text-slate-300">Status</th>
+              <th className="p-4 font-medium text-slate-300">Views</th>
               <th className="p-4 font-medium text-slate-300">Created At</th>
               <th className="p-4 font-medium text-slate-300 text-right">Actions</th>
             </tr>
@@ -66,7 +67,15 @@ export default async function AdminBlogList() {
                       ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' 
                       : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
                   }`}>
-                    {post.type === 'case-study' ? 'Success Story' : 'Blog Post'}
+                    {post.type === "case-study"
+                      ? "Case Study"
+                      : post.type === "success-story"
+                        ? "Success Story"
+                        : post.type === "startup-idea"
+                          ? "Startup Idea"
+                          : post.type === "prompt"
+                            ? "Prompt"
+                            : "Blog Post"}
                   </span>
                 </td>
                 <td className="p-4">
@@ -79,6 +88,12 @@ export default async function AdminBlogList() {
                       Draft
                     </span>
                   )}
+                </td>
+                <td className="p-4 text-slate-300 text-sm">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-slate-500" />
+                    {(post.viewCount ?? 0).toLocaleString()}
+                  </span>
                 </td>
                 <td className="p-4 text-slate-400 text-sm">
                   {new Date(post.createdAt).toLocaleDateString()}

@@ -30,6 +30,11 @@ export const SITE_PAGES: SitePageDefinition[] = [
   },
   { slug: "services", title: "Services", defaultMeta: { title: "Custom Software & AI Development Services for Startups | KarmaKoders", description: "Get elite custom software, mobile app, SaaS product, and AI agent development services from KarmaKoders. Protect your IP with NDAs from day one." } },
   { slug: "case-studies", title: "Case Studies", defaultMeta: { title: "Case Studies | karmakoders", description: "Real-world results from our client partnerships." } },
+  { slug: "work", title: "Work", defaultMeta: { title: "Work | karmakoders", description: "Portfolio, case studies, and success stories from KarmaKoders." } },
+  { slug: "insights", title: "Insights", defaultMeta: { title: "Insights | karmakoders", description: "Tech blog, startup ideas, prompts, and free tools." } },
+  { slug: "success-stories", title: "Success Stories", defaultMeta: { title: "Success Stories | karmakoders", description: "Client ROI, delivery metrics, and verified outcomes." } },
+  { slug: "startup-ideas", title: "Startup Ideas", defaultMeta: { title: "Startup Ideas | karmakoders", description: "4-week ready-to-build MVP blueprints." } },
+  { slug: "prompts", title: "Free Prompts", defaultMeta: { title: "Free Prompts | karmakoders", description: "Copy-ready Cursor, Claude, and video prompts." } },
   {
     slug: "help-center",
     title: "Help Center",

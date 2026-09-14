@@ -1,12 +1,25 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { UTApi } from "uploadthing/server";
 import { LEGACY_PAGE_SLUGS, SITE_PAGES } from "@/lib/sitePages";
 import { getContextualTenantId, requireTenantContext, TenantAccessError, assertOwnership } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_ACTIONS, logAudit } from "@/lib/audit";
+import { slugifyDraftTitle } from "@/lib/blog-draft-storage";
+import {
+  computeReadTimeMinutes,
+  htmlFromBlocks,
+  parseContentBlocks,
+  parseFormatMeta,
+  plainTextFromBlocks,
+  wordCountFromText,
+} from "@/lib/content/blocks";
+import type { ContentBlock, FormatMeta } from "@/types/content";
+import { postViewCount } from "@/lib/content/view-count";
+import { normalizePostType } from "@/lib/content/post-types";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -181,19 +194,42 @@ export async function getContactSubmissions() {
 
 export async function subscribeNewsletter(email: string) {
   const tenantId = await getContextualTenantId();
+  const normalized = email.trim().toLowerCase();
   return prisma.newsletterSubscriber.upsert({
-    where: { tenantId_email: { tenantId, email } },
+    where: { tenantId_email: { tenantId, email: normalized } },
     update: {},
-    create: { tenantId, email },
+    create: { tenantId, email: normalized },
   });
+}
+
+export async function getNewsletterSubscribers() {
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);
+  return prisma.newsletterSubscriber.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, email: true, createdAt: true },
+  });
+}
+
+export async function deleteNewsletterSubscriber(id: string) {
+  const { tenantId, role, permissionOverrides } = await requireTenantContext();
+  assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);
+  const { count } = await prisma.newsletterSubscriber.deleteMany({ where: { id, tenantId } });
+  if (count === 0) throw new TenantAccessError("Subscriber not found");
+  revalidatePath("/admin/subscribers");
 }
 
 // ─── Blog Actions ─────────────────────────────────────────────────────────────
 
+function withViewCount<T>(post: T) {
+  return { ...post, viewCount: postViewCount(post) };
+}
+
 export async function getPosts(type?: string, options?: { includeDrafts?: boolean }) {
   const tenantId = await getContextualTenantId();
   const includeDrafts = options?.includeDrafts ?? false;
-  return prisma.post.findMany({
+  const posts = await prisma.post.findMany({
     where: {
       tenantId,
       ...(type ? { type } : {}),
@@ -201,6 +237,7 @@ export async function getPosts(type?: string, options?: { includeDrafts?: boolea
     },
     orderBy: { createdAt: "desc" },
   });
+  return posts.map((post) => withViewCount(post));
 }
 
 export async function getCaseStudies() {
@@ -214,7 +251,7 @@ export async function getPostBySlug(slug: string, options?: { includeDrafts?: bo
     where: { tenantId_slug: { tenantId, slug } },
   });
   if (!post || (!includeDrafts && !post.published)) return null;
-  return post;
+  return withViewCount(post);
 }
 
 function parsePostCreatedAt(value?: string | Date | null): Date | undefined {
@@ -230,6 +267,8 @@ export async function upsertPost(data: {
   slug: string;
   excerpt?: string;
   content: string;
+  blocks?: ContentBlock[] | null;
+  formatMeta?: FormatMeta | null;
   image?: string;
   category?: string;
   author?: string;
@@ -239,9 +278,28 @@ export async function upsertPost(data: {
   createdAt?: string | Date | null;
 }) {
   const { tenantId, role, user, permissionOverrides } = await requireTenantContext();
-  const { id, createdAt: createdAtRaw, ...postData } = data;
+  const { id, createdAt: createdAtRaw, blocks: blocksRaw, formatMeta: formatMetaRaw, ...postData } = data;
   const createdAt = parsePostCreatedAt(createdAtRaw);
-  const payload = createdAt ? { ...postData, createdAt } : postData;
+  const blocks = parseContentBlocks(blocksRaw);
+  const formatMeta = parseFormatMeta(formatMetaRaw);
+  const type = normalizePostType(postData.type);
+  const slug = slugifyDraftTitle(postData.slug || postData.title) || `post-${Date.now().toString(36)}`;
+  const blockText = plainTextFromBlocks(blocks);
+  const htmlText = postData.content?.replace(/<[^>]*>/g, " ") ?? "";
+  const wordCount = wordCountFromText(`${postData.title} ${blockText || htmlText}`);
+  const readTimeMinutes = computeReadTimeMinutes(wordCount);
+  const content = postData.content?.trim() ? postData.content : htmlFromBlocks(blocks);
+
+  const payload = {
+    ...postData,
+    slug,
+    type,
+    content,
+    blocks: blocks as unknown as Prisma.InputJsonValue,
+    formatMeta: formatMeta as unknown as Prisma.InputJsonValue,
+    readTimeMinutes,
+    ...(createdAt ? { createdAt } : {}),
+  };
 
   let post;
   if (id && id !== "new") {
@@ -261,6 +319,12 @@ export async function upsertPost(data: {
   }
 
   revalidatePath("/blog");
+  revalidatePath("/insights");
+  revalidatePath("/work");
+  revalidatePath("/case-studies");
+  revalidatePath("/success-stories");
+  revalidatePath("/startup-ideas");
+  revalidatePath("/prompts");
   revalidatePath("/portfolio");
   revalidatePath("/admin/blog");
   return post;
@@ -273,6 +337,12 @@ export async function deletePost(id: string) {
   if (count === 0) throw new TenantAccessError("Post not found");
   await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.BLOG_DELETED, resource: "Post", resourceId: id });
   revalidatePath("/blog");
+  revalidatePath("/insights");
+  revalidatePath("/work");
+  revalidatePath("/case-studies");
+  revalidatePath("/success-stories");
+  revalidatePath("/startup-ideas");
+  revalidatePath("/prompts");
   revalidatePath("/admin/blog");
 }
 
