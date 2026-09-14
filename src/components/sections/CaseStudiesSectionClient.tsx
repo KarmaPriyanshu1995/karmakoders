@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, MotionConfig } from "framer-motion";
-import { ArrowRight, BarChart, Eye } from "lucide-react";
+import { ArrowRight, BarChart, Eye, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
