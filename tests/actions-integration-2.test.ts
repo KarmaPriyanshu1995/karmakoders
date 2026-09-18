@@ -96,8 +96,9 @@ describe("Public submission actions stamp the correct tenant", () => {
     mockSessionFor(null);
     const primary = await prisma.tenant.findFirstOrThrow({ where: { isPrimary: true } });
     const submission = await actions.submitContact({ name: "Visitor", email: `${RUN_ID}-visitor@example.com`, message: "hi" });
-    expect(submission.tenantId).toBe(primary.id);
-    await prisma.contactSubmission.delete({ where: { id: submission.id } });
+    expect(submission).not.toBeNull();
+    expect(submission!.tenantId).toBe(primary.id);
+    await prisma.contactSubmission.delete({ where: { id: submission!.id } });
   });
 
   it("subscribeNewsletter attaches the primary tenant and is idempotent per tenant+email", async () => {

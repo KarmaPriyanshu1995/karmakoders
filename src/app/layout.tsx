@@ -70,6 +70,7 @@ import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
+import { TrackingScripts } from "@/components/TrackingScripts";
 
 export default async function RootLayout({
   children,
@@ -186,10 +187,22 @@ export default async function RootLayout({
         />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
+        {process.env.NEXT_PUBLIC_GTM_ID ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        ) : null}
         <ThemeProvider initialConfig={config}>
           {children}
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
+        <TrackingScripts />
       </body>
       <GoogleAnalytics gaId="G-NG3CPDVF6F" />
     </html>

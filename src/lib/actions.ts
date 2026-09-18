@@ -20,6 +20,9 @@ import {
 import type { ContentBlock, FormatMeta } from "@/types/content";
 import { postViewCount } from "@/lib/content/view-count";
 import { normalizePostType } from "@/lib/content/post-types";
+import { headers } from "next/headers";
+import { consumeRateLimit } from "@/lib/tools/rate-limit";
+import { notifyNewLead } from "@/lib/leads";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -176,9 +179,43 @@ export async function submitContact(data: {
   email: string;
   phone?: string;
   message: string;
+  website?: string;
 }) {
+  if (data.website?.trim()) {
+    return null;
+  }
+
+  const name = data.name.trim();
+  const email = data.email.trim().toLowerCase();
+  const phone = data.phone?.trim() || undefined;
+  const message = data.message.trim();
+  if (!name || !email || !message) {
+    throw new Error("Please complete name, email, and message.");
+  }
+
+  let ip = "unknown";
+  try {
+    const h = await headers();
+    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  } catch {
+    ip = "unknown";
+  }
+
+  const limit = consumeRateLimit(`contact:${ip}:${email}`, 5, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    throw new Error("Too many submissions. Please try again later.");
+  }
+
   const tenantId = await getContextualTenantId();
-  return prisma.contactSubmission.create({ data: { ...data, tenantId } });
+  const submission = await prisma.contactSubmission.create({
+    data: { name, email, phone, message, tenantId },
+  });
+
+  void notifyNewLead({ name, email, phone, message }).catch((error) => {
+    console.error("[leads] notify failed", error);
+  });
+
+  return submission;
 }
 
 export async function getContactSubmissions() {

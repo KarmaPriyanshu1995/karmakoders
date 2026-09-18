@@ -1,44 +1,16 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Sphere, MeshDistortMaterial, Sparkles } from "@react-three/drei";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import * as THREE from "three";
-import { cn } from "@/lib/utils";
-import { useThemeStore } from "@/store/useThemeStore";
 import { usePathname } from "next/navigation";
+import { trackEvent } from "@/lib/analytics";
 
-function AnimatedSphere() {
-  const primaryColor = "#FFC300";
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.getElapsedTime() * 0.15;
-      meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.25;
-      // Add slight interactive float based on mouse
-      meshRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.2;
-    }
-  });
-  return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-      <Sphere ref={meshRef} args={[1.4, 32, 32]} position={[0, 0, 0]}>
-        <MeshDistortMaterial
-          color={primaryColor}
-          emissive={primaryColor}
-          emissiveIntensity={0.4}
-          attach="material"
-          distort={0.4}
-          speed={2}
-          roughness={0.2}
-          metalness={0.8}
-          wireframe={true}
-        />
-      </Sphere>
-    </Float>
-  );
-}
+const HeroCanvas = dynamic(
+  () => import("./HeroCanvas").then((mod) => mod.HeroCanvas),
+  { ssr: false },
+);
 
 interface HeroProps {
   badge?: string;
@@ -63,7 +35,6 @@ export function HeroSection({
 }: HeroProps) {
   const pathname = usePathname();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const primaryColor = "#FFC300";
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -78,20 +49,10 @@ export function HeroSection({
 
   return (
     <section id="hero" className={`${pathname === "/" ? "pt-12" : "pt-0"} relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950`}>
-      {/* 3D Background */}
       <div className="absolute inset-0 z-0 opacity-40">
-        <Canvas camera={{ position: [0, 0, 5] }}>
-          <ambientLight intensity={0.2} />
-          <directionalLight position={[10, 10, 5]} intensity={1.5} color={primaryColor} />
-          <pointLight position={[-10, -10, -10]} intensity={1} color={primaryColor} />
-          <Sparkles count={150} scale={10} size={1} speed={0.4} opacity={0.3} color={primaryColor} />
-          <group rotation={[mousePosition.y * 0.1, mousePosition.x * 0.1, 0]}>
-            <AnimatedSphere />
-          </group>
-        </Canvas>
+        <HeroCanvas mouseX={mousePosition.x} mouseY={mousePosition.y} />
       </div>
 
-      {/* Cyberpunk Grid Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_20%,transparent_100%)]" />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950" />
 
@@ -120,8 +81,7 @@ export function HeroSection({
           {subheadline}
         </motion.p>
 
-        {/* Small trust indicators/badges strip */}
-        <motion.div 
+        <motion.div
           className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mb-10 text-xs font-bold text-slate-400"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,10 +98,18 @@ export function HeroSection({
           className="flex flex-col sm:flex-row gap-5 w-full md:w-auto"
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
         >
-          <Link href={ctaPrimaryLink} className="px-10 py-5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-lg font-black rounded-xl transition-all duration-300 shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 w-full sm:w-auto text-center">
+          <Link
+            href={ctaPrimaryLink}
+            onClick={() => trackEvent("cta_click", { location: "hero", cta: "primary" })}
+            className="px-10 py-5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-lg font-black rounded-xl transition-all duration-300 shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 w-full sm:w-auto text-center"
+          >
             {ctaPrimary}
           </Link>
-          <Link href={ctaSecondaryLink} className="px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 text-lg font-bold rounded-xl transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 w-full sm:w-auto text-center">
+          <Link
+            href={ctaSecondaryLink}
+            onClick={() => trackEvent("cta_click", { location: "hero", cta: "secondary" })}
+            className="px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 text-lg font-bold rounded-xl transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 w-full sm:w-auto text-center"
+          >
             {ctaSecondary}
           </Link>
         </motion.div>

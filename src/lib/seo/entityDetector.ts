@@ -1,5 +1,7 @@
 // Entity Detector — Rule-based NLP with API fallback and JSON-LD output
 
+import { BRAND } from "@/lib/brand";
+
 export interface DetectedEntity {
   name: string;
   type: string;
@@ -33,15 +35,15 @@ export const DEFAULT_SITE_JSON_LD: object = {
     {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
-      name: "karmakoders",
+      name: BRAND.legalName,
       url: SITE_URL,
       description: "We build premium, scalable, and immersive web platforms powered by advanced AI.",
-      email: "info@karmakoders.com",
+      email: BRAND.email,
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_URL}/#website`,
-      name: "karmakoders",
+      name: BRAND.shortName,
       url: SITE_URL,
       publisher: { "@id": `${SITE_URL}/#organization` },
     },

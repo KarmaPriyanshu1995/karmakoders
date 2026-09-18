@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { DEFAULT_PROJECTS } from "@/lib/constants";
 import { getProjects } from "@/lib/actions";
 import { ProjectsSectionClient, type ProjectLike } from "./ProjectsSectionClient";
@@ -42,9 +41,5 @@ export async function ProjectsSection({
     }
   }
 
-  return (
-    <Suspense fallback={<div className="py-24 text-center text-white">Loading Portfolio...</div>}>
-      <ProjectsSectionClient projects={projects} isFallback={isFallback} {...rest} />
-    </Suspense>
-  );
+  return <ProjectsSectionClient projects={projects} isFallback={isFallback} {...rest} />;
 }

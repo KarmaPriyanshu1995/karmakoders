@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, MotionConfig } from "framer-motion";
 import { ArrowUpRight, ChevronLeft, ChevronRight, HelpCircle, Lightbulb, Target, Cpu, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useSearchParams } from "next/navigation";
 import { findCaseStudyDetail, DEMO_PROJECT_SLUGS } from "@/lib/caseStudyDetails";
 
 export interface ProjectLike {
@@ -48,8 +47,12 @@ export function ProjectsSectionClient({
   showViewAll = true,
   isFirstSection = false,
 }: ProjectsSectionClientProps) {
-  const searchParams = useSearchParams();
-  const categoryParam = searchParams ? searchParams.get("category") : null;
+  const [categoryParam, setCategoryParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    const category = new URLSearchParams(window.location.search).get("category");
+    setCategoryParam(category);
+  }, []);
 
   const filteredProjects = categoryParam
     ? projects.filter((p) => p.category?.toLowerCase() === categoryParam.toLowerCase())

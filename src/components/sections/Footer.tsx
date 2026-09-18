@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { subscribeNewsletter } from "@/lib/actions";
 import { toast } from "sonner";
+import { BRAND, usPhoneTel } from "@/lib/brand";
 
 const footerLinks = {
   Services: [
@@ -244,19 +245,25 @@ export function Footer() {
             <ul className="space-y-6">
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Email</p>
-                <a href="mailto:info@karmakoders.com" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">info@karmakoders.com</a>
+                <a href={`mailto:${BRAND.email}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{BRAND.email}</a>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Phone</p>
-                <a href="tel:+918690071861" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 86900 71861</a>
+                <a href={`tel:${BRAND.inPhoneTel}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{BRAND.inPhoneDisplay}</a>
+                {BRAND.usPhoneDisplay && usPhoneTel() ? (
+                  <>
+                    <br />
+                    <a href={`tel:${usPhoneTel()}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{BRAND.usPhoneDisplay}</a>
+                  </>
+                ) : null}
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Office</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">JLN Marg, Malviya Nagar,<br />Jaipur, Rajasthan</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">{BRAND.address.split(", ").slice(0, 2).join(", ")}<br />{BRAND.address.split(", ").slice(2).join(", ")}</p>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Hours</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 10AM – 7PM IST</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">{BRAND.hours}</p>
               </li>
             </ul>
           </div>
@@ -266,7 +273,7 @@ export function Footer() {
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
             <p className="text-slate-500 text-sm">
-              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">karmakoders Agency</span>. All rights reserved.
+              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">{BRAND.legalName}</span>. All rights reserved.
             </p>
             <span className="hidden md:block text-slate-700">•</span>
             <p className="text-slate-600 text-sm">

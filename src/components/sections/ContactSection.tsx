@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Clock, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
 import { toast } from "sonner";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { BRAND, isBookableUrl, usPhoneTel, whatsappHref } from "@/lib/brand";
+import { trackEvent } from "@/lib/analytics";
 
 interface ContactProps {
   isSpace?: boolean;
@@ -15,7 +17,31 @@ interface ContactProps {
   isFirstSection?: boolean;
 }
 
-function ContactFormInner({
+const SERVICE_MAP: Record<string, string> = {
+  "custom-software": "Custom Software",
+  "mobile-apps": "Mobile Apps",
+  "ai-solutions": "AI Solutions & Integrations",
+  "saas-products": "SaaS Development",
+  "website-engineering": "Website Development",
+  "ui-ux-design": "UI/UX Design",
+  "cloud-devops": "Cloud Engineering & DevOps",
+  "custom-scope": "Custom Software",
+};
+
+const SERVICE_HEADINGS: Record<string, string> = {
+  "custom-software": "Get your Custom Software estimate",
+  "mobile-apps": "Get your Mobile App estimate",
+  "ai-solutions": "Get your AI Solutions estimate",
+  "saas-products": "Get your SaaS Development estimate",
+  "website-engineering": "Get your Website Development estimate",
+  "ui-ux-design": "Get your UI/UX Design estimate",
+  "cloud-devops": "Get your Cloud & DevOps estimate",
+  "custom-scope": "Get a Free Project Scoping Estimate",
+};
+
+const TRUST_CHIPS = ["12-hour SLA", "NDA before discovery", "Senior architect assigned"];
+
+export function ContactSection({
   isSpace = false,
   tagline = "Start Your Project",
   heading = "Ready to Scale Your Digital Product?",
@@ -23,15 +49,9 @@ function ContactFormInner({
   isFirstSection = false,
 }: ContactProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const typeParam = searchParams ? searchParams.get("type") : null;
-  const serviceParam = searchParams ? searchParams.get("service") : null;
-  const messageParam = searchParams ? searchParams.get("message") : null;
-  const isEstimate = typeParam === "estimate";
-
-  const currentTagline = isEstimate ? "Free Scoping Assessment" : tagline;
-  const currentHeading = isEstimate ? "Get a Free Project Scoping Estimate" : heading;
-
+  const isContactPage = pathname === "/contact";
+  const [query, setQuery] = useState({ type: "", service: "", message: "" });
+  const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -40,41 +60,58 @@ function ContactFormInner({
     message: "",
     budget: "$10k - $25k",
     projectType: "Custom Software",
+    website: "",
   });
 
   useEffect(() => {
-    const dataToUpdate: Partial<typeof formData> = {};
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type") || "";
+    const service = params.get("service") || "";
+    const message = params.get("message") || "";
+    setQuery({ type, service, message });
 
-    if (serviceParam) {
-      const serviceMap: Record<string, string> = {
-        "custom-software": "Custom Software",
-        "mobile-apps": "Mobile Apps",
-        "ai-solutions": "AI Solutions & Integrations",
-        "saas-products": "SaaS Development",
-        "website-engineering": "Website Development",
-        "ui-ux-design": "UI/UX Design",
-        "cloud-devops": "Cloud Engineering & DevOps",
-        "custom-scope": "Custom Software",
-      };
-      const matched = serviceMap[serviceParam];
-      if (matched) {
-        dataToUpdate.projectType = matched;
-      }
+    const next: Partial<typeof formData> = {};
+    const matched = service ? SERVICE_MAP[service] : undefined;
+    if (matched) next.projectType = matched;
+    if (message) next.message = message;
+    if (Object.keys(next).length > 0) {
+      setFormData((prev) => ({ ...prev, ...next }));
     }
+  }, []);
 
-    if (messageParam) {
-      dataToUpdate.message = messageParam;
-    }
+  const isEstimate = query.type === "estimate";
+  const currentTagline = isEstimate ? "Free Scoping Assessment" : tagline;
+  const currentHeading =
+    isEstimate && query.service && SERVICE_HEADINGS[query.service]
+      ? SERVICE_HEADINGS[query.service]
+      : isEstimate
+        ? "Get a Free Project Scoping Estimate"
+        : heading;
+  const bookable = isBookableUrl(BRAND.calUrl);
+  const usTel = usPhoneTel();
+  const showAsFirst = isFirstSection || isSpace;
+  const waHref = useMemo(
+    () => whatsappHref("Hi Karmakoders — I’d like to discuss a project."),
+    [],
+  );
 
-    if (Object.keys(dataToUpdate).length > 0) {
-      setFormData((prev) => ({ ...prev, ...dataToUpdate }));
-    }
-  }, [serviceParam, messageParam]);
+  const contactItems = [
+    { icon: Mail, label: "Email Us", value: BRAND.email, href: `mailto:${BRAND.email}` },
+    { icon: Phone, label: "Call India", value: BRAND.inPhoneDisplay, href: `tel:${BRAND.inPhoneTel}` },
+    ...(BRAND.usPhoneDisplay && usTel
+      ? [{ icon: Phone, label: "Call US", value: BRAND.usPhoneDisplay, href: `tel:${usTel}` }]
+      : []),
+    { icon: Clock, label: "Hours", value: BRAND.hours, href: undefined as string | undefined },
+    {
+      icon: MapPin,
+      label: "Visit Us",
+      value: BRAND.address,
+      href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan",
+    },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Client-side validation checks
     if (!formData.name.trim()) {
       toast.error("Please enter your name.");
       return;
@@ -94,13 +131,20 @@ function ContactFormInner({
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
-        message: isEstimate 
+        website: formData.website,
+        message: isEstimate
           ? `[ESTIMATE REQUEST]\nProject Type: ${formData.projectType}\nEstimated Budget: ${formData.budget}\n\nDetails:\n${formData.message.trim()}`
-          : formData.message.trim()
+          : formData.message.trim(),
       };
 
       await submitContact(payload);
-      toast.success(isEstimate ? "Scoping estimate request sent successfully!" : "Message sent successfully! We'll get back to you soon.");
+      trackEvent("form_submit", { form: isEstimate ? "estimate" : "contact" });
+      setSubmitted(true);
+      toast.success(
+        isEstimate
+          ? "Scoping estimate request sent successfully!"
+          : "Message sent successfully! We'll get back to you soon.",
+      );
       setFormData({
         name: "",
         email: "",
@@ -108,9 +152,10 @@ function ContactFormInner({
         message: "",
         budget: "$10k - $25k",
         projectType: "Custom Software",
+        website: "",
       });
     } catch (error) {
-      toast.error("Failed to send message. Please try again later.");
+      toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again later.");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -122,17 +167,16 @@ function ContactFormInner({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const showAsFirst = isFirstSection || isSpace;
-
   return (
-    <section id="contact" aria-label="Contact us" className={`${isSpace || pathname === "/contact" ? "pt-28 sm:pt-32" : "pt-0"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
-      {/* Background glowing orb */}
+    <section
+      id="contact"
+      aria-label="Contact us"
+      className={`${isSpace || isContactPage ? "pt-28 sm:pt-32" : "pt-0"} pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}
+    >
       <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-indigo-500 opacity-[0.02] blur-[200px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
-          
-          {/* Left Column: Contact Info */}
           <div>
             <motion.div
               initial={{ opacity: 0 }}
@@ -174,27 +218,27 @@ function ContactFormInner({
               {description}
             </motion.p>
 
-            {/* Trust checkmarks list */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
               whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.25 }}
-              className="mt-6 flex flex-col gap-2 text-slate-400 text-sm font-semibold"
+              className="mt-6 flex flex-wrap gap-2"
             >
-              {["✔ 12-Hour SLA Response Time", "✔ Senior Systems Architect Lead Assigner", "✔ NDA Signed Before Discovery", "✔ 100% Free Scoping Assessment & Plan"].map((t) => (
-                <span key={t}>{t}</span>
+              {TRUST_CHIPS.map((chip) => (
+                <span
+                  key={chip}
+                  className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-slate-300"
+                >
+                  {chip}
+                </span>
               ))}
             </motion.div>
-            
+
             <div className="mt-16 space-y-10">
-              {[
-                { icon: Mail, label: "Email Us", value: "info@karmakoders.com", href: "mailto:info@karmakoders.com" },
-                { icon: Phone, label: "Call Us", value: "+91 86900 71861", href: "tel:+918690071861" },
-                { icon: MapPin, label: "Visit Us", value: "JLN Marg, Malviya Nagar, Jaipur, Rajasthan", href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan" },
-              ].map((item, i) => (
-                <motion.div 
+              {contactItems.map((item, i) => (
+                <motion.div
                   key={item.label}
                   initial={{ opacity: 0, y: 20 }}
                   animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
@@ -208,16 +252,24 @@ function ContactFormInner({
                   </div>
                   <div className="pt-1">
                     <h4 className="text-white font-bold text-xl mb-1 group-hover:text-indigo-500 transition-colors">{item.label}</h4>
-                    <a href={item.href} target={item.label === "Visit Us" ? "_blank" : undefined} rel="noopener noreferrer" className="text-[#D6D6D6] text-lg hover:text-indigo-500 transition-colors">
-                      {item.value}
-                    </a>
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        target={item.label === "Visit Us" ? "_blank" : undefined}
+                        rel="noopener noreferrer"
+                        className="text-[#D6D6D6] text-lg hover:text-indigo-500 transition-colors"
+                      >
+                        {item.value}
+                      </a>
+                    ) : (
+                      <p className="text-[#D6D6D6] text-lg">{item.value}</p>
+                    )}
                   </div>
                 </motion.div>
               ))}
             </div>
 
-            {/* Social Links */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
               whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
@@ -236,149 +288,210 @@ function ContactFormInner({
               </a>
             </motion.div>
           </div>
-          
-          {/* Right Column: Contact Form */}
+
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
             whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="p-8 md:p-12 rounded-[2.5rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.2)] hover:border-indigo-500/30 transition-colors duration-500"
+            className="space-y-8"
           >
-            <h3 className="text-3xl font-bold text-white mb-8">
-              {isEstimate ? "Request Custom Estimate" : "Send a Message"}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="relative group">
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                    placeholder="John Doe"
-                  />
-                  <label htmlFor="name" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
-                    Full Name
-                  </label>
-                </div>
-                
-                <div className="relative group">
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                    placeholder="john@example.com"
-                  />
-                  <label htmlFor="email" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
-                    Email Address
-                  </label>
-                </div>
-              </div>
-              
-              <div className="relative group">
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                  placeholder="+91 98765 43210"
+            {isContactPage && bookable ? (
+              <div className="rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 min-h-[640px]">
+                <iframe
+                  src={BRAND.calUrl}
+                  title="Book a 20-min discovery call"
+                  className="w-full h-[640px]"
+                  loading="lazy"
                 />
-                <label htmlFor="phone" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
-                  Phone Number (Optional)
-                </label>
               </div>
+            ) : null}
 
-              {isEstimate && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="relative group">
-                    <select
-                      id="budget"
-                      name="budget"
-                      value={formData.budget}
-                      onChange={handleChange}
-                      className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+            <div className="p-8 md:p-12 rounded-[2.5rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.2)] hover:border-indigo-500/30 transition-colors duration-500">
+              {submitted ? (
+                <div className="text-center py-8 space-y-6">
+                  <h3 className="text-3xl font-bold text-white">We reply within 12 hours — or book a slot now</h3>
+                  <p className="text-[#D6D6D6]">Your inquiry is saved. Pick a time or ping us on WhatsApp if you need a faster start.</p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    {bookable ? (
+                      <a
+                        href={BRAND.calUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackEvent("cta_click", { location: "contact_success", target: "cal" })}
+                        className="px-8 py-4 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-center"
+                      >
+                        Book a 20-min call
+                      </a>
+                    ) : null}
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackEvent("whatsapp_click", { location: "contact_success" })}
+                      className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-bold text-center"
                     >
-                      <option value="$10k - $25k">$10k - $25k</option>
-                      <option value="$25k - $50k">$25k - $50k</option>
-                      <option value="$50k - $100k">$50k - $100k</option>
-                      <option value="$100k+">$100k+</option>
-                    </select>
-                    <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
-                      Estimated Budget
-                    </span>
-                  </div>
-                  
-                  <div className="relative group">
-                    <select
-                      id="projectType"
-                      name="projectType"
-                      value={formData.projectType}
-                      onChange={handleChange}
-                      className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                    >
-                      <option value="Custom Software">Custom Software</option>
-                      <option value="Mobile Apps">Mobile Apps</option>
-                      <option value="AI Solutions & Integrations">AI Solutions</option>
-                      <option value="SaaS Development">SaaS Development</option>
-                      <option value="Website Development">Website Development</option>
-                      <option value="UI/UX Design">UI/UX Design</option>
-                      <option value="Cloud Engineering & DevOps">Cloud & DevOps</option>
-                    </select>
-                    <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
-                      Project Type
-                    </span>
+                      WhatsApp us
+                    </a>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <h3 className="text-3xl font-bold text-white mb-8">
+                    {isEstimate ? "Request Custom Estimate" : "Send a Message"}
+                  </h3>
+                  <form onSubmit={handleSubmit} className="relative space-y-6">
+                    <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                      <label htmlFor="website">Website</label>
+                      <input
+                        type="text"
+                        id="website"
+                        name="website"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={formData.website}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          required
+                          value={formData.name}
+                          onChange={handleChange}
+                          className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                          placeholder="John Doe"
+                        />
+                        <label htmlFor="name" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
+                          Full Name
+                        </label>
+                      </div>
+
+                      <div className="relative group">
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          required
+                          value={formData.email}
+                          onChange={handleChange}
+                          className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                          placeholder="john@example.com"
+                        />
+                        <label htmlFor="email" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
+                          Email Address
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="relative group">
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="peer w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                        placeholder="+1 555 000 0000"
+                      />
+                      <label htmlFor="phone" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-3 peer-focus:text-xs peer-focus:text-indigo-500 peer-focus:bg-slate-900 peer-focus:px-1 peer-[&:not(:placeholder-shown)]:-top-2.5 peer-[&:not(:placeholder-shown)]:left-3 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1 pointer-events-none rounded-md">
+                        Phone Number (Optional)
+                      </label>
+                    </div>
+
+                    {isEstimate && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="relative group">
+                          <select
+                            id="budget"
+                            name="budget"
+                            value={formData.budget}
+                            onChange={handleChange}
+                            className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                          >
+                            <option value="$10k - $25k">$10k - $25k</option>
+                            <option value="$25k - $50k">$25k - $50k</option>
+                            <option value="$50k - $100k">$50k - $100k</option>
+                            <option value="$100k+">$100k+</option>
+                          </select>
+                          <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
+                            Estimated Budget
+                          </span>
+                        </div>
+
+                        <div className="relative group">
+                          <select
+                            id="projectType"
+                            name="projectType"
+                            value={formData.projectType}
+                            onChange={handleChange}
+                            className="w-full h-14 bg-slate-900 border border-white/10 rounded-xl px-4 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                          >
+                            <option value="Custom Software">Custom Software</option>
+                            <option value="Mobile Apps">Mobile Apps</option>
+                            <option value="AI Solutions & Integrations">AI Solutions</option>
+                            <option value="SaaS Development">SaaS Development</option>
+                            <option value="Website Development">Website Development</option>
+                            <option value="UI/UX Design">UI/UX Design</option>
+                            <option value="Cloud Engineering & DevOps">Cloud & DevOps</option>
+                          </select>
+                          <span className="absolute left-3 -top-2.5 text-xs text-indigo-500 bg-slate-900 px-1 rounded-md">
+                            Project Type
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative group">
+                      <textarea
+                        id="message"
+                        name="message"
+                        required
+                        rows={5}
+                        value={formData.message}
+                        onChange={handleChange}
+                        className="peer w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none resize-none pt-6"
+                        placeholder={isEstimate ? "Provide extra details about your requirements..." : "Tell us about your project idea..."}
+                      />
+                      <label htmlFor="message" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-5 peer-placeholder-shown:text-slate-500 peer-focus:top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:text-indigo-500 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:left-4 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] pointer-events-none rounded-md">
+                        {isEstimate ? "Requirements Details" : "Project Details"}
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full h-16 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-lg flex items-center justify-center gap-2 group shadow-indigo-500/30 cursor-pointer hover:shadow-indigo-500/50 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                    >
+                      {isSubmitting ? "Sending Transmission..." : isEstimate ? "Request Free Estimate" : "Send Message"}
+                      {!isSubmitting && <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
+                    </button>
+                  </form>
+                </>
               )}
-              
-              <div className="relative group">
-                <textarea
-                  id="message"
-                  name="message"
-                  required
-                  rows={5}
-                  value={formData.message}
-                  onChange={handleChange}
-                  className="peer w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white placeholder-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none resize-none pt-6"
-                  placeholder={isEstimate ? "Provide extra details about your requirements..." : "Tell us about your project idea..."}
-                />
-                <label htmlFor="message" className="absolute left-4 top-4 text-[#D6D6D6] text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-5 peer-placeholder-shown:text-slate-500 peer-focus:top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:text-indigo-500 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:left-4 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-[#D6D6D6] pointer-events-none rounded-md">
-                  {isEstimate ? "Requirements Details" : "Project Details"}
-                </label>
-              </div>
-              
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-16 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 rounded-xl font-black text-lg flex items-center justify-center gap-2 group shadow-indigo-500/30 cursor-pointer hover:shadow-indigo-500/50 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                {isSubmitting ? "Sending Transmission..." : (isEstimate ? "Request Free Estimate" : "Send Message")}
-                {!isSubmitting && <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
-              </button>
-            </form>
+            </div>
           </motion.div>
         </div>
       </div>
-    </section>
-  );
-}
 
-export function ContactSection(props: ContactProps) {
-  return (
-    <Suspense fallback={<div className="py-24 text-center text-white">Loading Form...</div>}>
-      <ContactFormInner {...props} />
-    </Suspense>
+      {isContactPage ? (
+        <a
+          href={waHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackEvent("whatsapp_click", { location: "contact_sticky" })}
+          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 font-bold text-slate-950 shadow-lg hover:scale-105 transition-transform"
+          aria-label="Chat on WhatsApp"
+        >
+          <MessageCircle className="w-5 h-5" />
+          WhatsApp
+        </a>
+      ) : null}
+    </section>
   );
 }

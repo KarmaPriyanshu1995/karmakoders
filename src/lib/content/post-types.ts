@@ -1,5 +1,6 @@
 import type { FormatMeta, PostType } from "@/types/content";
 import { POST_TYPES } from "@/types/content";
+import { BRAND } from "@/lib/brand";
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
   blog: "Blog",
@@ -37,8 +38,8 @@ export const POST_TYPE_HUB: Record<PostType, { href: string; name: string; descr
   },
 };
 
-export const DEFAULT_WHATSAPP_NUMBER = "918690071861";
-export const DEFAULT_CAL_URL = "https://cal.com";
+export const DEFAULT_WHATSAPP_NUMBER = BRAND.whatsapp;
+export const DEFAULT_CAL_URL = BRAND.calUrl;
 export const SITE_URL = "https://www.karmakoders.com";
 
 export function isPostType(value: string | null | undefined): value is PostType {
