@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { ClientLogoStrip } from "@/components/sections/ClientLogoStrip";
 
 const HeroCanvas = dynamic(
   () => import("./HeroCanvas").then((mod) => mod.HeroCanvas),
@@ -29,9 +30,9 @@ export function HeroSection({
   highlight = "Built for the US Market.",
   subheadline = "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
   ctaPrimary = "Book Discovery Call",
-  ctaSecondary = "Get Free Estimate",
+  ctaSecondary = "Estimate my MVP cost",
   ctaPrimaryLink = "/contact",
-  ctaSecondaryLink = "/contact?type=estimate",
+  ctaSecondaryLink = "/free-tools/mvp-cost-calculator",
 }: HeroProps) {
   const pathname = usePathname();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -106,14 +107,19 @@ export function HeroSection({
             {ctaPrimary}
           </Link>
           <Link
-            href={ctaSecondaryLink}
+            href={
+              pathname === "/" && ctaSecondaryLink === "/contact?type=estimate"
+                ? "/free-tools/mvp-cost-calculator"
+                : ctaSecondaryLink
+            }
             onClick={() => trackEvent("cta_click", { location: "hero", cta: "secondary" })}
             className="px-10 py-5 bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 text-lg font-bold rounded-xl transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/10 hover:-translate-y-1 w-full sm:w-auto text-center"
           >
-            {ctaSecondary}
+            {pathname === "/" && ctaSecondary === "Get Free Estimate" ? "Estimate my MVP cost" : ctaSecondary}
           </Link>
         </motion.div>
 
+        {pathname === "/" ? <ClientLogoStrip /> : null}
 
       </div>
     </section>

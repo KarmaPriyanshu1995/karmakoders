@@ -87,7 +87,9 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
         highlight: "Built for the US Market.",
         subheadline: "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
         ctaPrimary: "Book Discovery Call",
-        ctaSecondary: "Get Free Estimate",
+        ctaSecondary: "Estimate my MVP cost",
+        ctaPrimaryLink: "/contact",
+        ctaSecondaryLink: "/free-tools/mvp-cost-calculator",
       },
     },
     {

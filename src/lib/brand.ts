@@ -16,6 +16,16 @@ export function usPhoneTel() {
   return raw.startsWith("+") ? raw : raw ? `+${raw}` : "";
 }
 
+/** US number first when present — India is always listed. */
+export function brandPhones() {
+  const india = { label: "India", display: BRAND.inPhoneDisplay, tel: BRAND.inPhoneTel };
+  const usTel = usPhoneTel();
+  if (BRAND.usPhoneDisplay && usTel) {
+    return [{ label: "US", display: BRAND.usPhoneDisplay, tel: usTel }, india];
+  }
+  return [india];
+}
+
 export function whatsappHref(text?: string) {
   const base = `https://wa.me/${BRAND.whatsapp}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;

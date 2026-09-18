@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Code2, Cpu, Layers, TrendingUp, Users, Zap } from "lucide-react";
+import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 
 const defaultFeatures = [
   { icon: Zap, title: "Lightning Fast", desc: "Optimised for Core Web Vitals with sub-second load times." },
@@ -46,6 +47,7 @@ export function AboutSection({
   isFirstSection = false,
 }: AboutProps) {
   return (
+    <>
     <section id="about" aria-label="About us" className="relative pt-28 sm:pt-32 pb-20 sm:pb-32 px-4 sm:px-6 md:px-12 overflow-hidden">
       {/* bg glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500 opacity-[0.02] blur-[200px] pointer-events-none" />
@@ -121,5 +123,7 @@ export function AboutSection({
         </div>
       </div>
     </section>
+    <TestimonialsSection tagline="Social proof" heading="What teams say after we ship" />
+    </>
   );
 }

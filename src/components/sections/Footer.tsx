@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { subscribeNewsletter } from "@/lib/actions";
 import { toast } from "sonner";
-import { BRAND, usPhoneTel } from "@/lib/brand";
+import { BRAND, brandPhones } from "@/lib/brand";
 
 const footerLinks = {
   Services: [
@@ -249,13 +249,15 @@ export function Footer() {
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Phone</p>
-                <a href={`tel:${BRAND.inPhoneTel}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{BRAND.inPhoneDisplay}</a>
-                {BRAND.usPhoneDisplay && usPhoneTel() ? (
-                  <>
-                    <br />
-                    <a href={`tel:${usPhoneTel()}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{BRAND.usPhoneDisplay}</a>
-                  </>
-                ) : null}
+                {brandPhones().map((phone) => (
+                  <a
+                    key={phone.tel}
+                    href={`tel:${phone.tel}`}
+                    className="block text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors"
+                  >
+                    {phone.label}: {phone.display}
+                  </a>
+                ))}
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Office</p>

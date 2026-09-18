@@ -218,6 +218,48 @@ export async function submitContact(data: {
   return submission;
 }
 
+export async function submitCalculatorLead(data: {
+  name: string;
+  email: string;
+  company?: string;
+  website?: string;
+  userLoad: string;
+  tier: string;
+  compliance: string;
+  range: string;
+  weeks: number;
+  summary: string;
+}) {
+  const company = data.company?.trim();
+  const displayName = company ? `${data.name.trim()} (${company})` : data.name.trim();
+  const message = [
+    "[MVP CALCULATOR]",
+    `Summary: ${data.summary}`,
+    `Range: ${data.range}`,
+    `Timeline: ${data.weeks} weeks`,
+    `User load: ${data.userLoad}`,
+    `Tier: ${data.tier}`,
+    `Compliance: ${data.compliance}`,
+  ].join("\n");
+
+  const submission = await submitContact({
+    name: displayName,
+    email: data.email,
+    website: data.website,
+    message,
+  });
+
+  if (submission) {
+    try {
+      await subscribeNewsletter(data.email);
+    } catch (error) {
+      console.error("[calculator] newsletter upsert failed", error);
+    }
+  }
+
+  return submission;
+}
+
 export async function getContactSubmissions() {
   const { tenantId, role, permissionOverrides } = await requireTenantContext();
   assertPermission(role, PERMISSIONS.INQUIRY_VIEW, permissionOverrides);

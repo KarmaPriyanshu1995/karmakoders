@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PRICING, pricingForTier } from "@/lib/pricing";
+import { PricingExtras } from "@/components/sections/PricingExtras";
 
 const defaultModels = [
   {
@@ -134,8 +136,9 @@ export function EngagementSection({
 
                 {/* Price tag as Custom Proposal */}
                 <div className="py-4 border-y border-white/5 mb-6 flex flex-col gap-1">
-                  <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pricing Structure</span>
-                  <span className="text-3xl font-black text-white">Custom Proposal</span>
+                  <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Starting from</span>
+                  <span className="text-3xl font-black text-white">{pricingForTier(model.name).from}</span>
+                  <span className="text-sm text-indigo-300 font-semibold">{pricingForTier(model.name).typical}</span>
                 </div>
 
                 {/* Meta details */}
@@ -182,6 +185,10 @@ export function EngagementSection({
             </motion.div>
           ))}
         </div>
+
+        {isPricingPage ? <PricingExtras /> : (
+          <p className="mt-12 text-center text-sm text-slate-500">{PRICING.disclaimer}</p>
+        )}
       </div>
     </section>
   );

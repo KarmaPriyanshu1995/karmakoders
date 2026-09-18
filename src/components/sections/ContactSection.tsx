@@ -6,8 +6,10 @@ import { Clock, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
-import { BRAND, isBookableUrl, usPhoneTel, whatsappHref } from "@/lib/brand";
+import { BRAND, brandPhones, isBookableUrl, whatsappHref } from "@/lib/brand";
 import { trackEvent } from "@/lib/analytics";
+import { TESTIMONIALS } from "@/lib/social-proof";
+import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 
 interface ContactProps {
   isSpace?: boolean;
@@ -88,8 +90,8 @@ export function ContactSection({
         ? "Get a Free Project Scoping Estimate"
         : heading;
   const bookable = isBookableUrl(BRAND.calUrl);
-  const usTel = usPhoneTel();
   const showAsFirst = isFirstSection || isSpace;
+  const featuredQuote = TESTIMONIALS[0];
   const waHref = useMemo(
     () => whatsappHref("Hi Karmakoders — I’d like to discuss a project."),
     [],
@@ -97,16 +99,18 @@ export function ContactSection({
 
   const contactItems = [
     { icon: Mail, label: "Email Us", value: BRAND.email, href: `mailto:${BRAND.email}` },
-    { icon: Phone, label: "Call India", value: BRAND.inPhoneDisplay, href: `tel:${BRAND.inPhoneTel}` },
-    ...(BRAND.usPhoneDisplay && usTel
-      ? [{ icon: Phone, label: "Call US", value: BRAND.usPhoneDisplay, href: `tel:${usTel}` }]
-      : []),
+    ...brandPhones().map((phone) => ({
+      icon: Phone,
+      label: `Call ${phone.label}`,
+      value: phone.display,
+      href: `tel:${phone.tel}` as string | undefined,
+    })),
     { icon: Clock, label: "Hours", value: BRAND.hours, href: undefined as string | undefined },
     {
       icon: MapPin,
       label: "Visit Us",
       value: BRAND.address,
-      href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan",
+      href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan" as string | undefined,
     },
   ];
 
@@ -168,6 +172,7 @@ export function ContactSection({
   };
 
   return (
+    <>
     <section
       id="contact"
       aria-label="Contact us"
@@ -176,6 +181,17 @@ export function ContactSection({
       <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-indigo-500 opacity-[0.02] blur-[200px] rounded-full pointer-events-none transform -translate-y-1/2 translate-x-1/4" />
 
       <div className="max-w-7xl mx-auto relative z-10">
+        {isContactPage && bookable ? (
+          <div className="mb-16 rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 min-h-[640px]">
+            <p className="px-6 pt-6 text-sm font-bold uppercase tracking-widest text-indigo-400">Book a 20-min discovery call</p>
+            <iframe
+              src={BRAND.calUrl}
+              title="Book a 20-min discovery call"
+              className="w-full h-[640px]"
+              loading="lazy"
+            />
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
           <div>
             <motion.div
@@ -236,6 +252,18 @@ export function ContactSection({
               ))}
             </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
+              whileInView={showAsFirst ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-8 p-5 rounded-2xl border border-white/10 bg-white/5"
+            >
+              <p className="text-slate-300 italic leading-relaxed">&quot;{featuredQuote.quote}&quot;</p>
+              <p className="mt-3 text-sm font-bold text-white">
+                {featuredQuote.name} · {featuredQuote.role}, {featuredQuote.company}
+              </p>
+            </motion.div>
             <div className="mt-16 space-y-10">
               {contactItems.map((item, i) => (
                 <motion.div
@@ -297,17 +325,6 @@ export function ContactSection({
             transition={{ delay: 0.2, duration: 0.6 }}
             className="space-y-8"
           >
-            {isContactPage && bookable ? (
-              <div className="rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 min-h-[640px]">
-                <iframe
-                  src={BRAND.calUrl}
-                  title="Book a 20-min discovery call"
-                  className="w-full h-[640px]"
-                  loading="lazy"
-                />
-              </div>
-            ) : null}
-
             <div className="p-8 md:p-12 rounded-[2.5rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.2)] hover:border-indigo-500/30 transition-colors duration-500">
               {submitted ? (
                 <div className="text-center py-8 space-y-6">
@@ -493,5 +510,7 @@ export function ContactSection({
         </a>
       ) : null}
     </section>
+    {isContactPage ? <TestimonialsSection tagline="Social proof" heading="What teams say after we ship" compact /> : null}
+    </>
   );
 }
