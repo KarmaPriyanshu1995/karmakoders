@@ -251,12 +251,12 @@ export function Footer() {
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
             <p className="text-slate-500 text-sm">
-              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">karmakoders Agency</span>. All rights reserved.
+              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">Karmakoders Technologies</span>. All rights reserved.
             </p>
-            <span className="hidden md:block text-slate-700">•</span>
+            {/* <span className="hidden md:block text-slate-700">•</span>
             <p className="text-slate-600 text-sm">
               Crafted with <span className="text-indigo-500">♥</span> in Jaipur, India
-            </p>
+            </p> */}
           </div>
 
           <button
