@@ -1,18 +1,21 @@
+"use client";
+
 import Link from "next/link";
-import { PRICING } from "@/lib/pricing";
+import { useSiteContent } from "@/components/SiteContentProvider";
 
 export function PricingExtras() {
+  const { pricing } = useSiteContent();
   return (
     <div className="mt-20 space-y-16">
-      <p className="text-center text-sm text-slate-500">{PRICING.disclaimer}</p>
+      <p className="text-center text-sm text-slate-500">{pricing.disclaimer}</p>
 
       <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 md:p-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-2">Retainer</p>
-          <h3 className="text-3xl font-black text-white">{PRICING.retainer.name}</h3>
-          <p className="text-2xl font-bold text-white mt-2">{PRICING.retainer.from}</p>
-          <p className="text-slate-400 mt-2 max-w-xl">{PRICING.retainer.description}</p>
-          <p className="text-sm text-slate-500 mt-1">{PRICING.retainer.typical}</p>
+          <h3 className="text-3xl font-black text-white">{pricing.retainer.name}</h3>
+          <p className="text-2xl font-bold text-white mt-2">{pricing.retainer.from}</p>
+          <p className="text-slate-400 mt-2 max-w-xl">{pricing.retainer.description}</p>
+          <p className="text-sm text-slate-500 mt-1">{pricing.retainer.typical}</p>
         </div>
         <Link
           href="/contact"
@@ -33,7 +36,7 @@ export function PricingExtras() {
             </tr>
           </thead>
           <tbody>
-            {PRICING.comparison.map((row) => (
+            {pricing.comparison.map((row) => (
               <tr key={row.label} className="border-t border-white/10 text-sm">
                 <td className="px-6 py-4 font-bold text-white">{row.label}</td>
                 <td className="px-6 py-4 text-slate-300">{row.starter}</td>
@@ -47,7 +50,7 @@ export function PricingExtras() {
 
       <div className="max-w-3xl mx-auto space-y-4">
         <h3 className="text-2xl font-black text-white text-center mb-8">Pricing FAQ</h3>
-        {PRICING.faqs.map((faq) => (
+        {pricing.faqs.map((faq) => (
           <details key={faq.question} className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <summary className="cursor-pointer font-bold text-white">{faq.question}</summary>
             <p className="mt-3 text-slate-400 leading-relaxed">{faq.answer}</p>

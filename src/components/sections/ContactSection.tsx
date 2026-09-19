@@ -6,9 +6,9 @@ import { Clock, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { submitContact } from "@/lib/actions";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
-import { BRAND, brandPhones, isBookableUrl, whatsappHref } from "@/lib/brand";
+import { brandPhones, isBookableUrl, whatsappHref } from "@/lib/brand";
 import { trackEvent } from "@/lib/analytics";
-import { TESTIMONIALS } from "@/lib/social-proof";
+import { useSiteContent } from "@/components/SiteContentProvider";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 
 interface ContactProps {
@@ -52,6 +52,7 @@ export function ContactSection({
 }: ContactProps) {
   const pathname = usePathname();
   const isContactPage = pathname === "/contact";
+  const { brand, testimonials } = useSiteContent();
   const [query, setQuery] = useState({ type: "", service: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,27 +90,27 @@ export function ContactSection({
       : isEstimate
         ? "Get a Free Project Scoping Estimate"
         : heading;
-  const bookable = isBookableUrl(BRAND.calUrl);
+  const bookable = isBookableUrl(brand.calUrl);
   const showAsFirst = isFirstSection || isSpace;
-  const featuredQuote = TESTIMONIALS[0];
+  const featuredQuote = testimonials[0];
   const waHref = useMemo(
-    () => whatsappHref("Hi Karmakoders — I’d like to discuss a project."),
-    [],
+    () => whatsappHref("Hi Karmakoders — I’d like to discuss a project.", brand.whatsapp),
+    [brand.whatsapp],
   );
 
   const contactItems = [
-    { icon: Mail, label: "Email Us", value: BRAND.email, href: `mailto:${BRAND.email}` },
-    ...brandPhones().map((phone) => ({
+    { icon: Mail, label: "Email Us", value: brand.email, href: `mailto:${brand.email}` },
+    ...brandPhones(brand).map((phone) => ({
       icon: Phone,
       label: `Call ${phone.label}`,
       value: phone.display,
       href: `tel:${phone.tel}` as string | undefined,
     })),
-    { icon: Clock, label: "Hours", value: BRAND.hours, href: undefined as string | undefined },
+    { icon: Clock, label: "Hours", value: brand.hours, href: undefined as string | undefined },
     {
       icon: MapPin,
       label: "Visit Us",
-      value: BRAND.address,
+      value: brand.address,
       href: "https://maps.google.com/?q=JLN+Marg,+Malviya+Nagar,+Jaipur,+Rajasthan" as string | undefined,
     },
   ];
@@ -185,7 +186,7 @@ export function ContactSection({
           <div className="mb-16 rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 min-h-[640px]">
             <p className="px-6 pt-6 text-sm font-bold uppercase tracking-widest text-indigo-400">Book a 20-min discovery call</p>
             <iframe
-              src={BRAND.calUrl}
+              src={brand.calUrl}
               title="Book a 20-min discovery call"
               className="w-full h-[640px]"
               loading="lazy"
@@ -252,6 +253,7 @@ export function ContactSection({
               ))}
             </motion.div>
 
+            {featuredQuote ? (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={showAsFirst ? { opacity: 1, y: 0 } : undefined}
@@ -264,6 +266,7 @@ export function ContactSection({
                 {featuredQuote.name} · {featuredQuote.role}, {featuredQuote.company}
               </p>
             </motion.div>
+            ) : null}
             <div className="mt-16 space-y-10">
               {contactItems.map((item, i) => (
                 <motion.div
@@ -333,7 +336,7 @@ export function ContactSection({
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     {bookable ? (
                       <a
-                        href={BRAND.calUrl}
+                        href={brand.calUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => trackEvent("cta_click", { location: "contact_success", target: "cal" })}

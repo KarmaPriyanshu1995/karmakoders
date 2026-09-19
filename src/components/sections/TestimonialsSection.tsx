@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Quote, Star } from "lucide-react";
-import { TESTIMONIALS, type Testimonial } from "@/lib/social-proof";
+import { type Testimonial } from "@/lib/social-proof";
+import { useSiteContent } from "@/components/SiteContentProvider";
 
 interface TestimonialsProps {
   tagline?: string;
@@ -42,10 +43,11 @@ function initials(name: string) {
 export function TestimonialsSection({
   tagline = "Testimonials",
   heading = "What Our Clients Say",
-  testimonials = TESTIMONIALS,
+  testimonials,
   compact = false,
 }: TestimonialsProps) {
-  const cards = normalizeTestimonials(testimonials).slice(0, 3);
+  const live = useSiteContent();
+  const cards = normalizeTestimonials(testimonials ?? live.testimonials).slice(0, 3);
 
   return (
     <section

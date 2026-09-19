@@ -28,6 +28,7 @@ import {
   Sparkles,
   Tags,
   Handshake,
+  Quote,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,7 @@ const navItems: NavItem[] = [
   },
   { href: "/admin/users", label: "Users", icon: Users, section: "USERS" },
   { href: "/admin/appearance", label: "Appearance", icon: Palette, section: "SETTINGS" },
+  { href: "/admin/site-content", label: "Site Content", icon: Quote, section: "SETTINGS" },
   {
     href: "/admin/seo",
     label: "SEO Intelligence",

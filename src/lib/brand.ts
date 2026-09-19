@@ -11,23 +11,32 @@ export const BRAND = {
   calUrl: process.env.NEXT_PUBLIC_CAL_URL || "https://cal.com",
 } as const;
 
-export function usPhoneTel() {
-  const raw = BRAND.usPhoneDisplay.replace(/[^\d+]/g, "");
+export function telFromDisplay(display: string) {
+  const raw = display.replace(/[^\d+]/g, "");
   return raw.startsWith("+") ? raw : raw ? `+${raw}` : "";
 }
 
+export function usPhoneTel() {
+  return telFromDisplay(BRAND.usPhoneDisplay);
+}
+
 /** US number first when present — India is always listed. */
-export function brandPhones() {
-  const india = { label: "India", display: BRAND.inPhoneDisplay, tel: BRAND.inPhoneTel };
-  const usTel = usPhoneTel();
-  if (BRAND.usPhoneDisplay && usTel) {
-    return [{ label: "US", display: BRAND.usPhoneDisplay, tel: usTel }, india];
+export function brandPhones(brand: {
+  inPhoneDisplay: string;
+  inPhoneTel: string;
+  usPhoneDisplay: string;
+} = BRAND) {
+  const india = { label: "India", display: brand.inPhoneDisplay, tel: brand.inPhoneTel };
+  const usTel = telFromDisplay(brand.usPhoneDisplay);
+  if (brand.usPhoneDisplay?.trim() && usTel) {
+    return [{ label: "US", display: brand.usPhoneDisplay, tel: usTel }, india];
   }
   return [india];
 }
 
-export function whatsappHref(text?: string) {
-  const base = `https://wa.me/${BRAND.whatsapp}`;
+export function whatsappHref(text?: string, number = BRAND.whatsapp) {
+  const digits = number.replace(/\D/g, "");
+  const base = `https://wa.me/${digits}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 

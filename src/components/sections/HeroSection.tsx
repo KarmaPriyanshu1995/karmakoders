@@ -1,17 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState, type ComponentType } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { ClientLogoStrip } from "@/components/sections/ClientLogoStrip";
 
-const HeroCanvas = dynamic(
-  () => import("./HeroCanvas").then((mod) => mod.HeroCanvas),
-  { ssr: false },
-);
+type HeroCanvasProps = { mouseX: number; mouseY: number };
+
+function LazyHeroCanvas(props: HeroCanvasProps) {
+  const [Canvas, setCanvas] = useState<ComponentType<HeroCanvasProps> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("./HeroCanvas").then((mod) => {
+      if (!cancelled) setCanvas(() => mod.HeroCanvas);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!Canvas) return null;
+  return <Canvas {...props} />;
+}
 
 interface HeroProps {
   badge?: string;
@@ -51,7 +64,7 @@ export function HeroSection({
   return (
     <section id="hero" className={`${pathname === "/" ? "pt-12" : "pt-0"} relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-slate-950`}>
       <div className="absolute inset-0 z-0 opacity-40">
-        <HeroCanvas mouseX={mousePosition.x} mouseY={mousePosition.y} />
+        <LazyHeroCanvas mouseX={mousePosition.x} mouseY={mousePosition.y} />
       </div>
 
       <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_20%,transparent_100%)]" />

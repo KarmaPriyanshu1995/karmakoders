@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Sphere, MeshDistortMaterial, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
@@ -34,15 +34,26 @@ function AnimatedSphere() {
 }
 
 export function HeroCanvas({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!mounted) return <div className="h-full w-full" />;
+
   return (
-    <Canvas camera={{ position: [0, 0, 5] }}>
-      <ambientLight intensity={0.2} />
-      <directionalLight position={[10, 10, 5]} intensity={1.5} color="#FFC300" />
-      <pointLight position={[-10, -10, -10]} intensity={1} color="#FFC300" />
-      <Sparkles count={150} scale={10} size={1} speed={0.4} opacity={0.3} color="#FFC300" />
-      <group rotation={[mouseY * 0.1, mouseX * 0.1, 0]}>
-        <AnimatedSphere />
-      </group>
-    </Canvas>
+    <div className="h-full w-full">
+      <Canvas camera={{ position: [0, 0, 5] }} style={{ width: "100%", height: "100%", display: "block" }}>
+        <ambientLight intensity={0.2} />
+        <directionalLight position={[10, 10, 5]} intensity={1.5} color="#FFC300" />
+        <pointLight position={[-10, -10, -10]} intensity={1} color="#FFC300" />
+        <Sparkles count={150} scale={10} size={1} speed={0.4} opacity={0.3} color="#FFC300" />
+        <group rotation={[mouseY * 0.1, mouseX * 0.1, 0]}>
+          <AnimatedSphere />
+        </group>
+      </Canvas>
+    </div>
   );
 }

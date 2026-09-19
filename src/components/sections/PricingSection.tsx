@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { PRICING } from "@/lib/pricing";
 import { PricingExtras } from "@/components/sections/PricingExtras";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
+import { useSiteContent } from "@/components/SiteContentProvider";
 
 interface PricingProps {
   tagline?: string;
@@ -19,6 +19,7 @@ export function PricingSection({
   heading = "Invest in Your Digital Dominance",
   isFirstSection = false,
 }: PricingProps) {
+  const { pricing } = useSiteContent();
   return (
     <>
     <section id="pricing" aria-label="Pricing plans" className="pt-28 sm:pt-32 pb-16 px-4 sm:px-6 md:px-12 bg-[#252422] relative overflow-hidden">
@@ -55,7 +56,7 @@ export function PricingSection({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-          {PRICING.tiers.map((plan, i) => (
+          {pricing.tiers.map((plan, i) => (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 40 }}

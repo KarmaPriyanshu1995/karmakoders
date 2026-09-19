@@ -68,16 +68,21 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
 import { TrackingScripts } from "@/components/TrackingScripts";
+import { SiteContentProvider } from "@/components/SiteContentProvider";
+import { mergeSiteContent } from "@/lib/site-content";
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const config = await getSiteConfig("globalTheme");
+  const [config, savedContent] = await Promise.all([
+    getSiteConfig("globalTheme"),
+    getSiteConfig("publicContent"),
+  ]);
+  const siteContent = mergeSiteContent(savedContent);
   const mode = config?.mode || config?.theme || "dark";
   const isDark = mode === "dark";
 
@@ -199,12 +204,13 @@ export default async function RootLayout({
           </noscript>
         ) : null}
         <ThemeProvider initialConfig={config}>
-          {children}
-          <Toaster richColors position="bottom-right" />
+          <SiteContentProvider value={siteContent}>
+            {children}
+            <Toaster richColors position="bottom-right" />
+          </SiteContentProvider>
         </ThemeProvider>
         <TrackingScripts />
       </body>
-      <GoogleAnalytics gaId="G-NG3CPDVF6F" />
     </html>
   );
 }

@@ -169,6 +169,10 @@ export async function setSiteConfig(key: string, value: object) {
   });
   await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.SETTINGS_UPDATED, resource: "SiteConfig", resourceId: key });
   revalidatePath("/");
+  revalidatePath("/", "layout");
+  revalidatePath("/pricing");
+  revalidatePath("/contact");
+  revalidatePath("/about");
   revalidatePath("/admin");
 }
 

@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PRICING, pricingForTier } from "@/lib/pricing";
 import { PricingExtras } from "@/components/sections/PricingExtras";
+import { useSiteContent } from "@/components/SiteContentProvider";
+import { pricingForTierName } from "@/lib/site-content";
 
 const defaultModels = [
   {
@@ -71,6 +72,7 @@ export function EngagementSection({
 }: EngagementProps) {
   const pathname = usePathname();
   const isPricingPage = pathname === "/pricing";
+  const { pricing } = useSiteContent();
   
   return (
     <section id="engagement" aria-label="Engagement models" className={`${isPricingPage ? "pt-32" : "pt-24"} pb-24 px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden border-y border-white/5`}>
@@ -137,8 +139,8 @@ export function EngagementSection({
                 {/* Price tag as Custom Proposal */}
                 <div className="py-4 border-y border-white/5 mb-6 flex flex-col gap-1">
                   <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Starting from</span>
-                  <span className="text-3xl font-black text-white">{pricingForTier(model.name).from}</span>
-                  <span className="text-sm text-indigo-300 font-semibold">{pricingForTier(model.name).typical}</span>
+                  <span className="text-3xl font-black text-white">{pricingForTierName(model.name, pricing.tiers).from}</span>
+                  <span className="text-sm text-indigo-300 font-semibold">{pricingForTierName(model.name, pricing.tiers).typical}</span>
                 </div>
 
                 {/* Meta details */}
@@ -187,7 +189,7 @@ export function EngagementSection({
         </div>
 
         {isPricingPage ? <PricingExtras /> : (
-          <p className="mt-12 text-center text-sm text-slate-500">{PRICING.disclaimer}</p>
+          <p className="mt-12 text-center text-sm text-slate-500">{pricing.disclaimer}</p>
         )}
       </div>
     </section>
