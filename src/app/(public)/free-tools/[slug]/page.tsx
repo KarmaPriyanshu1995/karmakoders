@@ -4,9 +4,10 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { DomainCompareTool } from "@/components/tools/DomainCompareTool";
 import { CompressImageTool } from "@/components/tools/CompressImageTool";
+import { MvpCostCalculator } from "@/components/tools/MvpCostCalculator";
 import { ToolSeoContent } from "@/components/tools/ToolSeoContent";
 import { getPublishedToolBySlug } from "@/lib/tools/queries";
-import { getFreeToolsSettings } from "@/lib/tools/settings";
+import { getFreeToolsSettings } from "@/lib/tools/settings-db";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
 import { recordToolEvent } from "@/lib/tools/analytics";
@@ -117,6 +118,8 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
           <DomainCompareTool initialDomain={query.domain || ""} disclosure={settings.affiliateDisclosure} />
         ) : tool.slug === "compress-image" ? (
           <CompressImageTool />
+        ) : tool.slug === "mvp-cost-calculator" ? (
+          <MvpCostCalculator />
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-slate-300">
             This tool is published and ready for an interactive implementation.

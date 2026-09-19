@@ -11,6 +11,7 @@ export interface PostData {
   excerpt?: string | null;
   createdAt?: Date | string;
   published?: boolean;
+  viewCount?: number | null;
   seoMeta?: string | null;
 }
 

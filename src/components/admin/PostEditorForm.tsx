@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Cloud, CloudOff, Loader2, Save, Trash2 } from "lucide-react";
+import { Cloud, CloudOff, Loader2, Save, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImagePreview } from "./ImagePreview";
 import { RichTextEditor } from "./RichTextEditor";
+import { BlockEditor } from "@/components/admin/BlockEditor";
 import { upsertPost } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useBlogAutosave } from "@/hooks/useBlogAutosave";
-import { BLOG_DRAFT_VERSION, readBlogDraft, type BlogDraftSnapshot } from "@/lib/blog-draft-storage";
+import { BLOG_DRAFT_VERSION, readBlogDraft, slugifyDraftTitle, type BlogDraftSnapshot } from "@/lib/blog-draft-storage";
+import { parseContentBlocks, parseFormatMeta, parsePostImport, plainTextFromBlocks, starterBlocksFor, wordCountFromText } from "@/lib/content/blocks";
+import { POST_TYPES } from "@/types/content";
+import { POST_TYPE_LABELS, normalizePostType } from "@/lib/content/post-types";
+import type { ContentBlock, FormatMeta } from "@/types/content";
 
 interface PostEditorFormProps {
   post: any;
@@ -45,18 +50,31 @@ function toDatetimeLocalValue(value: Date | string | null | undefined): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function loadDraftOrPost(postId: string | undefined, post: any, seoMetaObj: Record<string, unknown>) {
-  const draft = readBlogDraft(postId);
+function loadDraftOrPost(
+  postId: string | undefined,
+  post: any,
+  seoMetaObj: Record<string, unknown>,
+  options: { allowDraft?: boolean } = {}
+) {
+  const allowDraft = options.allowDraft !== false && typeof window !== "undefined";
+  const draft = allowDraft ? readBlogDraft(postId) : null;
   const hasDraft = Boolean(
-    draft && (draft.title.trim() || draft.content.replace(/<[^>]*>/g, "").trim())
+    draft &&
+      (draft.title.trim() ||
+        draft.content.replace(/<[^>]*>/g, "").trim() ||
+        (draft.blocks && draft.blocks.length > 0))
   );
   const src = hasDraft ? draft! : null;
 
+  const type = normalizePostType(src?.type ?? post?.type ?? "blog");
+  const parsedBlocks = src?.blocks?.length ? src.blocks : parseContentBlocks(post?.blocks);
   return {
     restoredFromLocal: hasDraft,
     title: src?.title ?? post?.title ?? "",
     slug: src?.slug ?? post?.slug ?? "",
     content: src?.content ?? post?.content ?? "",
+    blocks: parsedBlocks.length ? parsedBlocks : isNewLike(post) ? starterBlocksFor(type) : [],
+    formatMeta: src?.formatMeta ?? parseFormatMeta(post?.formatMeta),
     summary: src?.summary ?? post?.excerpt ?? (seoMetaObj.description as string) ?? "",
     metaTitle: src?.metaTitle ?? (seoMetaObj.title as string) ?? "",
     imageAlt: src?.imageAlt ?? (seoMetaObj.imageAlt as string) ?? "",
@@ -65,10 +83,14 @@ function loadDraftOrPost(postId: string | undefined, post: any, seoMetaObj: Reco
     image: src?.image ?? post?.image ?? "",
     category: src?.category ?? post?.category ?? "",
     author: src?.author ?? post?.author ?? "",
-    type: src?.type ?? post?.type ?? "blog",
+    type,
     published: src?.published ?? post?.published ?? false,
     createdAt: src?.createdAt ?? toDatetimeLocalValue(post?.createdAt),
   };
+}
+
+function isNewLike(post: any) {
+  return !post?.id && !post?.title && !post?.content;
 }
 
 function AutosaveIndicator({ status, lastSavedAt }: { status: string; lastSavedAt: Date | null }) {
@@ -110,10 +132,13 @@ function AutosaveIndicator({ status, lastSavedAt }: { status: string; lastSavedA
 export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const router = useRouter();
   const seoMetaObj = parseSeoMeta(post?.seoMeta) as Record<string, unknown>;
-  const initial = useMemo(() => loadDraftOrPost(isNew ? undefined : id, post, seoMetaObj), [id, isNew, post, seoMetaObj]);
+  const initial = useMemo(
+    () => loadDraftOrPost(isNew ? undefined : id, post, seoMetaObj, { allowDraft: false }),
+    [id, isNew, post, seoMetaObj]
+  );
   const restoredToastRef = useRef(false);
 
-  const [savedPostId, setSavedPostId] = useState(id);
+  const [savedPostId, setSavedPostId] = useState<string | undefined>(isNew ? undefined : id);
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState(initial.title);
   const [slug, setSlug] = useState(initial.slug);
@@ -127,15 +152,36 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   const [category, setCategory] = useState(initial.category);
   const [author, setAuthor] = useState(initial.author);
   const [type, setType] = useState(initial.type);
+  const [blocks, setBlocks] = useState<ContentBlock[]>(initial.blocks);
+  const [formatMeta, setFormatMeta] = useState<FormatMeta>(initial.formatMeta);
   const [published, setPublished] = useState(initial.published);
   const [createdAt, setCreatedAt] = useState(initial.createdAt);
+  const [importJson, setImportJson] = useState("");
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const previousTypeRef = useRef(initial.type);
 
   useEffect(() => {
-    if (initial.restoredFromLocal && !restoredToastRef.current) {
-      restoredToastRef.current = true;
-      toast.info("Restored your unsaved draft from this device");
-    }
-  }, [initial.restoredFromLocal]);
+    const restored = loadDraftOrPost(isNew ? undefined : id, post, seoMetaObj, { allowDraft: true });
+    if (!restored.restoredFromLocal || restoredToastRef.current) return;
+    restoredToastRef.current = true;
+    setTitle(restored.title);
+    setSlug(restored.slug);
+    setContent(restored.content);
+    setBlocks(restored.blocks);
+    setFormatMeta(restored.formatMeta);
+    setSummary(restored.summary);
+    setMetaTitle(restored.metaTitle);
+    setImageAlt(restored.imageAlt);
+    setFocusKeyword(restored.focusKeyword);
+    setNoIndex(restored.noIndex);
+    setImage(restored.image);
+    setCategory(restored.category);
+    setAuthor(restored.author);
+    setType(normalizePostType(restored.type));
+    setPublished(restored.published);
+    setCreatedAt(restored.createdAt);
+    toast.info("Restored your unsaved draft from this device");
+  }, [id, isNew, post, seoMetaObj]);
 
   const snapshot: BlogDraftSnapshot = useMemo(
     () => ({
@@ -154,6 +200,8 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
       category,
       author,
       type,
+      blocks,
+      formatMeta,
       published,
       createdAt,
     }),
@@ -162,6 +210,8 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
       title,
       slug,
       content,
+      blocks,
+      formatMeta,
       summary,
       metaTitle,
       imageAlt,
@@ -177,8 +227,8 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
   );
 
   const { status, lastSavedAt, saveToServer, clearDraft } = useBlogAutosave({
-    postId: savedPostId,
-    isNew: !savedPostId,
+    postId: savedPostId === "new" ? undefined : savedPostId,
+    isNew: !savedPostId || savedPostId === "new",
     snapshot,
     seoMetaExtras: seoMetaObj,
     onPostCreated: (newId) => {
@@ -187,9 +237,61 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
     },
   });
 
-  const cleanText = content.replace(/<[^>]*>/g, " ");
-  const wordCount = cleanText.trim().split(/\s+/).filter(Boolean).length;
-  const readingTime = Math.ceil(wordCount / 200);
+  const cleanText = `${plainTextFromBlocks(blocks)} ${content.replace(/<[^>]*>/g, " ")}`;
+  const wordCount = wordCountFromText(`${title} ${cleanText}`);
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  useEffect(() => {
+    if (previousTypeRef.current === type) return;
+    previousTypeRef.current = type;
+    if (blocks.length === 0) setBlocks(starterBlocksFor(type));
+  }, [blocks.length, type]);
+
+  function applyImportedJson(source?: string) {
+    const parsed = parsePostImport(source ?? importJson);
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
+
+    if (blocks.length > 0 && !window.confirm("Replace the current fields and content blocks with this JSON?")) {
+      return;
+    }
+
+    const data = parsed.data;
+    if (data.type) {
+      const nextType = normalizePostType(data.type);
+      previousTypeRef.current = nextType;
+      setType(nextType);
+    }
+    if (data.title) setTitle(data.title);
+    if (data.slug) setSlug(data.slug);
+    else if (data.title && !slug.trim()) setSlug(slugifyDraftTitle(data.title));
+    if (data.excerpt) setSummary(data.excerpt);
+    if (data.metaTitle) setMetaTitle(data.metaTitle);
+    if (data.focusKeyword) setFocusKeyword(data.focusKeyword);
+    if (data.category) setCategory(data.category);
+    if (data.author) setAuthor(data.author);
+    if (data.image) setImage(data.image);
+    if (data.imageAlt) setImageAlt(data.imageAlt);
+    if (typeof data.noIndex === "boolean") setNoIndex(data.noIndex);
+    if (data.formatMeta) setFormatMeta((current) => ({ ...current, ...data.formatMeta }));
+    setBlocks(data.blocks);
+    toast.success(`Imported ${data.blocks.length} content block${data.blocks.length === 1 ? "" : "s"}`);
+  }
+
+  async function onImportFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setImportJson(text);
+      applyImportedJson(text);
+    } catch {
+      toast.error("Could not read that file.");
+    } finally {
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  }
 
   const serpTitle = (metaTitle.trim() || title.trim() || "Untitled post").slice(0, 60);
   const serpDesc = (summary.trim() || "Add a 150–160 character summary for search and social previews.").slice(0, 160);
@@ -220,12 +322,14 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         tags: seoMetaObj.tags || "",
       });
 
-      await upsertPost({
-        id: savedPostId,
+      const saved = await upsertPost({
+        id: savedPostId === "new" ? undefined : savedPostId,
         title,
         slug,
         excerpt: summary,
         content,
+        blocks,
+        formatMeta,
         image,
         category,
         author,
@@ -234,6 +338,9 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
         seoMeta,
         createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
       });
+      if (!savedPostId || savedPostId === "new") {
+        setSavedPostId(saved.id);
+      }
       clearDraft();
       toast.success("Post saved successfully!");
       router.push("/admin/blog");
@@ -332,11 +439,14 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
             <select
               name="type"
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => setType(normalizePostType(e.target.value))}
               className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none appearance-none"
             >
-              <option value="blog">Blog</option>
-              <option value="case-study">Case study</option>
+              {POST_TYPES.map((postType) => (
+                <option key={postType} value={postType}>
+                  {POST_TYPE_LABELS[postType]}
+                </option>
+              ))}
             </select>
           </div>
           <div className="space-y-2">
@@ -405,18 +515,79 @@ export function PostEditorForm({ post, isNew, id }: PostEditorFormProps) {
           />
         </div>
 
+        <div className="space-y-3 rounded-xl border border-dashed border-indigo-500/30 bg-indigo-500/5 p-4">
+          <div>
+            <p className="text-sm font-medium text-slate-200">Import JSON</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Paste the AI JSON or upload a .json file. This fills title, type, SEO fields, and replaces content blocks.
+            </p>
+          </div>
+          <textarea
+            value={importJson}
+            onChange={(e) => setImportJson(e.target.value)}
+            rows={6}
+            placeholder='{"type":"blog","title":"...","blocks":[{"type":"TLDR","items":["..."]}]}'
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 font-mono outline-none focus:border-indigo-500 resize-y"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => applyImportedJson()} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+              Apply JSON
+            </Button>
+            <label className="inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-700 text-sm text-slate-300 cursor-pointer hover:border-indigo-500">
+              <Upload className="w-4 h-4" />
+              Upload .json
+              <input
+                ref={importFileRef}
+                type="file"
+                accept="application/json,.json,text/plain"
+                className="hidden"
+                onChange={(e) => void onImportFile(e.target.files?.[0])}
+              />
+            </label>
+            {importJson ? (
+              <Button type="button" variant="ghost" className="text-slate-400" onClick={() => setImportJson("")}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between ml-1">
-            <label className="text-sm font-medium text-slate-300">Content</label>
+            <label className="text-sm font-medium text-slate-300">Content blocks</label>
             <div className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
               {wordCount} words · {readingTime} min read
             </div>
           </div>
-          <RichTextEditor
-            content={content}
-            onChange={setContent}
-            placeholder="Write the article. Put the focus keyword in the first 100 words and at least one H2."
-          />
+          <BlockEditor postType={type} blocks={blocks} onChange={setBlocks} />
+        </div>
+
+        {content.replace(/<[^>]*>/g, "").trim() && blocks.length === 0 ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 ml-1">Legacy HTML (kept for older posts)</label>
+            <RichTextEditor content={content} onChange={setContent} />
+          </div>
+        ) : null}
+
+        <div className="grid md:grid-cols-2 gap-4 pt-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 ml-1">Cal.com URL</label>
+            <input
+              value={formatMeta.calUrl || ""}
+              onChange={(e) => setFormatMeta((meta) => ({ ...meta, calUrl: e.target.value }))}
+              placeholder="https://cal.com/karmakoders"
+              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 ml-1">WhatsApp number</label>
+            <input
+              value={formatMeta.whatsappNumber || ""}
+              onChange={(e) => setFormatMeta((meta) => ({ ...meta, whatsappNumber: e.target.value }))}
+              placeholder="918690071861"
+              className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white outline-none focus:border-indigo-500"
+            />
+          </div>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["172.20.10.2", "localhost"],
+  transpilePackages: ["mermaid"],
   images: {
     remotePatterns: [
       {
@@ -35,6 +36,25 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         has: [{ type: "host", value: "karmakoders.com" }],
         destination: "https://www.karmakoders.com/:path*",
+        permanent: true,
+      },
+      // Canonical public URLs — old paths keep working; Google consolidates to one URL.
+      // Admin routes like /admin/projects are NOT matched by these sources.
+      {
+        source: "/projects",
+        destination: "/portfolio",
+        permanent: true,
+      },
+      {
+        source: "/contact-support",
+        destination: "/contact",
+        permanent: true,
+      },
+      // Specific GSC bad slug (exact path — do not use /blog/-:slug* ;
+      // path-to-regexp rejects repeating params without a / prefix before :name)
+      {
+        source: "/blog/-to-build-a-saas-product-from-scratch-in-90-days",
+        destination: "/blog/how-to-build-a-saas-product-from-scratch-in-90-days",
         permanent: true,
       },
     ];

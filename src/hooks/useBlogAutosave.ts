@@ -21,6 +21,8 @@ function snapshotSignature(snapshot: BlogDraftSnapshot): string {
     title: snapshot.title,
     slug: snapshot.slug,
     content: snapshot.content,
+    blocks: snapshot.blocks ?? [],
+    formatMeta: snapshot.formatMeta ?? {},
     summary: snapshot.summary,
     metaTitle: snapshot.metaTitle,
     imageAlt: snapshot.imageAlt,
@@ -36,7 +38,11 @@ function snapshotSignature(snapshot: BlogDraftSnapshot): string {
 }
 
 function hasMeaningfulContent(snapshot: BlogDraftSnapshot): boolean {
-  return Boolean(snapshot.title.trim() || snapshot.content.replace(/<[^>]*>/g, "").trim());
+  return Boolean(
+    snapshot.title.trim() ||
+      snapshot.content.replace(/<[^>]*>/g, "").trim() ||
+      (snapshot.blocks && snapshot.blocks.length > 0)
+  );
 }
 
 export function useBlogAutosave(options: {
@@ -100,6 +106,8 @@ export function useBlogAutosave(options: {
         slug,
         excerpt: draft.summary,
         content: draft.content,
+        blocks: draft.blocks ?? [],
+        formatMeta: draft.formatMeta ?? {},
         image: draft.image,
         category: draft.category,
         author: draft.author,

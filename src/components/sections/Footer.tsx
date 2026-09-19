@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, ArrowUpRight, Globe, ImageDown, Mail, Scale, Wrench } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Calculator, Globe, ImageDown, Mail } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -18,12 +18,21 @@ const footerLinks = {
     { name: "UI/UX Design", href: "/services#ui-ux-design-branding" },
     { name: "Cloud & DevOps", href: "/services#cloud-engineering-devops" },
   ],
-  Company: [
-    { name: "About Us", href: "/about" },
+  Work: [
+    { name: "All Work", href: "/work" },
     { name: "Portfolio", href: "/portfolio" },
     { name: "Case Studies", href: "/case-studies" },
-    { name: "Blog", href: "/blog" },
+    { name: "Success Stories", href: "/success-stories" },
+  ],
+  Insights: [
+    { name: "All Insights", href: "/insights" },
+    { name: "Tech Blog", href: "/blog" },
+    { name: "Startup Ideas", href: "/startup-ideas" },
+    { name: "Free Prompts", href: "/prompts" },
     { name: "Free Tools", href: "/free-tools" },
+  ],
+  Company: [
+    { name: "About Us", href: "/about" },
     { name: "Careers", href: "/careers" },
     { name: "Contact", href: "/contact" },
   ],
@@ -47,6 +56,12 @@ const footerTools = [
     href: "/free-tools/compress-image",
     description: "Shrink JPG, PNG, WebP",
     icon: ImageDown,
+  },
+  {
+    name: "MVP Cost Calculator",
+    href: "/free-tools/mvp-cost-calculator",
+    description: "Scope, timeline, budget range",
+    icon: Calculator,
   },
 ];
 
@@ -153,7 +168,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
 
           {/* Brand Column */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-3">
             <Link href="/" className="text-3xl font-black tracking-tight text-white mb-6 block">
               Karmakoders
               {/* <span className="text-indigo-500">.ai</span> */}
@@ -205,7 +220,7 @@ export function Footer() {
 
           {/* Link Columns */}
           {Object.entries(footerLinks).map(([title, links]) => (
-            <div key={title} className="lg:col-span-2">
+            <div key={title} className="lg:col-span-1">
               <h4 className="text-white font-black text-sm uppercase tracking-widest mb-8">{title}</h4>
               <ul className="space-y-4">
                 {links.map((link) => (
