@@ -40,6 +40,7 @@ export default function SchemaCenterPage() {
   // Target page selection
   const [pages, setPages] = useState<TargetPage[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>("");
+  const [autoGenerating, setAutoGenerating] = useState(false);
 
   useEffect(() => {
     fetch("/api/seo/pages")
@@ -96,13 +97,40 @@ export default function SchemaCenterPage() {
     }
   };
 
+  const handleAutoGenerate = async () => {
+    setAutoGenerating(true);
+    try {
+      const res = await fetch("/api/seo/schema/auto", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Auto-generate failed");
+      toast.success(`Applied ${data.applied} brand JSON-LD schemas`);
+      if (data.schemas?.[0]) {
+        setGeneratedSchema(JSON.stringify(data.schemas[0].schema, null, 2));
+        setValidation(data.schemas[0].validation);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Auto-generate failed");
+    } finally {
+      setAutoGenerating(false);
+    }
+  };
+
   const schemaTypes = Object.keys(SCHEMA_TEMPLATES) as SchemaType[];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-black text-white">Schema Center</h2>
-        <p className="text-slate-400 text-sm mt-1">Generate, validate, and apply structured JSON-LD schemas for rich search integrations</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-white">Schema Center</h2>
+          <p className="text-slate-400 text-sm mt-1">Generate, validate, and apply structured JSON-LD schemas for rich search integrations</p>
+        </div>
+        <button
+          onClick={handleAutoGenerate}
+          disabled={autoGenerating}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] disabled:opacity-60"
+        >
+          <RefreshCw className={`w-4 h-4 ${autoGenerating ? "animate-spin" : ""}`} /> Auto JSON-LD from brand
+        </button>
       </div>
 
       {/* Schema type selector */}

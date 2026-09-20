@@ -36,19 +36,31 @@ export async function GET() {
     ]));
 
     // Format issues and recommendations
-    const pages = seoPages.map((page) => ({
-      id: page.pageId,
-      type: page.pageType,
-      url: page.url,
-      title: page.title || "Untitled",
-      wordCount: page.wordCount,
-      readabilityScore: page.readabilityScore,
-      hasFaq: page.hasFaq,
-      contentScore: page.contentScore,
-      overallScore: page.overallScore,
-      issues: page.issuesJson ? JSON.parse(page.issuesJson) : [],
-      recommendations: page.recommendationsJson ? JSON.parse(page.recommendationsJson) : [],
-    }));
+    const pages = seoPages.map((page) => {
+      let eatScore = 0;
+      if (page.keywordDensityJson) {
+        try {
+          const density = JSON.parse(page.keywordDensityJson) as { _eat?: { score?: number } };
+          eatScore = density._eat?.score ?? 0;
+        } catch {
+          eatScore = 0;
+        }
+      }
+      return {
+        id: page.pageId,
+        type: page.pageType,
+        url: page.url,
+        title: page.title || "Untitled",
+        wordCount: page.wordCount,
+        readabilityScore: page.readabilityScore,
+        hasFaq: page.hasFaq,
+        contentScore: page.contentScore,
+        overallScore: page.overallScore,
+        eatScore,
+        issues: page.issuesJson ? JSON.parse(page.issuesJson) : [],
+        recommendations: page.recommendationsJson ? JSON.parse(page.recommendationsJson) : [],
+      };
+    });
 
     const totalPages = pages.length;
     const avgContentScore = totalPages

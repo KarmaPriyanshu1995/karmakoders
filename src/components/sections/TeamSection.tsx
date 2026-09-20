@@ -1,43 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, Globe, Code2 } from "lucide-react";
+import { Code2, Globe } from "lucide-react";
 import Image from "next/image";
-
-const defaultTeam = [
-  {
-    name: "Ethan Walker",
-    role: "Founder & CEO at KarmaKoders | Mobile App Developer | AI & SaaS Consultant | Helping Startups Scale with Technology",
-    image: "/ethan-walker.jpg",
-  },
-];
+import { useSiteContent } from "@/components/SiteContentProvider";
+import type { TeamMember } from "@/lib/social-proof";
 
 interface TeamProps {
   isSpace?: boolean;
   tagline?: string;
   heading?: string;
-  team?: typeof defaultTeam;
+  team?: TeamMember[];
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 export function TeamSection({
   isSpace = false,
   tagline = "Our Team",
-  heading = "The Minds Behind karmakoders",
-  team = defaultTeam,
+  heading = "The people on your thread",
+  team,
 }: TeamProps) {
+  const site = useSiteContent();
+  const members = team?.length ? team : site.team;
+
   return (
     <section id="team" aria-label="Our team" className={`${isSpace ? "py-20 sm:py-32" : "pb-20 sm:pb-32"} px-4 sm:px-6 md:px-12 bg-slate-950 relative overflow-hidden`}>
-      {/* Background glowing orb */}
       <div className="absolute top-1/2 left-0 w-[600px] h-[400px] bg-indigo-500 opacity-[0.02] blur-[150px] rounded-full pointer-events-none transform -translate-y-1/2 -translate-x-1/4" />
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500 opacity-[0.015] blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-20 flex flex-col items-center">
+        <div className="text-center mb-16 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase shadow-indigo-500/10 shadow-[0_0_15px_rgba(var(--color-indigo-500-rgb),0.1)] mb-6"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-indigo-500 text-sm font-bold tracking-widest uppercase mb-6"
           >
             {tagline}
           </motion.div>
@@ -45,7 +49,6 @@ export function TeamSection({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
             className="mt-4 text-4xl md:text-5xl font-black text-white tracking-tight"
           >
             {heading}
@@ -53,45 +56,54 @@ export function TeamSection({
         </div>
 
         <div className={`grid gap-8 ${
-          team.length === 1
+          members.length === 1
             ? "grid-cols-1 max-w-sm mx-auto"
             : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
         }`}>
-          {team.map((member, i) => (
+          {members.map((member, i) => (
             <motion.div
               key={member.name}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group p-4 rounded-[2rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 flex flex-col"
+              className="group p-4 rounded-[2rem] bg-white/5 border border-white/10 hover:border-indigo-500/30 hover:bg-white/10 hover:-translate-y-2 transition-all duration-300 flex flex-col"
             >
-              <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-6">
-                <Image
-                  src={member.image}
-                  alt={member.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+              <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-6 bg-white/5">
+                {member.image ? (
+                  <Image
+                    src={member.image}
+                    alt={member.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-5xl font-black text-indigo-400">
+                    {initials(member.name)}
+                  </div>
+                )}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                  <a href="#" aria-label={`${member.name} on Twitter`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <X className="w-5 h-5" aria-hidden="true" />
-                  </a>
-                  <a href="#" aria-label={`${member.name}'s website`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <Globe className="w-5 h-5" aria-hidden="true" />
-                  </a>
-                  <a href="#" aria-label={`${member.name} on GitHub`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950 transition-colors duration-300">
-                    <Code2 className="w-5 h-5" aria-hidden="true" />
-                  </a>
+                  {member.linkedin ? (
+                    <a href={member.linkedin} aria-label={`${member.name} on LinkedIn`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950">
+                      <span className="text-xs font-black" aria-hidden="true">in</span>
+                    </a>
+                  ) : null}
+                  {member.website ? (
+                    <a href={member.website} aria-label={`${member.name}'s website`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950">
+                      <Globe className="w-5 h-5" aria-hidden="true" />
+                    </a>
+                  ) : null}
+                  {member.github ? (
+                    <a href={member.github} aria-label={`${member.name} on GitHub`} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-indigo-500 hover:text-slate-950">
+                      <Code2 className="w-5 h-5" aria-hidden="true" />
+                    </a>
+                  ) : null}
                 </div>
               </div>
-              
               <div className="px-2 pb-2">
-                <h4 className="text-xl font-bold text-white mb-1 group-hover:text-indigo-400 transition-colors duration-300">{member.name}</h4>
+                <h4 className="text-xl font-bold text-white mb-1">{member.name}</h4>
                 <p className="text-slate-400 text-sm font-medium">{member.role}</p>
               </div>
             </motion.div>

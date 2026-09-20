@@ -20,6 +20,7 @@ import {
 import type { ContentBlock, FormatMeta } from "@/types/content";
 import { postViewCount } from "@/lib/content/view-count";
 import { normalizePostType } from "@/lib/content/post-types";
+import { adminPostOrderBy, adminPostWhere, parseAdminPostListQuery } from "@/lib/admin-posts";
 import { headers } from "next/headers";
 import { consumeRateLimit } from "@/lib/tools/rate-limit";
 import { notifyNewLead } from "@/lib/leads";
@@ -321,6 +322,45 @@ export async function getPosts(type?: string, options?: { includeDrafts?: boolea
     orderBy: { createdAt: "desc" },
   });
   return posts.map((post) => withViewCount(post));
+}
+
+export async function getAdminPosts(search: Record<string, string | string[] | undefined> = {}) {
+  const tenantId = await getContextualTenantId();
+  const parsed = parseAdminPostListQuery(search);
+  const where = adminPostWhere(tenantId, parsed);
+  const matching = await prisma.post.count({ where });
+  const pageCount = Math.max(1, Math.ceil(matching / parsed.pageSize));
+  const page = Math.min(parsed.page, pageCount);
+
+  const [posts, allCount, publishedCount, draftCount, typeGroups] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      orderBy: adminPostOrderBy(parsed.sort),
+      skip: (page - 1) * parsed.pageSize,
+      take: parsed.pageSize,
+    }),
+    prisma.post.count({ where: { tenantId } }),
+    prisma.post.count({ where: { tenantId, published: true } }),
+    prisma.post.count({ where: { tenantId, published: false } }),
+    prisma.post.groupBy({
+      by: ["type"],
+      where: { tenantId },
+      _count: { _all: true },
+    }),
+  ]);
+
+  return {
+    posts: posts.map((post) => withViewCount(post)),
+    query: { ...parsed, page },
+    matching,
+    pageCount,
+    counts: {
+      all: allCount,
+      published: publishedCount,
+      drafts: draftCount,
+      byType: Object.fromEntries(typeGroups.map((row) => [row.type, row._count._all])),
+    },
+  };
 }
 
 export async function getCaseStudies() {

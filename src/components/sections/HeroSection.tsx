@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { ClientLogoStrip } from "@/components/sections/ClientLogoStrip";
+import { TrustBadgeStrip } from "@/components/sections/TrustBadgeStrip";
 
 type HeroCanvasProps = { mouseX: number; mouseY: number };
 
@@ -38,10 +39,10 @@ interface HeroProps {
 }
 
 export function HeroSection({
-  badge = "Trusted Development Partner",
-  headline = "Enterprise Software Engineering",
-  highlight = "Built for the US Market.",
-  subheadline = "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
+  badge = "US-hours software partner",
+  headline = "Ship the product US buyers already expect.",
+  highlight = "Senior engineers. EST overlap. NDA first.",
+  subheadline = "Custom web, mobile, SaaS, and AI — scoped in USD, built with timezone overlap, and owned by you from day one.",
   ctaPrimary = "Book Discovery Call",
   ctaSecondary = "Estimate my MVP cost",
   ctaPrimaryLink = "/contact",
@@ -131,6 +132,8 @@ export function HeroSection({
             {pathname === "/" && ctaSecondary === "Get Free Estimate" ? "Estimate my MVP cost" : ctaSecondary}
           </Link>
         </motion.div>
+
+        {pathname === "/" ? <TrustBadgeStrip className="mb-8" /> : null}
 
         {pathname === "/" ? <ClientLogoStrip /> : null}
 

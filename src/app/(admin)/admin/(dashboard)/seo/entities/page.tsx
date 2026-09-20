@@ -36,6 +36,7 @@ export default function EntitySeoPage() {
   const [saving, setSaving] = useState(false);
   const [brand, setBrand] = useState<{ brandName: string; schemaJson: string } | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [autoGenerating, setAutoGenerating] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
@@ -162,13 +163,36 @@ export default function EntitySeoPage() {
           <h2 className="text-2xl font-black text-white">Entity SEO Center</h2>
           <p className="text-slate-400 text-sm mt-1">Help search engines map brand connections via a semantic knowledge graph</p>
         </div>
-        <button
-          type="button"
-          onClick={openAddForm}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all"
-        >
-          <Plus className="w-4 h-4" /> Add Entity
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              setAutoGenerating(true);
+              try {
+                const res = await fetch("/api/seo/schema/auto", { method: "POST" });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "JSON-LD failed");
+                toast.success(`Generated ${data.applied} brand schemas from the entity graph`);
+                fetchData();
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "JSON-LD failed");
+              } finally {
+                setAutoGenerating(false);
+              }
+            }}
+            disabled={autoGenerating}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-200 font-black text-sm hover:bg-white/10 disabled:opacity-60"
+          >
+            <GitCommit className="w-4 h-4" /> {autoGenerating ? "Generating…" : "Auto JSON-LD"}
+          </button>
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all"
+          >
+            <Plus className="w-4 h-4" /> Add Entity
+          </button>
+        </div>
       </div>
 
       {/* Overview Stats */}

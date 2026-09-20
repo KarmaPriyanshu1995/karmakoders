@@ -170,6 +170,67 @@ export function SiteContentForm({ initial }: { initial: SiteContent }) {
         </section>
 
         <section className="rounded-xl p-6 border border-slate-800 space-y-4">
+          <h3 className="text-lg font-semibold text-white border-b border-slate-800 pb-3">Team</h3>
+          {content.team.map((member, i) => (
+            <div key={i} className="rounded-lg border border-slate-800 p-4 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {field("Name", member.name, (v) => {
+                  const team = [...content.team];
+                  team[i] = { ...member, name: v };
+                  setContent({ ...content, team });
+                })}
+                {field("Role", member.role, (v) => {
+                  const team = [...content.team];
+                  team[i] = { ...member, role: v };
+                  setContent({ ...content, team });
+                })}
+                {field("Photo URL", member.image || "", (v) => {
+                  const team = [...content.team];
+                  team[i] = { ...member, image: v };
+                  setContent({ ...content, team });
+                })}
+                {field("LinkedIn", member.linkedin || "", (v) => {
+                  const team = [...content.team];
+                  team[i] = { ...member, linkedin: v };
+                  setContent({ ...content, team });
+                })}
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setContent({ ...content, team: [...content.team, { name: "", role: "" }] })}
+            className="inline-flex items-center gap-2 text-sm text-indigo-400"
+          >
+            <Plus className="w-4 h-4" /> Add teammate
+          </button>
+        </section>
+
+        <section className="rounded-xl p-6 border border-slate-800 space-y-4">
+          <h3 className="text-lg font-semibold text-white border-b border-slate-800 pb-3">Trust badges</h3>
+          <p className="text-xs text-slate-500">Clutch/GoodFirms slots stay unlabeled until Lucky supplies live profile URLs. Do not invent star ratings.</p>
+          {content.badges.map((badge, i) => (
+            <div key={i} className="grid sm:grid-cols-3 gap-3">
+              {field("Label", badge.label, (v) => {
+                const badges = [...content.badges];
+                badges[i] = { ...badge, label: v };
+                setContent({ ...content, badges });
+              })}
+              {field("Note", badge.note, (v) => {
+                const badges = [...content.badges];
+                badges[i] = { ...badge, note: v };
+                setContent({ ...content, badges });
+              })}
+              {field("URL (optional)", badge.href || "", (v) => {
+                const badges = [...content.badges];
+                badges[i] = { ...badge, href: v };
+                setContent({ ...content, badges });
+              })}
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-xl p-6 border border-slate-800 space-y-4">
           <h3 className="text-lg font-semibold text-white border-b border-slate-800 pb-3">Pricing</h3>
           {field("Disclaimer", content.pricing.disclaimer, (v) =>
             setContent({ ...content, pricing: { ...content.pricing, disclaimer: v } }),

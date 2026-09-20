@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Code2, Cpu, Layers, TrendingUp, Users, Zap } from "lucide-react";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
+import { TeamSection } from "@/components/sections/TeamSection";
 
 const defaultFeatures = [
   { icon: Zap, title: "Lightning Fast", desc: "Optimised for Core Web Vitals with sub-second load times." },
@@ -124,6 +125,7 @@ export function AboutSection({
       </div>
     </section>
     <TestimonialsSection tagline="Social proof" heading="What teams say after we ship" />
+    <TeamSection tagline="Leadership" heading="The people on your thread" />
     </>
   );
 }

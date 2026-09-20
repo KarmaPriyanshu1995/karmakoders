@@ -1,6 +1,15 @@
 import { BRAND } from "@/lib/brand";
 import { PRICING } from "@/lib/pricing";
-import { CLIENT_LOGO_LABEL, CLIENT_LOGOS, TESTIMONIALS, type Testimonial } from "@/lib/social-proof";
+import {
+  CLIENT_LOGO_LABEL,
+  CLIENT_LOGOS,
+  TEAM,
+  TESTIMONIALS,
+  TRUST_BADGES,
+  type TeamMember,
+  type Testimonial,
+  type TrustBadge,
+} from "@/lib/social-proof";
 
 export type SiteBrand = {
   legalName: string;
@@ -45,6 +54,8 @@ export type SiteContent = {
   logoLabel: string;
   logos: SiteLogo[];
   testimonials: Testimonial[];
+  team: TeamMember[];
+  badges: TrustBadge[];
   pricing: SitePricing;
 };
 
@@ -64,6 +75,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   logoLabel: CLIENT_LOGO_LABEL,
   logos: CLIENT_LOGOS.map((logo) => ({ name: logo.name })),
   testimonials: TESTIMONIALS.map((item) => ({ ...item })),
+  team: TEAM.map((item) => ({ ...item })),
+  badges: TRUST_BADGES.map((item) => ({ ...item })),
   pricing: {
     disclaimer: PRICING.disclaimer,
     tiers: PRICING.tiers.map((tier) => ({
@@ -85,6 +98,27 @@ function text(value: unknown, fallback: string) {
   return typeof value === "string" ? value : fallback;
 }
 
+function asTeamMember(raw: unknown, fallback: TeamMember): TeamMember {
+  const item = (raw ?? {}) as Record<string, unknown>;
+  return {
+    name: text(item.name, fallback.name),
+    role: text(item.role, fallback.role),
+    image: text(item.image, fallback.image || "") || undefined,
+    linkedin: text(item.linkedin, fallback.linkedin || "") || undefined,
+    github: text(item.github, fallback.github || "") || undefined,
+    website: text(item.website, fallback.website || "") || undefined,
+  };
+}
+
+function asBadge(raw: unknown, fallback: TrustBadge): TrustBadge {
+  const item = (raw ?? {}) as Record<string, unknown>;
+  return {
+    label: text(item.label, fallback.label),
+    note: text(item.note, fallback.note),
+    href: text(item.href, fallback.href || "") || undefined,
+  };
+}
+
 function asTestimonial(raw: unknown, fallback: Testimonial): Testimonial {
   const item = (raw ?? {}) as Record<string, unknown>;
   return {
@@ -104,6 +138,8 @@ export function mergeSiteContent(saved: unknown): SiteContent {
   const pricingRaw = (raw.pricing ?? {}) as Record<string, unknown>;
   const savedLogos = Array.isArray(raw.logos) ? raw.logos : null;
   const savedTestimonials = Array.isArray(raw.testimonials) ? raw.testimonials : null;
+  const savedTeam = Array.isArray(raw.team) ? raw.team : null;
+  const savedBadges = Array.isArray(raw.badges) ? raw.badges : null;
   const savedTiers = Array.isArray(pricingRaw.tiers) ? pricingRaw.tiers : null;
 
   return {
@@ -130,6 +166,14 @@ export function mergeSiteContent(saved: unknown): SiteContent {
       savedTestimonials && savedTestimonials.length > 0
         ? savedTestimonials.map((item, i) => asTestimonial(item, DEFAULT_SITE_CONTENT.testimonials[i] ?? DEFAULT_SITE_CONTENT.testimonials[0]))
         : DEFAULT_SITE_CONTENT.testimonials.map((item) => ({ ...item })),
+    team:
+      savedTeam && savedTeam.length > 0
+        ? savedTeam.map((item, i) => asTeamMember(item, DEFAULT_SITE_CONTENT.team[i] ?? DEFAULT_SITE_CONTENT.team[0]))
+        : DEFAULT_SITE_CONTENT.team.map((item) => ({ ...item })),
+    badges:
+      savedBadges && savedBadges.length > 0
+        ? savedBadges.map((item, i) => asBadge(item, DEFAULT_SITE_CONTENT.badges[i] ?? DEFAULT_SITE_CONTENT.badges[0]))
+        : DEFAULT_SITE_CONTENT.badges.map((item) => ({ ...item })),
     pricing: {
       disclaimer: text(pricingRaw.disclaimer, DEFAULT_SITE_CONTENT.pricing.disclaimer),
       tiers:

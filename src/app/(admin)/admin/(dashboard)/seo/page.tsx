@@ -29,6 +29,7 @@ interface DashboardData {
   searchConsole: { connected: boolean; clicks?: number; impressions?: number; ctr?: number; position?: number };
   keywords: Array<{ keyword: string; position: number | null; impressions: number; score: number }>;
   brand: { name: string; score: number } | null;
+  trend?: Array<{ label: string; score: number; clicks: number }>;
 }
 
 function StatBadge({ label, value, color, icon: Icon, href }: { label: string; value: number | string; color: string; icon: React.ElementType; href?: string }) {
@@ -51,14 +52,9 @@ function StatBadge({ label, value, color, icon: Icon, href }: { label: string; v
 }
 
 // Trend Data for SVG line chart
-const trendData = [
-  { label: "05/28", score: 68, clicks: 120 },
-  { label: "05/29", score: 70, clicks: 154 },
-  { label: "05/30", score: 71, clicks: 168 },
-  { label: "05/31", score: 74, clicks: 210 },
-  { label: "06/01", score: 73, clicks: 195 },
-  { label: "06/02", score: 76, clicks: 280 },
-  { label: "06/03", score: 78, clicks: 310 },
+const FALLBACK_TREND = [
+  { label: "Prev", score: 68, clicks: 0 },
+  { label: "Now", score: 72, clicks: 0 },
 ];
 
 export default function SeoDashboardPage() {
@@ -96,6 +92,7 @@ export default function SeoDashboardPage() {
   const scores = data?.scores ?? { technical: 0, content: 0, entity: 0, internalLink: 0, schema: 0, ctr: 0, overall: 0 };
   const audit = data?.audit ?? { totalPages: 0, indexedPages: 0, nonIndexedPages: 0, missingTitles: 0, missingDescriptions: 0, missingSchema: 0, missingFaq: 0, orphanPages: 0, lowContentPages: 0, lastAuditAt: null };
   const issues = data?.issues ?? { critical: 0, important: 0, recommended: 0, total: 0, recent: [] };
+  const trendData = data?.trend && data.trend.length >= 2 ? data.trend : FALLBACK_TREND;
 
   // 10 Macro scores
   const indexationRate = audit.totalPages > 0 ? Math.round((audit.indexedPages / audit.totalPages) * 100) : 0;

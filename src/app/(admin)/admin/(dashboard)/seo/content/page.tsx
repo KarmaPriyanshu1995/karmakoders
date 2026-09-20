@@ -9,7 +9,7 @@ import { getScoreColor } from "@/lib/seo/scorer";
 interface ContentPage {
   id: string; type: string; url: string; title: string;
   wordCount: number; readabilityScore: number; hasFaq: boolean;
-  contentScore: number; overallScore: number;
+  contentScore: number; overallScore: number; eatScore?: number;
   issues: Array<{ type: string; severity: string; description: string; suggestion: string }>;
   recommendations: Array<{ type: string; title: string; content: string; priority: string }>;
 }
@@ -149,6 +149,9 @@ export default function ContentIntelligencePage() {
                       <span className="text-xs text-slate-500">{page.wordCount} words</span>
                       <span className={`text-xs font-bold ${page.hasFaq ? "text-green-400" : "text-red-400"}`}>{page.hasFaq ? "✓ Has FAQ" : "✗ No FAQ"}</span>
                       <span className="text-xs text-slate-500">Readability: {Math.round(page.readabilityScore)}/100</span>
+                      {typeof page.eatScore === "number" && page.eatScore > 0 ? (
+                        <span className="text-xs text-slate-500">E-E-A-T: {Math.round(page.eatScore)}/100</span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -166,7 +169,7 @@ export default function ContentIntelligencePage() {
                   <div className="border-t border-white/10 p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                       <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Content Issues</h4>
-                      <IssueList issues={page.issues.filter((i) => ["thin_content", "low_word_count", "missing_faq", "low_readability", "poor_heading_structure"].includes(i.type)).map((i) => ({ ...i, severity: i.severity as "critical" | "important" | "recommended" }))} maxItems={5} />
+                      <IssueList issues={page.issues.filter((i) => ["thin_content", "low_word_count", "missing_faq", "low_readability", "poor_heading_structure", "low_eat"].includes(i.type)).map((i) => ({ ...i, severity: i.severity as "critical" | "important" | "recommended" }))} maxItems={5} />
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Improvement Plan</h4>

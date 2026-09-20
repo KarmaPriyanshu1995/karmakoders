@@ -84,6 +84,7 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
     // Only set when we have a real, curated outcome — never invented for real
     // client projects without a verified metric on file.
     outcome: curated?.outcome,
+    metrics: curated?.metrics,
   };
 
   // Suggest other projects in the portfolio for cross-linking (Phase 17)
@@ -239,6 +240,18 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
             </div>
           )}
         </div>
+
+        {details.metrics?.length ? (
+          <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-4">
+            {details.metrics.map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-2xl font-black text-indigo-400">{metric.value}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{metric.label}</p>
+                {isDemoProject ? <p className="text-[10px] text-slate-600 mt-2">Illustrative demo metric</p> : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-24 border-t border-slate-900 pt-16">
           <h2 className="text-3xl font-bold text-white mb-10">Project Overview</h2>

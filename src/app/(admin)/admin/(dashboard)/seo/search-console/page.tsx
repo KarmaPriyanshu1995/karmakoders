@@ -20,6 +20,15 @@ interface GscData {
   topQueriesJson: string | null;
 }
 
+interface GscDelta {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+  rankingDrops: Array<{ query: string; previousPosition: number; currentPosition: number; drop: number }>;
+  source: string;
+}
+
 interface QueryItem {
   query: string;
   clicks: number;
@@ -30,6 +39,8 @@ interface QueryItem {
 
 export default function SearchConsolePage() {
   const [gsc, setGsc] = useState<GscData | null>(null);
+  const [delta, setDelta] = useState<GscDelta | null>(null);
+  const [liveSync, setLiveSync] = useState(false);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
@@ -38,7 +49,11 @@ export default function SearchConsolePage() {
   const loadStatus = () => {
     fetch("/api/seo/search-console")
       .then((r) => r.json())
-      .then((d) => setGsc(d.gsc))
+      .then((d) => {
+        setGsc(d.gsc);
+        setDelta(d.delta ?? null);
+        setLiveSync(Boolean(d.liveSync));
+      })
       .finally(() => setLoading(false));
   };
 
@@ -56,7 +71,9 @@ export default function SearchConsolePage() {
       });
       const data = await res.json();
       setGsc(data.gsc);
-      toast.success("Google Search Console connected and synced!");
+      setDelta(data.delta ?? null);
+      setLiveSync(Boolean(data.liveSync));
+      toast.success(data.message || "Google Search Console connected");
     } catch (e) {
       toast.error("Failed to connect search console");
     } finally {
@@ -73,6 +90,7 @@ export default function SearchConsolePage() {
       });
       const data = await res.json();
       setGsc(data.gsc);
+      setDelta(data.delta ?? null);
       toast.info("Google Search Console disconnected");
     } catch (e) {
       toast.error("Failed to disconnect search console");
@@ -171,6 +189,43 @@ export default function SearchConsolePage() {
           </div>
         ))}
       </div>
+
+      <p className="text-xs text-slate-500">
+        {liveSync
+          ? "Live Google credentials detected. Deltas compare this fetch to the previous snapshot."
+          : "No Google API credentials in env. Deltas compare successive snapshots — import metrics via POST body when you have a GSC export."}
+      </p>
+
+      {delta ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Clicks Δ", value: delta.clicks },
+            { label: "Impressions Δ", value: delta.impressions },
+            { label: "CTR Δ", value: `${(delta.ctr * 100).toFixed(1)}pt` },
+            { label: "Position Δ", value: delta.position.toFixed(1) },
+          ].map((stat) => (
+            <div key={stat.label} className="p-3 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-[10px] font-bold text-slate-500 uppercase">{stat.label}</p>
+              <p className={`text-lg font-black ${Number(stat.value) > 0 && stat.label !== "Position Δ" ? "text-green-400" : Number(stat.value) < 0 && stat.label !== "Position Δ" ? "text-red-400" : "text-white"}`}>
+                {typeof stat.value === "number" && stat.value > 0 ? `+${stat.value}` : stat.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {delta?.rankingDrops?.length ? (
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+          <p className="text-xs font-black text-red-400 uppercase mb-2">Ranking drops since last snapshot</p>
+          <div className="space-y-1">
+            {delta.rankingDrops.slice(0, 5).map((drop) => (
+              <p key={drop.query} className="text-xs text-slate-300">
+                {drop.query}: #{drop.previousPosition.toFixed(1)} → #{drop.currentPosition.toFixed(1)}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Position distribution */}
       <div>

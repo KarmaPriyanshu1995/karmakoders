@@ -71,6 +71,7 @@ import CanonicalURL from "@/components/CanonicalURL";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
 import { TrackingScripts } from "@/components/TrackingScripts";
 import { SiteContentProvider } from "@/components/SiteContentProvider";
+import { ConversionWidgets } from "@/components/sections/ConversionWidgets";
 import { mergeSiteContent } from "@/lib/site-content";
 
 export default async function RootLayout({
@@ -206,6 +207,7 @@ export default async function RootLayout({
         <ThemeProvider initialConfig={config}>
           <SiteContentProvider value={siteContent}>
             {children}
+            <ConversionWidgets />
             <Toaster richColors position="bottom-right" />
           </SiteContentProvider>
         </ThemeProvider>

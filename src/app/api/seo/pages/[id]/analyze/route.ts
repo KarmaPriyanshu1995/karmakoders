@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { buildPageUrl } from "@/lib/sitePages";
 import { analyzePage, extractPageHtmlFromSections } from "@/lib/seo/analyzer";
 import { calcPageScores } from "@/lib/seo/scorer";
-import { detectEntities, calcEntityScore } from "@/lib/seo/entityDetector";
+import { detectEntities, calcEntityScore, entitiesToJsonLd } from "@/lib/seo/entityDetector";
 import { generateAllRecommendations } from "@/lib/seo/aiRecommender";
+import { trackEntitiesOnPage } from "@/lib/seo/entityTracker";
 import { requireTenantContext, TenantAccessError } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
 
@@ -83,6 +84,7 @@ export async function POST(
       hasFaq: analysis.hasFaq,
       headingCount: analysis.headings.length,
       entityScore,
+      contentScore: Math.round(analysis.eat.score * 0.35 + (analysis.wordCount >= 600 ? 40 : analysis.wordCount >= 300 ? 25 : 10)),
       internalLinksCount: 0,
       isOrphan: false,
       hasSchema: false,
@@ -123,7 +125,7 @@ export async function POST(
         headingsJson: JSON.stringify(analysis.headings),
         wordCount: analysis.wordCount,
         readabilityScore: analysis.readabilityScore,
-        keywordDensityJson: JSON.stringify(analysis.keywordDensity),
+        keywordDensityJson: JSON.stringify({ ...analysis.keywordDensity, _eat: analysis.eat }),
         imagesCount: analysis.imagesCount,
         imagesWithAlt: analysis.imagesWithAlt,
         hasFaq: analysis.hasFaq,
@@ -146,7 +148,7 @@ export async function POST(
         headingsJson: JSON.stringify(analysis.headings),
         wordCount: analysis.wordCount,
         readabilityScore: analysis.readabilityScore,
-        keywordDensityJson: JSON.stringify(analysis.keywordDensity),
+        keywordDensityJson: JSON.stringify({ ...analysis.keywordDensity, _eat: analysis.eat }),
         imagesCount: analysis.imagesCount,
         imagesWithAlt: analysis.imagesWithAlt,
         hasFaq: analysis.hasFaq,
@@ -163,12 +165,35 @@ export async function POST(
       },
     });
 
+    const jsonLd = entitiesToJsonLd(entities, url);
+    const schemaId = `${pageType || "page"}-${id}-WebPage`;
+    await prisma.seoSchema.upsert({
+      where: { id: schemaId },
+      create: {
+        id: schemaId,
+        tenantId,
+        pageType: pageType || "page",
+        pageId: id,
+        schemaType: "WebPage",
+        schemaJson: JSON.stringify(jsonLd, null, 2),
+        isValid: true,
+        isApplied: true,
+      },
+      update: {
+        schemaJson: JSON.stringify(jsonLd, null, 2),
+        isValid: true,
+        isApplied: true,
+      },
+    });
+    await trackEntitiesOnPage(tenantId, pageType || "page", id, entities);
+
     return NextResponse.json({
       analysis,
       scores,
       entities,
       entityScore,
       recommendations,
+      jsonLd,
       url,
     });
   } catch (error) {

@@ -48,3 +48,33 @@ export const CLIENT_LOGOS = [
 ] as const;
 
 export const CLIENT_LOGO_LABEL = "Trusted by teams in India, Singapore and the US";
+
+export type TeamMember = {
+  name: string;
+  role: string;
+  image?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+};
+
+/** Public About team. Keep this to real people — add rows in Site Content when Lucky sends photos. */
+export const TEAM: TeamMember[] = [
+  {
+    name: "Priyanshu Singh",
+    role: "Founder & Chief Architect",
+  },
+];
+
+export type TrustBadge = {
+  label: string;
+  note: string;
+  href?: string;
+};
+
+/** Placeholder review-platform slots until Clutch/GoodFirms profiles are live. Do not invent ratings. */
+export const TRUST_BADGES: TrustBadge[] = [
+  { label: "Clutch", note: "Profile pending verification" },
+  { label: "GoodFirms", note: "Listing in review" },
+  { label: "NDA-first", note: "IP assigned at milestone" },
+];
