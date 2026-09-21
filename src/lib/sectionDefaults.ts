@@ -271,7 +271,7 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Case Studies",
         heading: "Real Results for Real Businesses",
-        limit: 2,
+        limit: 6,
         showViewAll: true,
       },
     },
@@ -314,8 +314,8 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Selected Works",
         heading: "Transforming Visions into Digital Reality",
-        limit: 4,
-        showViewAll: true,
+        limit: 0,
+        showViewAll: false,
       },
     },
     {
@@ -325,8 +325,8 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Case Studies",
         heading: "Success Stories",
-        limit: 2,
-        showViewAll: true,
+        limit: 0,
+        showViewAll: false,
       },
     },
   ],
@@ -360,7 +360,7 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Insights",
         heading: "Explore Our Latest Thinking",
-        limit: 6,
+        limit: 0,
         showViewAll: false,
       },
     },
