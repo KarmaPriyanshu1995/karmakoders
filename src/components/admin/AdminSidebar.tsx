@@ -85,6 +85,7 @@ const navItems: NavItem[] = [
       { href: "/admin/seo", label: "SEO Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin/seo/sitemap", label: "Site Crawl & Sitemap", icon: Globe },
       { href: "/admin/seo/search-console", label: "Search Console", icon: BarChart3 },
+      { href: "/admin/seo/reports", label: "Reports", icon: FileText },
       { href: "/admin/seo/schema", label: "Schema", icon: Code2 },
       { href: "/admin/seo/settings", label: "Settings", icon: Settings2 },
     ],

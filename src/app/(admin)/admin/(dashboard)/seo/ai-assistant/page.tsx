@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  Bot, Zap, RefreshCw, Copy, Check, ChevronDown, ChevronUp,
-  FileText, Code2, HelpCircle, Link2, TrendingUp, Send, User, Sparkles
+  Bot, Zap, Copy, Check, ChevronDown, ChevronUp,
+  FileText, Code2, HelpCircle, TrendingUp, Send, User, Sparkles
 } from "lucide-react";
-import {
-  generateMetaTitle, generateMetaDescription, generateFaqQuestions,
-  generateContentImprovements, generateEEATImprovements
-} from "@/lib/seo/aiRecommender";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface PageOption {
   id: string; type: string; url: string; title: string;
@@ -38,13 +35,14 @@ export default function AiAssistantPage() {
   const [expanded, setExpanded] = useState<string[]>(["title"]);
   const [copied, setCopied] = useState<Record<string, boolean>>({});
   const [loadingPages, setLoadingPages] = useState(true);
+  const [applying, setApplying] = useState(false);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"optimizer" | "chat">("optimizer");
 
   // Chat State
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! I am your AI SEO Assistant. How can I help you improve Karmakoders' search engine performance today?" }
+    { role: "assistant", content: "Ask about site health, schema, CTR, clusters, GSC, or orphans. Replies use live audit numbers — not canned copy." }
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [typing, setTyping] = useState(false);
@@ -69,25 +67,58 @@ export default function AiAssistantPage() {
   const generateAll = async () => {
     if (!selectedPage) return;
     setGenerating(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const ctx = {
-      title: selectedPage.title,
-      url: selectedPage.url,
-      metaTitle: selectedPage.metaTitle,
-      metaDescription: selectedPage.metaDescription,
-      wordCount: selectedPage.wordCount,
-      hasFaq: selectedPage.hasFaq,
-      hasSchema: selectedPage.hasSchema,
-    };
-    setRecs({
-      title: generateMetaTitle(ctx),
-      description: generateMetaDescription(ctx),
-      faqs: generateFaqQuestions(ctx),
-      improvements: generateContentImprovements(ctx),
-      eeat: generateEEATImprovements(ctx),
-    });
-    setExpanded(["title", "description", "faqs", "improvements", "eeat"]);
-    setGenerating(false);
+    try {
+      const res = await fetch("/api/seo/ai/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_all",
+          pageId: selectedPage.id,
+          pageType: selectedPage.type,
+          context: {
+            title: selectedPage.title,
+            url: selectedPage.url,
+            metaTitle: selectedPage.metaTitle,
+            metaDescription: selectedPage.metaDescription,
+            wordCount: selectedPage.wordCount,
+            hasFaq: selectedPage.hasFaq,
+            hasSchema: selectedPage.hasSchema,
+            pageType: selectedPage.type,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+      setRecs(data.result || {});
+      if (data.context?.wordCount != null) {
+        setSelectedPage((page) => page ? { ...page, wordCount: data.context.wordCount, hasFaq: data.context.hasFaq } : page);
+      }
+      setExpanded(["title", "description", "faqs", "improvements", "eeat"]);
+      toast.success("Recommendations generated from live page content");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const applyToPage = async () => {
+    if (!selectedPage) return;
+    setApplying(true);
+    try {
+      const res = await fetch(`/api/seo/pages/${selectedPage.id}/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageType: selectedPage.type }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Apply failed");
+      toast.success(`Applied ${data.logs?.length || 0} optimization actions`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Apply failed");
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleSendMessage = async (customPrompt?: string) => {
@@ -99,21 +130,26 @@ export default function AiAssistantPage() {
     setInputMessage("");
     setTyping(true);
 
-    // Simulate AI typing and streaming
-    await new Promise((r) => setTimeout(r, 1200));
-
-    let reply = "I analyzed the site. To rank higher for custom software, we need to improve the E-E-A-T section by adding client reviews and credentials.";
-    if (textToSend.toLowerCase().includes("schema")) {
-      reply = "Structured Schema JSON-LD is crucial. I recommend creating organization details or FAQ markup using the Schema Markup Center, then embedding it.";
-    } else if (textToSend.toLowerCase().includes("ctr")) {
-      reply = "To boost CTR: Make sure page titles are under 60 chars, include a call-to-action like 'Best Services 2026', and match descriptions closely.";
-    } else if (textToSend.toLowerCase().includes("title")) {
-      reply = "Optimized Title suggestion for Karmakoders: 'Karmakoders — Enterprise Software & Mobile App Development'. length is 59 chars.";
+    try {
+      const res = await fetch("/api/seo/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: textToSend }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Assistant failed");
+      const extra = Array.isArray(data.citations) && data.citations.length
+        ? `\n\nOpen: ${data.citations.join(" · ")}`
+        : "";
+      setMessages((p) => [...p, { role: "assistant", content: `${data.reply}${extra}` }]);
+    } catch (error) {
+      setMessages((p) => [...p, {
+        role: "assistant",
+        content: error instanceof Error ? error.message : "Assistant failed. Try again.",
+      }]);
+    } finally {
+      setTyping(false);
     }
-
-    const assistantMsg: Message = { role: "assistant", content: reply };
-    setMessages((p) => [...p, assistantMsg]);
-    setTyping(false);
   };
 
   const RecommendationBlock = ({ id, icon: Icon, label, children, color = "#FFC300" }: { id: string; icon: React.ElementType; label: string; children: React.ReactNode; color?: string }) => {
@@ -146,11 +182,13 @@ export default function AiAssistantPage() {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-black text-white">AI SEO Assistant</h2>
-          <p className="text-slate-400 text-sm mt-1">Simulate expert SEO diagnostics and conversational audit suggestions</p>
+          <p className="text-slate-400 text-sm mt-1">Generate recommendations from live pages, apply optimizations, and ask questions against the current audit.</p>
         </div>
-
-        {/* Tab switchers */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link href="/admin/seo/automation" className="text-xs font-black text-[#FFC300] hover:text-white uppercase tracking-wider">
+            Automation panel →
+          </Link>
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
           <button
             onClick={() => setActiveTab("optimizer")}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "optimizer" ? "bg-[#FFC300] text-[#1C1B1A]" : "text-slate-400 hover:text-white"}`}
@@ -163,6 +201,7 @@ export default function AiAssistantPage() {
           >
             Conversational Assistant
           </button>
+        </div>
         </div>
       </div>
 
@@ -193,7 +232,14 @@ export default function AiAssistantPage() {
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(255,195,0,0.3)]"
               >
                 <Zap className={`w-4 h-4 ${generating ? "animate-pulse" : ""}`} />
-                {generating ? "Generating..." : "Optimize Entire Page"}
+                {generating ? "Generating..." : "Generate recommendations"}
+              </button>
+              <button
+                onClick={applyToPage}
+                disabled={!selectedPage || applying}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-black text-sm hover:bg-white/10 transition-all disabled:opacity-50"
+              >
+                {applying ? "Applying..." : "Apply to page"}
               </button>
             </div>
 
@@ -289,7 +335,7 @@ export default function AiAssistantPage() {
             <div className="flex flex-col items-center justify-center py-24 text-center rounded-2xl bg-white/3 border border-white/10">
               <Bot className="w-16 h-16 text-slate-600 mb-4" />
               <p className="text-xl font-black text-white">AI SEO Assistant Ready</p>
-              <p className="text-slate-500 mt-2">Select a page above and click &ldquo;Optimize Entire Page&rdquo; to generate comprehensive recommendations</p>
+              <p className="text-slate-500 mt-2">Select a page, generate recommendations from live content, then Apply to write meta, ALT, schema, and internal-link suggestions.</p>
             </div>
           )}
         </>
@@ -311,7 +357,7 @@ export default function AiAssistantPage() {
             {typing && (
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <Bot className="w-4 h-4 animate-bounce text-[#FFC300]" />
-                Assistant is scanning guidelines...
+                Assistant is reading the live audit...
               </div>
             )}
           </div>

@@ -417,6 +417,7 @@ export default function SeoDashboardPage() {
             { label: "Fix Technical", href: "/admin/seo/technical", icon: Wrench, color: "#3b82f6" },
             { label: "Add Schema", href: "/admin/seo/schema", icon: Code2, color: "#8b5cf6" },
             { label: "Brand Setup", href: "/admin/seo/brand", icon: Building2, color: "#10b981" },
+            { label: "Reports", href: "/admin/seo/reports", icon: FileText, color: "#eab308" },
             { label: "AI Assistant", href: "/admin/seo/ai-assistant", icon: Zap, color: "#f97316" },
             { label: "Automate", href: "/admin/seo/automation", icon: Activity, color: "#ec4899" },
           ].map((action) => (

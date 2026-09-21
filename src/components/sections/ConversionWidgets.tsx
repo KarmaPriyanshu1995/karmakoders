@@ -44,7 +44,7 @@ export function ConversionWidgets() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2">
+      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 pointer-events-none [&>*]:pointer-events-auto max-sm:bottom-4 max-sm:right-4">
         <Link
           href={bookHref}
           onClick={() => trackEvent("cta_click", { location: "sticky", cta: "book" })}
