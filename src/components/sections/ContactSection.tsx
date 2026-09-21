@@ -98,6 +98,24 @@ export function ContactSection({
     [brand.whatsapp],
   );
 
+  useEffect(() => {
+    if (!bookable) return;
+    const onMessage = (event: MessageEvent) => {
+      const payload = event.data;
+      const type =
+        typeof payload === "string"
+          ? payload
+          : payload && typeof payload === "object"
+            ? String((payload as { type?: string; event?: string }).type || (payload as { event?: string }).event || "")
+            : "";
+      if (/bookingSuccessful|booking_confirmed|calendly\.event_scheduled/i.test(type)) {
+        trackEvent("calendly_booked", { location: "contact" });
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [bookable]);
+
   const contactItems = [
     { icon: Mail, label: "Email Us", value: brand.email, href: `mailto:${brand.email}` },
     ...brandPhones(brand).map((phone) => ({

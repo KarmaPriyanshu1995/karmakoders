@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { generateFaqSchema } from "@/lib/seo/schemaGenerator";
 
 // Enterprise-focused FAQ content addressing US market buyer objections
 const defaultFaqs = [
@@ -47,6 +48,11 @@ export function FAQSection({
   faqs = defaultFaqs,
 }: FaqProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const questions = (Array.isArray(faqs) ? faqs : defaultFaqs).filter(
+    (item): item is { question: string; answer: string } =>
+      !!item && typeof item.question === "string" && typeof item.answer === "string" && item.question.trim().length > 0
+  );
+  const faqJsonLd = questions.length ? JSON.stringify(generateFaqSchema({ questions })) : null;
 
   return (
     <section id="faq" aria-label="Frequently asked questions" className={cn(
@@ -79,7 +85,7 @@ export function FAQSection({
         </div>
 
         <div className="space-y-4" role="list">
-          {faqs.map((faq, i) => {
+          {questions.map((faq, i) => {
             const isExpanded = openIndex === i;
             const panelId = `faq-panel-${i}`;
             const headingId = `faq-heading-${i}`;
@@ -136,6 +142,9 @@ export function FAQSection({
           })}
         </div>
       </div>
+      {faqJsonLd ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
+      ) : null}
     </section>
   );
 }

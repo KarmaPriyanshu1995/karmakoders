@@ -77,12 +77,22 @@ export function ConversionWidgets() {
             <p className="text-sm text-slate-400 mb-5">NDA-first, EST overlap, USD pricing. No fake US number — book or WhatsApp the team you already have.</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
+                href="/free-tools/mvp-cost-calculator"
+                onClick={() => {
+                  trackEvent("cta_click", { location: "exit_intent", cta: "calculator" });
+                  setExitOpen(false);
+                }}
+                className="flex-1 text-center px-4 py-3 rounded-xl bg-indigo-500 text-slate-950 font-black text-sm"
+              >
+                Estimate my MVP
+              </Link>
+              <Link
                 href={bookHref}
                 onClick={() => {
                   trackEvent("cta_click", { location: "exit_intent", cta: "book" });
                   setExitOpen(false);
                 }}
-                className="flex-1 text-center px-4 py-3 rounded-xl bg-indigo-500 text-slate-950 font-black text-sm"
+                className="flex-1 text-center px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm"
               >
                 Book discovery
               </Link>

@@ -9,6 +9,7 @@ import { subscribeNewsletter } from "@/lib/actions";
 import { toast } from "sonner";
 import { brandPhones } from "@/lib/brand";
 import { useSiteContent } from "@/components/SiteContentProvider";
+import { TrustBadgeStrip } from "@/components/sections/TrustBadgeStrip";
 
 const footerLinks = {
   Services: [
@@ -72,7 +73,9 @@ export function Footer() {
   const { brand } = useSiteContent();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
-  const showFreeTools = !pathname.startsWith("/free-tools");
+  const homepageTools = footerTools.filter((tool) => tool.href.includes("mvp-cost-calculator"));
+  const tools = pathname === "/" ? homepageTools : footerTools;
+  const showFreeTools = !pathname.startsWith("/free-tools") && tools.length > 0;
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -122,7 +125,7 @@ export function Footer() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {footerTools.map((tool) => (
+              {tools.map((tool) => (
                 <Link
                   key={tool.href}
                   href={tool.href}
@@ -176,9 +179,10 @@ export function Footer() {
               Karmakoders
               {/* <span className="text-indigo-500">.ai</span> */}
             </Link>
-            <p className="text-[#D6D6D6] text-base leading-relaxed mb-8 max-w-xs font-medium">
+            <p className="text-[#D6D6D6] text-base leading-relaxed mb-6 max-w-xs font-medium">
               Designing and engineering the future of the web with advanced AI, immersive 3D experiences, and premium aesthetics.
             </p>
+            <TrustBadgeStrip className="mb-8 justify-start" />
 
             <div className="flex gap-3 mb-10" role="list" aria-label="Social media links">
               {[

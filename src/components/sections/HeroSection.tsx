@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, type ComponentType } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { isBookableUrl } from "@/lib/brand";
 import { ClientLogoStrip } from "@/components/sections/ClientLogoStrip";
 import { TrustBadgeStrip } from "@/components/sections/TrustBadgeStrip";
+import { useSiteContent } from "@/components/SiteContentProvider";
 
 const TRUST_POINTS = [
   "NDA Friendly",
@@ -58,11 +60,13 @@ export function HeroSection({
   ctaSecondaryLink = "/free-tools/mvp-cost-calculator",
 }: HeroProps) {
   const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
-  const fadeUp = (delay: number, y = 24) =>
-    reduceMotion
-      ? { initial: false as const, animate: { opacity: 1, y: 0 } }
-      : { initial: { opacity: 0, y }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay, ease: "easeOut" as const } };
+  const { brand } = useSiteContent();
+  const bookHref = pathname === "/" && isBookableUrl(brand.calUrl) ? brand.calUrl : ctaPrimaryLink;
+  const fadeUp = (delay: number, y = 24) => ({
+    initial: { opacity: 0, y },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.7, delay, ease: "easeOut" as const },
+  });
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -131,7 +135,7 @@ export function HeroSection({
             {...fadeUp(0.3, 20)}
           >
             <Link
-              href={ctaPrimaryLink}
+              href={bookHref}
               onClick={() => trackEvent("cta_click", { location: "hero", cta: "primary" })}
               className="inline-flex items-center justify-center min-h-[52px] px-7 py-3.5 bg-indigo-500 hover:bg-indigo-500/90 text-slate-950 text-base font-black rounded-xl transition-all duration-300 shadow-[0_8px_24px_rgba(255,195,0,0.22)] hover:shadow-[0_10px_28px_rgba(255,195,0,0.32)] hover:-translate-y-0.5 w-full sm:w-auto text-center"
             >

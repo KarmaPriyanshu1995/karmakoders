@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Code2, Cpu, Layers, TrendingUp, Users, Zap } from "lucide-react";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 import { TeamSection } from "@/components/sections/TeamSection";
+import { TrustBadgeStrip } from "@/components/sections/TrustBadgeStrip";
 
 const defaultFeatures = [
   { icon: Zap, title: "Lightning Fast", desc: "Optimised for Core Web Vitals with sub-second load times." },
@@ -76,6 +77,7 @@ export function AboutSection({
           {secondaryBody && (
             <p className="mt-4 text-slate-400 text-base leading-relaxed">{secondaryBody}</p>
           )}
+          <TrustBadgeStrip className="mt-8" />
           {imageUrl && (
             <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}

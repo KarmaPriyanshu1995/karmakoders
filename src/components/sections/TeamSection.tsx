@@ -5,6 +5,7 @@ import { Code2, Globe } from "lucide-react";
 import Image from "next/image";
 import { useSiteContent } from "@/components/SiteContentProvider";
 import type { TeamMember } from "@/lib/social-proof";
+import { generatePersonSchema } from "@/lib/seo/schemaGenerator";
 
 interface TeamProps {
   isSpace?: boolean;
@@ -110,6 +111,28 @@ export function TeamSection({
           ))}
         </div>
       </div>
+      {members.map((member) => {
+        const sameAs = [member.linkedin, member.github, member.website].filter(
+          (url): url is string => typeof url === "string" && url.startsWith("http")
+        );
+        return (
+          <script
+            key={`person-jsonld-${member.name}`}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(
+                generatePersonSchema({
+                  name: member.name,
+                  jobTitle: member.role,
+                  image: member.image,
+                  sameAs,
+                  worksFor: { name: site.brand.legalName, url: "https://www.karmakoders.com" },
+                })
+              ),
+            }}
+          />
+        );
+      })}
     </section>
   );
 }
