@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { findCaseStudyDetail, DEMO_PROJECT_SLUGS } from "@/lib/caseStudyDetails";
+import { parseProjectDetails } from "@/lib/projectDetails";
 
 export interface ProjectLike {
   id?: string;
@@ -18,6 +19,7 @@ export interface ProjectLike {
   imageUrl?: string;
   image?: string;
   tags?: string;
+  detailsJson?: string | null;
 }
 
 interface ProjectsSectionClientProps {
@@ -215,14 +217,15 @@ export function ProjectsSectionClient({
           className="flex overflow-x-auto gap-8 snap-x snap-mandatory scrollbar-none scroll-smooth pb-8"
         >
           {displayProjects.map((project, i) => {
+            const stored = parseProjectDetails(project.detailsJson);
             const curated = findCaseStudyDetail(project.slug);
             const details = {
-              problem: curated?.problem || project.description || "A complex engineering challenge requiring high performance and custom workflows.",
+              problem: stored.challenge || curated?.problem || project.description || "A complex engineering challenge requiring high performance and custom workflows.",
               solution: curated?.solution || (project.content ? project.content.substring(0, 120) + "..." : "A bespoke software solution built to support growing digital operations."),
-              // Only set when we have a real, curated outcome — never invent one for
-              // real client projects that don't have a verified metric on file.
-              outcome: curated?.outcome,
+              outcome: stored.results || curated?.outcome,
             };
+            const highlightMetric = stored.metrics[0] || curated?.metrics?.[0];
+            const industry = stored.industry;
             const isDemoProject = isFallback || DEMO_PROJECT_SLUGS.has(project.slug);
             const tags = (project.tags || "").split(",").map((t) => t.trim()).filter(Boolean);
 
@@ -252,11 +255,16 @@ export function ProjectsSectionClient({
                     <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-3">
                       <div>
                         <span className="px-3 py-1 bg-indigo-500 text-slate-950 text-xxs font-black uppercase tracking-wider rounded-md">
-                          {project.category || 'Case Study'}
+                          {industry || project.category || 'Case Study'}
                         </span>
                         <h3 className="text-2xl sm:text-3xl font-black text-white mt-2 leading-tight group-hover:text-indigo-400 transition-colors duration-300">
                           {project.title}
                         </h3>
+                        {highlightMetric ? (
+                          <p className="text-xs font-bold text-indigo-300 mt-2">
+                            {highlightMetric.value} <span className="text-white/60 font-medium">{highlightMetric.label}</span>
+                          </p>
+                        ) : null}
                       </div>
                       {isDemoProject && (
                         <span className="shrink-0 px-2.5 py-1 bg-slate-950/70 backdrop-blur-sm border border-white/20 text-white/70 text-[10px] font-bold uppercase tracking-wider rounded-md">

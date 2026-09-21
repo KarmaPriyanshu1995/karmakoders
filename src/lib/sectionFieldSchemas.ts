@@ -22,6 +22,10 @@ export const SECTION_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
     { key: "headline", label: "Headline", input: "text" },
     { key: "highlight", label: "Highlight Word", input: "text" },
     { key: "subheadline", label: "Subheadline", input: "textarea" },
+    { key: "ctaPrimary", label: "Primary CTA label", input: "text", placeholder: "Book Discovery Call" },
+    { key: "ctaPrimaryLink", label: "Primary CTA URL", input: "text", placeholder: "/contact" },
+    { key: "ctaSecondary", label: "Secondary CTA label", input: "text", placeholder: "Estimate my MVP cost" },
+    { key: "ctaSecondaryLink", label: "Secondary CTA URL", input: "text", placeholder: "/free-tools/mvp-cost-calculator" },
   ],
   about: [
     { key: "h1", label: "H1 Heading (main page title — use once per page)", input: "text", placeholder: "e.g. About KarmaKoders" },

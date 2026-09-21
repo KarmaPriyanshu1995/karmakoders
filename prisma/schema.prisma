@@ -212,6 +212,7 @@ model Project {
   content     String
   link        String?
   tags        String   // CSV string (e.g. "react,nextjs")
+  detailsJson String?  // optional case-study fields: industry, country, timeline, metrics, etc.
   createdAt   DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

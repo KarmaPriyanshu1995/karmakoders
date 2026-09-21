@@ -2,17 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Roboto, Poppins, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-if (typeof window !== "undefined") {
-  const originalWarn = console.warn;
-  console.warn = (...args: any[]) => {
-    if (args[0] && typeof args[0] === "string" && args[0].includes("THREE.Clock")) {
-      return;
-    }
-    originalWarn(...args);
-  };
-}
-
-
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 const poppins = Poppins({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-poppins" });

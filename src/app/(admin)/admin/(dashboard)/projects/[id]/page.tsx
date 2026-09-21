@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { DeleteConfirmButton } from "@/components/admin/DeleteConfirmButton";
 import { requireTenantContext } from "@/lib/tenant-context";
 import { assertPermission, PERMISSIONS } from "@/lib/permissions";
+import { metricsFromText, metricsToText, parseProjectDetails, stringifyProjectDetails } from "@/lib/projectDetails";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,14 @@ export default async function AdminProjectEditor({ params }: { params: Promise<{
   assertPermission(role, PERMISSIONS.PROJECT_VIEW, permissionOverrides);
   const isNew = id === "new";
   const project = isNew
-    ? { title: "", slug: "", description: "", imageUrl: "", content: "", link: "", tags: "" }
+    ? { title: "", slug: "", description: "", imageUrl: "", content: "", link: "", tags: "", detailsJson: null as string | null }
     : await prisma.project.findFirst({ where: { id, tenantId } });
 
   if (!project && !isNew) {
     redirect("/admin/projects");
   }
+
+  const details = parseProjectDetails(project && "detailsJson" in project ? project.detailsJson : null);
 
   async function action(formData: FormData) {
     "use server";
@@ -36,6 +39,17 @@ export default async function AdminProjectEditor({ params }: { params: Promise<{
       content: formData.get("content") as string,
       link: formData.get("link") as string,
       tags: formData.get("tags") as string,
+      detailsJson: stringifyProjectDetails({
+        industry: String(formData.get("industry") || ""),
+        country: String(formData.get("country") || ""),
+        timeline: String(formData.get("timeline") || ""),
+        teamSize: String(formData.get("teamSize") || ""),
+        challenge: String(formData.get("challenge") || ""),
+        results: String(formData.get("results") || ""),
+        testimonial: String(formData.get("testimonial") || ""),
+        liveUrl: String(formData.get("liveUrl") || ""),
+        metrics: metricsFromText(String(formData.get("metrics") || "")),
+      }),
     };
     await upsertProject(data);
     redirect("/admin/projects");
@@ -131,6 +145,53 @@ export default async function AdminProjectEditor({ params }: { params: Promise<{
               defaultValue={project?.content}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none font-mono text-sm"
             />
+          </div>
+
+          <div className="pt-2 border-t border-slate-800 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-white">Case study details (optional)</h3>
+              <p className="text-xs text-slate-500 mt-1">Only fill verified facts. Leave blank rather than inventing metrics for a live client.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Industry</label>
+                <input name="industry" defaultValue={details.industry || ""} placeholder="e.g. Fintech" className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Country</label>
+                <input name="country" defaultValue={details.country || ""} placeholder="e.g. United States" className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Timeline</label>
+                <input name="timeline" defaultValue={details.timeline || ""} placeholder="e.g. 12 weeks" className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Team size</label>
+                <input name="teamSize" defaultValue={details.teamSize || ""} placeholder="e.g. 4 engineers" className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Challenge</label>
+              <textarea name="challenge" rows={3} defaultValue={details.challenge || ""} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Results</label>
+              <textarea name="results" rows={3} defaultValue={details.results || ""} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Client quote</label>
+              <textarea name="testimonial" rows={2} defaultValue={details.testimonial || ""} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Case-study live URL</label>
+                <input name="liveUrl" defaultValue={details.liveUrl || ""} placeholder="https://..." className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white focus:border-indigo-500 outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Metrics (one per line: Label|Value)</label>
+                <textarea name="metrics" rows={3} defaultValue={metricsToText(details.metrics)} placeholder={"Wait time|<8 min\nReferral lift|+22%"} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-indigo-500 outline-none resize-none font-mono text-sm" />
+              </div>
+            </div>
           </div>
         </div>
 

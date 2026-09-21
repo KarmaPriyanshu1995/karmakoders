@@ -495,6 +495,7 @@ export async function upsertProject(data: {
   content: string;
   link?: string;
   tags: string;
+  detailsJson?: string | null;
 }) {
   const { tenantId, role, permissionOverrides } = await requireTenantContext();
   const { id, ...projectData } = data;
