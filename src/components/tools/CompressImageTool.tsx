@@ -21,6 +21,7 @@ import {
   type CompressMode,
   type CompressOutputFormat,
 } from "@/lib/tools/compress-image-client";
+import { trackUsage } from "@/components/tools/UsageBeacon";
 
 const ACCEPT = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 
@@ -143,6 +144,7 @@ export function CompressImageTool() {
     });
 
     if (!result.ok) {
+      trackUsage("execute_error", "compress-image");
       if (result.status === 429 && result.retryAfterSeconds) {
         setRetryUntil(Date.now() + result.retryAfterSeconds * 1000);
         toast.error("Something went wrong");
@@ -162,6 +164,7 @@ export function CompressImageTool() {
     setDownloadName(result.stats.filename);
     setStats(result.stats);
     setStatus("Compression complete. Preview the result, then download if it looks right.");
+    trackUsage("execute", "compress-image");
     setLoading(false);
   };
 
@@ -306,6 +309,7 @@ export function CompressImageTool() {
               <a
                 href={compressedUrl}
                 download={downloadName}
+                onClick={() => trackUsage("download", "compress-image")}
                 className="inline-flex items-center justify-center h-14 px-8 rounded-2xl font-bold text-base border border-white/10 bg-white/5 text-white hover:border-indigo-500/40 hover:bg-white/10 transition-colors"
               >
                 <Download className="w-5 h-5 mr-2" />

@@ -13,8 +13,16 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function EditToolPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EditToolPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { slug } = await params;
+  const query = await searchParams;
+  const initialTab = query.tab === "SEO" || query.tab === "Content" || query.tab === "Settings" || query.tab === "Overview" ? query.tab : undefined;
   const [tool, categories, settings, analytics, providers] = await Promise.all([
     getToolAdminBySlug(slug),
     getToolCategoriesAdmin(),
@@ -70,7 +78,7 @@ export default async function EditToolPage({ params }: { params: Promise<{ slug:
           <p className="text-slate-500 text-sm">/free-tools/{tool.slug}</p>
         </div>
       </div>
-      <ToolEditorForm isNew={false} tool={tool} categories={categories} settings={settings} extraTabs={extraTabs} />
+      <ToolEditorForm isNew={false} tool={tool} categories={categories} settings={settings} extraTabs={extraTabs} initialTab={initialTab} />
     </div>
   );
 }

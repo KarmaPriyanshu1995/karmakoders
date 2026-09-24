@@ -83,6 +83,7 @@ model Tenant {
   registrarComparisons    RegistrarComparison[]
   seoLandingPages         SeoLandingPage[]
   toolAnalyticsEvents     ToolAnalyticsEvent[]
+  usageEvents             UsageEvent[]
 
   @@index([status])
 }
@@ -725,6 +726,10 @@ model FreeTool {
   ogTitle          String?
   ogDescription    String?
   ogImage          String?
+  twitterTitle       String?
+  twitterDescription String?
+  twitterImage       String?
+  schemaType         String   @default("WebApplication")
   robots           String?
   contentJson      String?
   createdAt        DateTime @default(now())
@@ -734,6 +739,7 @@ model FreeTool {
   category        ToolCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   analyticsEvents ToolAnalyticsEvent[]
   affiliateClicks AffiliateClick[]
+  usageEvents     UsageEvent[]
 
   @@unique([tenantId, slug])
   @@index([tenantId, status, isPublic])
@@ -945,4 +951,34 @@ model ToolAnalyticsEvent {
   @@index([tenantId, toolId, createdAt])
   @@index([providerId])
   @@map("tool_analytics_events")
+}
+
+// First-party usage analytics. Stores a salted visitor hash only — never an IP,
+// raw user agent, cookie, or the visitor token the browser generated.
+model UsageEvent {
+  id           String   @id @default(cuid())
+  tenantId     String
+  toolId       String?
+  toolSlug     String
+  eventType    String
+  visitorKey   String
+  returning    Boolean  @default(false)
+  country      String   @default("")
+  city         String   @default("")
+  device       String   @default("")
+  browser      String   @default("")
+  channel      String   @default("direct")
+  referrerHost String   @default("")
+  durationMs   Int?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool   FreeTool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, toolSlug, createdAt])
+  @@index([tenantId, eventType, createdAt])
+  @@index([tenantId, visitorKey])
+  @@index([toolId])
+  @@map("usage_events")
 }

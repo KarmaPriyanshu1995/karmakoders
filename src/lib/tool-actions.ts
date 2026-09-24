@@ -9,6 +9,8 @@ import { ensureFreeToolsDefaults } from "@/lib/tools/defaults";
 import { parseFreeToolsSettings, type FreeToolsSettings } from "@/lib/tools/settings";
 import { getFreeToolsSettings, saveFreeToolsSettings } from "@/lib/tools/settings-db";
 import { isSafeRedirectUrl } from "@/lib/tools/affiliate";
+import { notifyToolPublished, submitForIndexing } from "@/lib/seo/indexing";
+import { SITE_URL } from "@/lib/seo/sitemap-builder";
 
 function slugify(value: string): string {
   return value
@@ -117,6 +119,10 @@ export interface ToolInput {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  schemaType?: string;
   robots?: string;
   contentJson?: string;
 }
@@ -146,6 +152,10 @@ export async function upsertTool(data: ToolInput) {
     ogTitle: data.ogTitle?.trim() || null,
     ogDescription: data.ogDescription?.trim() || null,
     ogImage: data.ogImage?.trim() || null,
+    twitterTitle: data.twitterTitle?.trim() || null,
+    twitterDescription: data.twitterDescription?.trim() || null,
+    twitterImage: data.twitterImage?.trim() || null,
+    schemaType: data.schemaType === "SoftwareApplication" ? "SoftwareApplication" : "WebApplication",
     robots: data.robots?.trim() || "index,follow",
     contentJson: data.contentJson || null,
   };
@@ -183,6 +193,9 @@ export async function upsertTool(data: ToolInput) {
   }
 
   revalidateTools(tool.slug);
+  if (status === "published" && previousStatus !== "published") {
+    void notifyToolPublished(tenantId, tool.slug, user.id);
+  }
   return tool;
 }
 
@@ -212,6 +225,14 @@ export async function duplicateTool(id: string) {
       seoTitle: source.seoTitle,
       seoDescription: source.seoDescription,
       seoKeywords: source.seoKeywords,
+      canonicalUrl: source.canonicalUrl,
+      ogTitle: source.ogTitle,
+      ogDescription: source.ogDescription,
+      ogImage: source.ogImage,
+      twitterTitle: source.twitterTitle,
+      twitterDescription: source.twitterDescription,
+      twitterImage: source.twitterImage,
+      schemaType: source.schemaType,
       robots: "noindex,follow",
       contentJson: source.contentJson,
     },
@@ -235,6 +256,22 @@ export async function updateToolStatus(id: string, status: string) {
     resourceId: id,
   });
   revalidateTools(existing.slug);
+  if (status === "published" && existing.status !== "published") {
+    void notifyToolPublished(tenantId, existing.slug, user.id);
+  }
+}
+
+export async function requestToolRecrawl(slug: string) {
+  const { tenantId, user } = await requireTools(PERMISSIONS.TOOLS_UPDATE);
+  const tool = await prisma.freeTool.findFirst({
+    where: { tenantId, slug },
+    select: { slug: true, toolUrl: true, status: true },
+  });
+  if (!tool) throw new TenantAccessError("Not found");
+  if (tool.status !== "published") throw new TenantAccessError("Publish the tool before requesting a recrawl");
+  const path = tool.toolUrl || `/free-tools/${tool.slug}`;
+  const url = path.startsWith("http") ? path : `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  return submitForIndexing({ tenantId, url, userId: user.id, triggeredBy: user.id });
 }
 
 export async function updateToolOrder(id: string, sortOrder: number) {

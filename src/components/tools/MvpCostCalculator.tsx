@@ -18,6 +18,7 @@ import {
 import { DEFAULT_WHATSAPP_NUMBER } from "@/lib/content/post-types";
 import { submitCalculatorLead } from "@/lib/actions";
 import { trackEvent } from "@/lib/analytics";
+import { trackUsage } from "@/components/tools/UsageBeacon";
 import { toast } from "sonner";
 
 const UNLOCK_KEY = "mvp-calc-lead";
@@ -48,6 +49,7 @@ export function MvpCostCalculator({ compact = false }: { compact?: boolean }) {
     e.preventDefault();
     if (!lead.name.trim() || !lead.email.trim()) {
       toast.error("Enter your name and email to see the estimate.");
+      trackUsage("execute_error", "mvp-cost-calculator");
       return;
     }
     setSubmitting(true);
@@ -68,9 +70,11 @@ export function MvpCostCalculator({ compact = false }: { compact?: boolean }) {
       setUnlocked(true);
       trackEvent("calculator_lead", { tier, compliance });
       trackEvent("calculator_complete", { range: formatUsdRange(estimate.low, estimate.high) });
+      trackUsage("execute", "mvp-cost-calculator");
       toast.success("Estimate unlocked. We also saved this as an inquiry.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save your details.");
+      trackUsage("execute_error", "mvp-cost-calculator");
     } finally {
       setSubmitting(false);
     }
@@ -192,12 +196,12 @@ export function MvpCostCalculator({ compact = false }: { compact?: boolean }) {
               </Link>
             </Button>
             <Button asChild variant="glass">
-              <a href={waHref} target="_blank" rel="noopener noreferrer">
+              <a href={waHref} target="_blank" rel="noopener noreferrer" onClick={() => trackUsage("share", "mvp-cost-calculator")}>
                 <MessageCircle className="w-4 h-4 mr-2" /> Export via WhatsApp
               </a>
             </Button>
             <Button asChild variant="ghost" className="text-slate-300">
-              <a href={mailHref}>
+              <a href={mailHref} onClick={() => trackUsage("share", "mvp-cost-calculator")}>
                 <Mail className="w-4 h-4 mr-2" /> Email this roadmap
               </a>
             </Button>
