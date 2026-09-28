@@ -23,11 +23,14 @@ import {
   Code2,
   BarChart3,
   Globe,
+  LineChart,
+  Search,
   Settings2,
   Shield,
   Sparkles,
   Tags,
   Handshake,
+  Quote,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -69,11 +72,13 @@ const navItems: NavItem[] = [
       { href: "/admin/tools/providers", label: "Providers", icon: Globe },
       { href: "/admin/tools/affiliates", label: "Affiliate Programs", icon: Handshake },
       { href: "/admin/tools/seo-pages", label: "SEO Pages", icon: FileText },
-      { href: "/admin/tools/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/admin/tools/seo", label: "SEO manager", icon: Search },
+      { href: "/admin/tools/analytics", label: "Usage analytics", icon: LineChart },
     ],
   },
   { href: "/admin/users", label: "Users", icon: Users, section: "USERS" },
   { href: "/admin/appearance", label: "Appearance", icon: Palette, section: "SETTINGS" },
+  { href: "/admin/site-content", label: "Site Content", icon: Quote, section: "SETTINGS" },
   {
     href: "/admin/seo",
     label: "SEO Intelligence",
@@ -83,6 +88,7 @@ const navItems: NavItem[] = [
       { href: "/admin/seo", label: "SEO Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin/seo/sitemap", label: "Site Crawl & Sitemap", icon: Globe },
       { href: "/admin/seo/search-console", label: "Search Console", icon: BarChart3 },
+      { href: "/admin/seo/reports", label: "Reports", icon: FileText },
       { href: "/admin/seo/schema", label: "Schema", icon: Code2 },
       { href: "/admin/seo/settings", label: "Settings", icon: Settings2 },
     ],

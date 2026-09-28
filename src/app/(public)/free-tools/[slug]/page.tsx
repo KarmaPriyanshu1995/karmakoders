@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -11,6 +12,8 @@ import { getFreeToolsSettings } from "@/lib/tools/settings-db";
 import { getPrimaryTenantId } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
 import { recordToolEvent } from "@/lib/tools/analytics";
+import { parseToolContent } from "@/lib/tools/content";
+import { UsageBeacon } from "@/components/tools/UsageBeacon";
 import { breadcrumbJsonLd, faqJsonLd, jsonLdScript, SITE_URL, webApplicationJsonLd } from "@/lib/tools/jsonld";
 
 export const dynamic = "force-dynamic";
@@ -18,20 +21,6 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ domain?: string }>;
-}
-
-function parseContent(raw: string | null) {
-  if (!raw) return { sections: [], faq: [], heroHeading: "", heroSubheading: "" };
-  try {
-    return JSON.parse(raw) as {
-      heroHeading?: string;
-      heroSubheading?: string;
-      sections?: { heading: string; body: string }[];
-      faq?: { question: string; answer: string }[];
-    };
-  } catch {
-    return { sections: [], faq: [], heroHeading: "", heroSubheading: "" };
-  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -53,7 +42,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: tool.ogTitle || title,
       description: tool.ogDescription || description,
       url: canonical,
-      ...(tool.ogImage ? { images: [{ url: tool.ogImage }] } : {}),
+      ...(tool.ogImage ? { images: [{ url: tool.ogImage, width: 1200, height: 630 }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: tool.twitterTitle || tool.ogTitle || title,
+      description: tool.twitterDescription || tool.ogDescription || description,
+      ...((tool.twitterImage || tool.ogImage) ? { images: [tool.twitterImage || tool.ogImage || ""] } : {}),
     },
   };
 }
@@ -66,7 +61,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
 
   const tenantId = await getPrimaryTenantId();
   const settings = await getFreeToolsSettings(tenantId);
-  const content = parseContent(tool.contentJson);
+  const content = parseToolContent(tool.contentJson);
   await recordToolEvent({ tenantId, eventType: "tool_view", toolId: tool.id });
 
   const [tlds, comparisons, landings] = await Promise.all([
@@ -92,6 +87,8 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
       name: tool.name,
       description: tool.seoDescription || tool.shortDescription,
       url,
+      schemaType: tool.schemaType,
+      image: tool.ogImage || undefined,
     }),
   ];
   if (content.faq?.length) graphs.push(faqJsonLd(content.faq));
@@ -104,15 +101,23 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
       <Navbar />
       <div className="pt-32 pb-24 px-6 md:px-12 max-w-5xl mx-auto w-full">
         <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">
-          <a href="/free-tools" className="hover:text-white">Free Tools</a>
+          <Link href="/free-tools" className="hover:text-white">Free Tools</Link>
           {tool.category ? ` · ${tool.category.name}` : ""}
         </p>
         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
           {content.heroHeading || tool.name}
         </h1>
-        <p className="text-lg text-slate-400 leading-relaxed mb-10 max-w-3xl">
+        {content.h2 ? <h2 className="text-2xl font-bold text-white mb-3">{content.h2}</h2> : null}
+        <p className="text-lg text-slate-400 leading-relaxed mb-4 max-w-3xl">
           {content.heroSubheading || tool.longDescription || tool.shortDescription}
         </p>
+        {content.introAbove ? (
+          <p className="text-base text-slate-300 leading-relaxed mb-8 max-w-3xl">{content.introAbove}</p>
+        ) : (
+          <div className="mb-6" />
+        )}
+
+        <UsageBeacon tool={tool.slug} />
 
         {tool.slug === "domain-compare" ? (
           <DomainCompareTool initialDomain={query.domain || ""} disclosure={settings.affiliateDisclosure} />
@@ -125,6 +130,10 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
             This tool is published and ready for an interactive implementation.
           </div>
         )}
+
+        {content.introBelow ? (
+          <p className="text-lg text-slate-300 leading-relaxed mt-8 max-w-3xl">{content.introBelow}</p>
+        ) : null}
 
         <ToolSeoContent content={content} extraLinks={extraLinks} compact={tool.slug === "domain-compare"} />
       </div>

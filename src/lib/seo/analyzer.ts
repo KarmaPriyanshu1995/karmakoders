@@ -1,6 +1,7 @@
 // SEO Content Analyzer — Rule-based heuristic analysis
 
 import { calcReadability } from "@/lib/seo/readability";
+import { analyzeEat, type EatAnalysis } from "@/lib/seo/eatAnalyzer";
 
 export { calcReadability, getReadabilityRating, stripHtmlForReadability } from "@/lib/seo/readability";
 
@@ -29,6 +30,7 @@ export interface PageAnalysisResult {
   imagesWithAlt: number;
   hasFaq: boolean;
   keywordDensity: Record<string, number>;
+  eat: EatAnalysis;
   issues: Array<{ type: string; severity: "critical" | "important" | "recommended"; description: string; suggestion: string }>;
   recommendations: string[];
 }
@@ -315,6 +317,19 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
     issues.push({ type: "poor_heading_structure", severity: "recommended", description: "Content lacks sufficient heading structure.", suggestion: "Add H2 and H3 subheadings to organize content and aid scannability." });
   }
 
+  const eat = analyzeEat(text, html);
+  if (eat.score < 40) {
+    issues.push({
+      type: "low_eat",
+      severity: "important",
+      description: `E-E-A-T score is low (${eat.score}/100).`,
+      suggestion: "Add first-party experience, named expertise, citations, and trust signals (contact, NDA, SLA).",
+    });
+    recommendations.push("Strengthen Experience, Expertise, Authoritativeness, and Trust markers on this page.");
+  } else if (eat.markers.length) {
+    recommendations.push(`E-E-A-T markers present: ${eat.markers.slice(0, 4).join(", ")}.`);
+  }
+
   return {
     metaTitle,
     metaDescription,
@@ -326,6 +341,7 @@ export function analyzePage(input: PageAnalysisInput): PageAnalysisResult {
     imagesWithAlt,
     hasFaq,
     keywordDensity,
+    eat,
     issues,
     recommendations,
   };

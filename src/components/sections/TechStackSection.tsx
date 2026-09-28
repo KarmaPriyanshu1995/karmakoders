@@ -4,49 +4,36 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const techStack = [
-  // Frontend
-  { name: "Next.js", category: "Frontend", icon: "▲", color: "text-white", bg: "bg-white/10" },
-  { name: "React", category: "Frontend", icon: "⚛", color: "text-cyan-400", bg: "bg-cyan-500/10" },
+  { name: "Next.js", category: "Frontend", icon: "Nx", color: "text-white", bg: "bg-white/10" },
+  { name: "React", category: "Frontend", icon: "Re", color: "text-cyan-400", bg: "bg-cyan-500/10" },
   { name: "TypeScript", category: "Frontend", icon: "TS", color: "text-blue-400", bg: "bg-blue-500/10" },
-  { name: "Tailwind CSS", category: "Frontend", icon: "🌊", color: "text-teal-400", bg: "bg-teal-500/10" },
-  { name: "Framer Motion", category: "Frontend", icon: "◈", color: "text-pink-400", bg: "bg-pink-500/10" },
-  { name: "Three.js", category: "Frontend", icon: "◉", color: "text-indigo-500", bg: "bg-indigo-500/10" },
-
-  // Backend
-  { name: "Node.js", category: "Backend", icon: "🟢", color: "text-green-400", bg: "bg-green-500/10" },
-  { name: "NestJS", category: "Backend", icon: "🐱", color: "text-red-400", bg: "bg-red-500/10" },
-  { name: "Python", category: "Backend", icon: "🐍", color: "text-yellow-400", bg: "bg-yellow-500/10" },
-  { name: "GraphQL", category: "Backend", icon: "◈", color: "text-pink-500", bg: "bg-pink-500/10" },
-
-  // Mobile
-  { name: "React Native", category: "Mobile", icon: "📱", color: "text-cyan-300", bg: "bg-cyan-400/10" },
-  { name: "Swift", category: "Mobile", icon: "🍎", color: "text-orange-400", bg: "bg-orange-500/10" },
-  { name: "Kotlin", category: "Mobile", icon: "🤖", color: "text-purple-400", bg: "bg-purple-500/10" },
-  { name: "Flutter", category: "Mobile", icon: "💙", color: "text-blue-400", bg: "bg-blue-500/10" },
-
-  // Cloud
-  { name: "AWS", category: "Cloud", icon: "☁", color: "text-orange-400", bg: "bg-orange-500/10" },
-  { name: "Google Cloud", category: "Cloud", icon: "☁", color: "text-blue-400", bg: "bg-blue-500/10" },
-  { name: "Azure", category: "Cloud", icon: "☁", color: "text-sky-400", bg: "bg-sky-500/10" },
-  { name: "Cloudflare", category: "Cloud", icon: "⚡", color: "text-yellow-500", bg: "bg-yellow-500/10" },
-
-  // Database
-  { name: "PostgreSQL", category: "Database", icon: "🐘", color: "text-blue-300", bg: "bg-blue-400/10" },
-  { name: "MongoDB", category: "Database", icon: "🍃", color: "text-green-500", bg: "bg-green-500/10" },
-  { name: "Redis", category: "Database", icon: "⚡", color: "text-red-400", bg: "bg-red-500/10" },
-  { name: "Prisma ORM", category: "Database", icon: "◆", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-
-  // AI
-  { name: "OpenAI GPT-4", category: "AI", icon: "🤖", color: "text-green-400", bg: "bg-green-500/10" },
-  { name: "TensorFlow", category: "AI", icon: "🔶", color: "text-orange-500", bg: "bg-orange-500/10" },
-  { name: "LangChain", category: "AI", icon: "🦜", color: "text-green-300", bg: "bg-green-400/10" },
-  { name: "PyTorch", category: "AI", icon: "🔥", color: "text-rose-500", bg: "bg-rose-500/10" },
-
-  // DevOps
-  { name: "Docker", category: "DevOps", icon: "🐳", color: "text-sky-400", bg: "bg-sky-500/10" },
-  { name: "Kubernetes", category: "DevOps", icon: "☸", color: "text-blue-500", bg: "bg-blue-500/10" },
+  { name: "Tailwind CSS", category: "Frontend", icon: "Tw", color: "text-teal-400", bg: "bg-teal-500/10" },
+  { name: "Framer Motion", category: "Frontend", icon: "Fm", color: "text-pink-400", bg: "bg-pink-500/10" },
+  { name: "Three.js", category: "Frontend", icon: "3j", color: "text-indigo-500", bg: "bg-indigo-500/10" },
+  { name: "Node.js", category: "Backend", icon: "No", color: "text-green-400", bg: "bg-green-500/10" },
+  { name: "NestJS", category: "Backend", icon: "Ne", color: "text-red-400", bg: "bg-red-500/10" },
+  { name: "Python", category: "Backend", icon: "Py", color: "text-yellow-400", bg: "bg-yellow-500/10" },
+  { name: "GraphQL", category: "Backend", icon: "Gq", color: "text-pink-500", bg: "bg-pink-500/10" },
+  { name: "React Native", category: "Mobile", icon: "RN", color: "text-cyan-300", bg: "bg-cyan-400/10" },
+  { name: "Swift", category: "Mobile", icon: "Sw", color: "text-orange-400", bg: "bg-orange-500/10" },
+  { name: "Kotlin", category: "Mobile", icon: "Kt", color: "text-purple-400", bg: "bg-purple-500/10" },
+  { name: "Flutter", category: "Mobile", icon: "Fl", color: "text-blue-400", bg: "bg-blue-500/10" },
+  { name: "AWS", category: "Cloud", icon: "AW", color: "text-orange-400", bg: "bg-orange-500/10" },
+  { name: "Google Cloud", category: "Cloud", icon: "GC", color: "text-blue-400", bg: "bg-blue-500/10" },
+  { name: "Azure", category: "Cloud", icon: "Az", color: "text-sky-400", bg: "bg-sky-500/10" },
+  { name: "Cloudflare", category: "Cloud", icon: "Cf", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  { name: "PostgreSQL", category: "Database", icon: "Pg", color: "text-blue-300", bg: "bg-blue-400/10" },
+  { name: "MongoDB", category: "Database", icon: "Mg", color: "text-green-500", bg: "bg-green-500/10" },
+  { name: "Redis", category: "Database", icon: "Rd", color: "text-red-400", bg: "bg-red-500/10" },
+  { name: "Prisma ORM", category: "Database", icon: "Pr", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  { name: "OpenAI GPT-4", category: "AI", icon: "AI", color: "text-green-400", bg: "bg-green-500/10" },
+  { name: "TensorFlow", category: "AI", icon: "Tf", color: "text-orange-500", bg: "bg-orange-500/10" },
+  { name: "LangChain", category: "AI", icon: "Lc", color: "text-green-300", bg: "bg-green-400/10" },
+  { name: "PyTorch", category: "AI", icon: "Pt", color: "text-rose-500", bg: "bg-rose-500/10" },
+  { name: "Docker", category: "DevOps", icon: "Dk", color: "text-sky-400", bg: "bg-sky-500/10" },
+  { name: "Kubernetes", category: "DevOps", icon: "K8", color: "text-blue-500", bg: "bg-blue-500/10" },
   { name: "Vercel", category: "DevOps", icon: "▲", color: "text-white", bg: "bg-white/10" },
-  { name: "GitHub Actions", category: "DevOps", icon: "🐙", color: "text-slate-400", bg: "bg-slate-500/10" },
+  { name: "GitHub Actions", category: "DevOps", icon: "GH", color: "text-slate-400", bg: "bg-slate-500/10" },
 ];
 
 const categories = ["All", "Frontend", "Backend", "Mobile", "Cloud", "Database", "AI", "DevOps"];

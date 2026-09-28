@@ -18,20 +18,20 @@
 
 ## Phase 2: Core Analysis & Calculation Backends
 - [x] Technical SEO Audit Engine (Scanner for headers, broken links, image compression, metadata)
-- [~] Content Quality & Semantic Analyzer (E-E-A-T markers, keyword weight, section analysis) — section-level `calculateSectionSeoScore` live in CMS editor; full page semantic analyzer pending
-- [ ] Topical Cluster Mapper (Parent/child grouping algorithm)
-- [ ] Entity Tracking Logic & Automatic JSON-LD Generator
-- [ ] Search Console Data Delta Syncer
+- [x] Content Quality & Semantic Analyzer (E-E-A-T markers, keyword weight, section analysis)
+- [x] Topical Cluster Mapper (Parent/child grouping algorithm)
+- [x] Entity Tracking Logic & Automatic JSON-LD Generator
+- [x] Search Console Data Delta Syncer
 
 ## Phase 3: Admin UI Component Layouts
-- [ ] SEO Dashboard (10 Macro Scores + Visual Trend Charts + Quick Win Matrices)
+- [x] SEO Dashboard (10 Macro Scores + Visual Trend Charts + Quick Win Matrices)
 - [x] Page SEO Analyzer (Inline sidebar component with One-Click Fix triggers)
 - [x] Real-time CMS Section Editor (all SITE_PAGES: home, portfolio, pricing, about, blog, careers, contact, services, case-studies, legal pages — DB-driven sections, inline accordion editing, per-section SEO score badges, auto-bootstrap defaults, CmsPageView on all public routes)
-- [ ] Entity & Brand Authority Center (CRUD forms for brand graphs + semantic score boards)
-- [ ] Content & Topical Authority Center (Visual maps and content roadmap lists)
-- [ ] Internal Link & Schema Center (Validation reports and auto-repair logs)
-- [ ] Technical, Keyword & GSC Interfaces
-- [ ] AI SEO Assistant Interface & Automation Panel
+- [x] Entity & Brand Authority Center (CRUD forms for brand graphs + semantic score boards)
+- [x] Content & Topical Authority Center (Visual maps and content roadmap lists)
+- [x] Internal Link & Schema Center (Validation reports and auto-repair logs)
+- [x] Technical, Keyword & GSC Interfaces
+- [x] AI SEO Assistant Interface & Automation Panel
 
 ## Phase 4: Automation Systems & AI Orchestration
 - [x] Meta-tag & ALT generation background workers

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Zap, Play, RefreshCw, CheckCircle2, AlertCircle, Clock, FileText, Image, Code2, Link2, BarChart3 } from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
 
 interface AutomationLog {
   id: string; action: string; pageId: string | null; pageType: string | null;
@@ -24,6 +26,9 @@ const ACTION_LABELS: Record<string, string> = {
   generate_alt_tag: "Generated ALT Tag",
   generate_schema: "Generated Schema",
   suggest_link: "Suggested Internal Link",
+  ai_chat: "AI Assistant reply",
+  generate_all: "Generated page recommendations",
+  generate_report: "Generated weekly health report",
 };
 
 export default function AutomationPage() {
@@ -41,6 +46,9 @@ export default function AutomationPage() {
         if (d.rules) {
           setEnabled(d.rules);
         }
+        if (d.logs?.[0]?.createdAt) {
+          setLastRun(d.logs[0].createdAt);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -54,12 +62,15 @@ export default function AutomationPage() {
         body: JSON.stringify({ rules: enabled })
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Automation failed");
       if (data.logs) {
         setLogs(data.logs);
       }
       setLastRun(new Date().toISOString());
+      toast.success(`Automation finished — ${data.actionsPerformed ?? data.logs?.length ?? 0} actions`);
     } catch (e) {
       console.error(e);
+      toast.error(e instanceof Error ? e.message : "Automation failed");
     } finally {
       setRunning(false);
     }
@@ -90,6 +101,12 @@ export default function AutomationPage() {
           <p className="text-slate-400 text-sm mt-1">Automatically fix SEO issues, generate content, and maintain site health</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/admin/seo/reports" className="text-xs font-black text-[#FFC300] hover:text-white uppercase tracking-wider">
+            Reports →
+          </Link>
+          <Link href="/admin/seo/ai-assistant" className="text-xs font-black text-[#FFC300] hover:text-white uppercase tracking-wider">
+            AI Assistant →
+          </Link>
           {lastRun && <span className="text-xs text-slate-500">Last run: {new Date(lastRun).toLocaleTimeString()}</span>}
           <button
             onClick={runAutomation}

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScoreGauge } from "@/components/admin/seo/ScoreGauge";
 import {
-  Map, ChevronRight, Plus, TrendingUp, FileText,
-  AlertTriangle, CheckCircle2, GitPullRequest, Bookmark, X, Sparkles
+  Map, Plus, FileText,
+  AlertTriangle, Bookmark, X, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Cluster {
+  id?: string;
   name: string;
   slug: string;
   healthScore: number;
@@ -19,49 +20,6 @@ interface Cluster {
   keywords: string;
 }
 
-const PRESET_CLUSTERS: Cluster[] = [
-  {
-    name: "Web Development",
-    slug: "web-development",
-    healthScore: 72,
-    authorityScore: 68,
-    pillar: "Complete Web Development Guide",
-    children: ["Laravel Development", "React Development", "Node.js Development", "API Development"],
-    missing: ["Vue.js Guide", "Django Tutorial", "Full Stack Development"],
-    keywords: "web development, full stack, custom software",
-  },
-  {
-    name: "SEO Services",
-    slug: "seo",
-    healthScore: 45,
-    authorityScore: 40,
-    pillar: "Complete SEO Guide for Businesses",
-    children: ["Technical SEO", "On-Page SEO"],
-    missing: ["Local SEO Guide", "E-commerce SEO", "SEO Audit Guide", "Link Building"],
-    keywords: "SEO services, search engine optimization, technical SEO",
-  },
-  {
-    name: "Mobile Development",
-    slug: "mobile",
-    healthScore: 55,
-    authorityScore: 50,
-    pillar: "Mobile App Development Guide",
-    children: ["React Native Development", "Flutter Development"],
-    missing: ["iOS App Development", "Android Development", "Progressive Web Apps"],
-    keywords: "mobile app development, react native, flutter",
-  },
-  {
-    name: "UI/UX Design",
-    slug: "ui-ux",
-    healthScore: 30,
-    authorityScore: 25,
-    pillar: "UI/UX Design Best Practices",
-    children: [],
-    missing: ["User Research Guide", "Wireframing Tutorial", "Design Systems", "Figma Guide"],
-    keywords: "UI design, UX design, user interface, user experience",
-  },
-];
-
 function getHealthColor(score: number) {
   if (score >= 70) return "#22c55e";
   if (score >= 50) return "#FFC300";
@@ -70,17 +28,28 @@ function getHealthColor(score: number) {
 }
 
 export default function TopicalAuthorityPage() {
-  const [clusters, setClusters] = useState<Cluster[]>(PRESET_CLUSTERS);
-  const [selectedClusterSlug, setSelectedClusterSlug] = useState<string>("web-development");
-  const [roadmap, setRoadmap] = useState<Array<{ topic: string; cluster: string; status: string }>>([
-    { topic: "Local SEO Guide", cluster: "SEO Services", status: "Researching" },
-    { topic: "User Research Guide", cluster: "UI/UX Design", status: "Drafting" }
-  ]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [selectedClusterSlug, setSelectedClusterSlug] = useState<string>("");
+  const [roadmap, setRoadmap] = useState<Array<{ topic: string; cluster: string; status: string }>>([]);
   const [showNewClusterForm, setShowNewClusterForm] = useState(false);
   const [newClusterName, setNewClusterName] = useState("");
   const [newClusterPillar, setNewClusterPillar] = useState("");
 
-  const activeCluster = clusters.find((c) => c.slug === selectedClusterSlug) || clusters[0];
+  const loadClusters = async () => {
+    const res = await fetch("/api/seo/authority");
+    const data = await res.json();
+    const next = (data.clusters || []) as Cluster[];
+    setClusters(next);
+    setSelectedClusterSlug((current) => current && next.some((c) => c.slug === current) ? current : next[0]?.slug || "");
+  };
+
+  useEffect(() => {
+    loadClusters()
+      .catch(() => toast.error("Failed to load topic clusters"))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleAddToRoadmap = (topic: string, clusterName: string) => {
     if (roadmap.some((r) => r.topic === topic)) {
@@ -91,25 +60,61 @@ export default function TopicalAuthorityPage() {
     toast.success(`"${topic}" added to Content Roadmap`);
   };
 
-  const handleCreateCluster = () => {
+  const handleCreateCluster = async () => {
     if (!newClusterName || !newClusterPillar) return;
-    const newCluster: Cluster = {
-      name: newClusterName,
-      slug: newClusterName.toLowerCase().replace(/\s+/g, "-"),
-      healthScore: 10,
-      authorityScore: 10,
-      pillar: newClusterPillar,
-      children: [],
-      missing: ["Introduction Guide", "Best Practices Article", "Advanced Tutorial"],
-      keywords: "general, industry topics"
-    };
-    setClusters((p) => [...p, newCluster]);
-    setSelectedClusterSlug(newCluster.slug);
-    setNewClusterName("");
-    setNewClusterPillar("");
-    setShowNewClusterForm(false);
-    toast.success(`Cluster "${newClusterName}" created successfully!`);
+    try {
+      const res = await fetch("/api/seo/authority", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClusterName, pillar: newClusterPillar }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create cluster");
+      setClusters((p) => [data.cluster, ...p]);
+      setSelectedClusterSlug(data.cluster.slug);
+      setNewClusterName("");
+      setNewClusterPillar("");
+      setShowNewClusterForm(false);
+      toast.success(`Cluster "${newClusterName}" created successfully!`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create cluster");
+    }
   };
+
+  const handleRebuild = async () => {
+    setRebuilding(true);
+    try {
+      const res = await fetch("/api/seo/authority", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rebuild" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Rebuild failed");
+      const next = (data.clusters || []) as Cluster[];
+      setClusters(next);
+      setSelectedClusterSlug(next[0]?.slug || "");
+      toast.success("Clusters rebuilt from live pages and posts");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Rebuild failed");
+    } finally {
+      setRebuilding(false);
+    }
+  };
+
+  const activeCluster = clusters.find((c) => c.slug === selectedClusterSlug) || clusters[0];
+  const emptyCluster: Cluster = {
+    name: "No clusters yet",
+    slug: "",
+    healthScore: 0,
+    authorityScore: 0,
+    pillar: "Map clusters from live pages and posts",
+    children: [],
+    missing: [],
+    keywords: "",
+  };
+  const cluster = activeCluster || emptyCluster;
+  const nodeTotal = Math.max(1, cluster.children.length + cluster.missing.length);
 
   // SVG Coordinates for cluster visual map
   const svgWidth = 500;
@@ -117,25 +122,34 @@ export default function TopicalAuthorityPage() {
   const cx = 250;
   const cy = 120;
 
-  // Compile nodes (children + missing)
-  const childNodes = activeCluster.children.map((c, i) => {
-    const angle = (i / (activeCluster.children.length + activeCluster.missing.length)) * 2 * Math.PI;
+  const childNodes = cluster.children.map((c, i) => {
+    const angle = (i / nodeTotal) * 2 * Math.PI;
     const r = 85;
     return { name: c, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), isMissing: false };
   });
 
-  const missingNodes = activeCluster.missing.map((m, i) => {
-    const offsetIdx = i + activeCluster.children.length;
-    const angle = (offsetIdx / (activeCluster.children.length + activeCluster.missing.length)) * 2 * Math.PI;
+  const missingNodes = cluster.missing.map((m, i) => {
+    const offsetIdx = i + cluster.children.length;
+    const angle = (offsetIdx / nodeTotal) * 2 * Math.PI;
     const r = 85;
     return { name: m, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), isMissing: true };
   });
 
   const allNodes = [...childNodes, ...missingNodes];
 
-  const avgAuthority = Math.round(clusters.reduce((s, c) => s + c.authorityScore, 0) / clusters.length);
+  const avgAuthority = clusters.length
+    ? Math.round(clusters.reduce((s, c) => s + c.authorityScore, 0) / clusters.length)
+    : 0;
   const weakClusters = clusters.filter((c) => c.healthScore < 50).length;
   const totalMissing = clusters.reduce((s, c) => s + c.missing.length, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 text-[#FFC300] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -144,12 +158,21 @@ export default function TopicalAuthorityPage() {
           <h2 className="text-2xl font-black text-white">Topical Authority Center</h2>
           <p className="text-slate-400 text-sm mt-1">Build comprehensive topical authority clusters to dominate search results</p>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={handleRebuild}
+          disabled={rebuilding}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-black text-sm hover:bg-white/10 transition-all disabled:opacity-60"
+        >
+          <RefreshCw className={`w-4 h-4 ${rebuilding ? "animate-spin" : ""}`} /> Map from content
+        </button>
         <button
           onClick={() => setShowNewClusterForm(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all"
         >
           <Plus className="w-4 h-4" /> New Cluster
         </button>
+        </div>
       </div>
 
       {/* Cluster Overview Stats */}
@@ -297,10 +320,10 @@ export default function TopicalAuthorityPage() {
           <div className="mt-4 border-t border-white/5 pt-4 space-y-2">
             <p className="text-xs font-bold text-white uppercase tracking-wider">Unplanned Nodes</p>
             <div className="flex flex-wrap gap-2">
-              {activeCluster.missing.map((topic) => (
+              {cluster.missing.map((topic) => (
                 <button
                   key={topic}
-                  onClick={() => handleAddToRoadmap(topic, activeCluster.name)}
+                  onClick={() => handleAddToRoadmap(topic, cluster.name)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-white transition-all text-xs font-semibold"
                 >
                   <Plus className="w-3.5 h-3.5" /> Plan &ldquo;{topic}&rdquo;

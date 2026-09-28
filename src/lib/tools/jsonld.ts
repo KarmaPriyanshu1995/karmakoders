@@ -29,16 +29,25 @@ export function faqJsonLd(faq: { question: string; answer: string }[]) {
   };
 }
 
-export function webApplicationJsonLd(input: { name: string; description: string; url: string }) {
+export function webApplicationJsonLd(input: {
+  name: string;
+  description: string;
+  url: string;
+  schemaType?: string;
+  image?: string;
+}) {
+  const type = input.schemaType === "SoftwareApplication" ? "SoftwareApplication" : "WebApplication";
   return {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": type,
     name: input.name,
     description: input.description,
     url: input.url.startsWith("http") ? input.url : `${SITE_URL}${input.url}`,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Any",
+    isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    ...(input.image ? { image: input.image } : {}),
   };
 }
 

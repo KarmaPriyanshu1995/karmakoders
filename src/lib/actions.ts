@@ -20,6 +20,10 @@ import {
 import type { ContentBlock, FormatMeta } from "@/types/content";
 import { postViewCount } from "@/lib/content/view-count";
 import { normalizePostType } from "@/lib/content/post-types";
+import { adminPostOrderBy, adminPostWhere, parseAdminPostListQuery } from "@/lib/admin-posts";
+import { headers } from "next/headers";
+import { consumeRateLimit } from "@/lib/tools/rate-limit";
+import { notifyNewLead } from "@/lib/leads";
 
 // ─── Page Actions ─────────────────────────────────────────────────────────────
 
@@ -166,6 +170,10 @@ export async function setSiteConfig(key: string, value: object) {
   });
   await logAudit({ tenantId, userId: user.id, action: AUDIT_ACTIONS.SETTINGS_UPDATED, resource: "SiteConfig", resourceId: key });
   revalidatePath("/");
+  revalidatePath("/", "layout");
+  revalidatePath("/pricing");
+  revalidatePath("/contact");
+  revalidatePath("/about");
   revalidatePath("/admin");
 }
 
@@ -176,9 +184,85 @@ export async function submitContact(data: {
   email: string;
   phone?: string;
   message: string;
+  website?: string;
 }) {
+  if (data.website?.trim()) {
+    return null;
+  }
+
+  const name = data.name.trim();
+  const email = data.email.trim().toLowerCase();
+  const phone = data.phone?.trim() || undefined;
+  const message = data.message.trim();
+  if (!name || !email || !message) {
+    throw new Error("Please complete name, email, and message.");
+  }
+
+  let ip = "unknown";
+  try {
+    const h = await headers();
+    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  } catch {
+    ip = "unknown";
+  }
+
+  const limit = consumeRateLimit(`contact:${ip}:${email}`, 5, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    throw new Error("Too many submissions. Please try again later.");
+  }
+
   const tenantId = await getContextualTenantId();
-  return prisma.contactSubmission.create({ data: { ...data, tenantId } });
+  const submission = await prisma.contactSubmission.create({
+    data: { name, email, phone, message, tenantId },
+  });
+
+  void notifyNewLead({ name, email, phone, message }).catch((error) => {
+    console.error("[leads] notify failed", error);
+  });
+
+  return submission;
+}
+
+export async function submitCalculatorLead(data: {
+  name: string;
+  email: string;
+  company?: string;
+  website?: string;
+  userLoad: string;
+  tier: string;
+  compliance: string;
+  range: string;
+  weeks: number;
+  summary: string;
+}) {
+  const company = data.company?.trim();
+  const displayName = company ? `${data.name.trim()} (${company})` : data.name.trim();
+  const message = [
+    "[MVP CALCULATOR]",
+    `Summary: ${data.summary}`,
+    `Range: ${data.range}`,
+    `Timeline: ${data.weeks} weeks`,
+    `User load: ${data.userLoad}`,
+    `Tier: ${data.tier}`,
+    `Compliance: ${data.compliance}`,
+  ].join("\n");
+
+  const submission = await submitContact({
+    name: displayName,
+    email: data.email,
+    website: data.website,
+    message,
+  });
+
+  if (submission) {
+    try {
+      await subscribeNewsletter(data.email);
+    } catch (error) {
+      console.error("[calculator] newsletter upsert failed", error);
+    }
+  }
+
+  return submission;
 }
 
 export async function getContactSubmissions() {
@@ -238,6 +322,45 @@ export async function getPosts(type?: string, options?: { includeDrafts?: boolea
     orderBy: { createdAt: "desc" },
   });
   return posts.map((post) => withViewCount(post));
+}
+
+export async function getAdminPosts(search: Record<string, string | string[] | undefined> = {}) {
+  const tenantId = await getContextualTenantId();
+  const parsed = parseAdminPostListQuery(search);
+  const where = adminPostWhere(tenantId, parsed);
+  const matching = await prisma.post.count({ where });
+  const pageCount = Math.max(1, Math.ceil(matching / parsed.pageSize));
+  const page = Math.min(parsed.page, pageCount);
+
+  const [posts, allCount, publishedCount, draftCount, typeGroups] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      orderBy: adminPostOrderBy(parsed.sort),
+      skip: (page - 1) * parsed.pageSize,
+      take: parsed.pageSize,
+    }),
+    prisma.post.count({ where: { tenantId } }),
+    prisma.post.count({ where: { tenantId, published: true } }),
+    prisma.post.count({ where: { tenantId, published: false } }),
+    prisma.post.groupBy({
+      by: ["type"],
+      where: { tenantId },
+      _count: { _all: true },
+    }),
+  ]);
+
+  return {
+    posts: posts.map((post) => withViewCount(post)),
+    query: { ...parsed, page },
+    matching,
+    pageCount,
+    counts: {
+      all: allCount,
+      published: publishedCount,
+      drafts: draftCount,
+      byType: Object.fromEntries(typeGroups.map((row) => [row.type, row._count._all])),
+    },
+  };
 }
 
 export async function getCaseStudies() {
@@ -372,6 +495,7 @@ export async function upsertProject(data: {
   content: string;
   link?: string;
   tags: string;
+  detailsJson?: string | null;
 }) {
   const { tenantId, role, permissionOverrides } = await requireTenantContext();
   const { id, ...projectData } = data;

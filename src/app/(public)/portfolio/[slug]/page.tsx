@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_PROJECTS } from "@/lib/constants";
 import { findCaseStudyDetail, DEMO_PROJECT_SLUGS } from "@/lib/caseStudyDetails";
+import { parseProjectDetails } from "@/lib/projectDetails";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ interface ProjectRecord {
   content: string;
   link?: string | null;
   tags: string;
+  detailsJson?: string | null;
 }
 
 async function resolveProject(slug: string): Promise<{ project: ProjectRecord | undefined; isFallback: boolean }> {
@@ -78,13 +80,19 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
   const isDemoProject = isFallback || DEMO_PROJECT_SLUGS.has(slug);
 
   const curated = findCaseStudyDetail(slug);
+  const stored = parseProjectDetails("detailsJson" in project ? project.detailsJson : null);
   const details = {
-    problem: curated?.problem || project.description || "A complex engineering challenge requiring high performance and custom workflows.",
+    industry: stored.industry,
+    country: stored.country,
+    timeline: stored.timeline,
+    teamSize: stored.teamSize,
+    problem: stored.challenge || curated?.problem || project.description || "A complex engineering challenge requiring high performance and custom workflows.",
     solution: curated?.solution || (project.content ? project.content.substring(0, 160) + "..." : "A bespoke software solution built to support growing digital operations."),
-    // Only set when we have a real, curated outcome — never invented for real
-    // client projects without a verified metric on file.
-    outcome: curated?.outcome,
+    outcome: stored.results || curated?.outcome,
+    metrics: stored.metrics.length ? stored.metrics : curated?.metrics,
+    testimonial: stored.testimonial,
   };
+  const liveHref = stored.liveUrl || project.link;
 
   // Suggest other projects in the portfolio for cross-linking (Phase 17)
   let relatedProjects: ProjectRecord[] = [];
@@ -158,6 +166,11 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
               <h1 className="text-4xl md:text-6xl font-bold text-white mt-6 mb-8 leading-tight">
                 {project.title}
               </h1>
+              {(details.industry || details.country || details.timeline || details.teamSize) ? (
+                <p className="text-sm text-slate-500 font-medium mb-6">
+                  {[details.industry, details.country, details.timeline, details.teamSize].filter(Boolean).join(" · ")}
+                </p>
+              ) : null}
               <p className="text-slate-400 text-lg leading-relaxed max-w-xl">
                 {project.description}
               </p>
@@ -178,9 +191,9 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
             </div>
 
             <div className="flex flex-wrap gap-4 pt-4">
-              {project.link && (
+              {liveHref && (
                 <a
-                  href={project.link}
+                  href={liveHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-bold rounded-full transition-all flex items-center gap-2 shadow-[0_0_20px_var(--glow-color)]"
@@ -239,6 +252,24 @@ export default async function ProjectDetail({ params }: { params: Promise<{ slug
             </div>
           )}
         </div>
+
+        {details.metrics?.length ? (
+          <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-4">
+            {details.metrics.map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-2xl font-black text-indigo-400">{metric.value}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{metric.label}</p>
+                {isDemoProject ? <p className="text-[10px] text-slate-600 mt-2">Illustrative demo metric</p> : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {details.testimonial ? (
+          <blockquote className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6 text-slate-200 italic">
+            “{details.testimonial}”
+          </blockquote>
+        ) : null}
 
         <div className="mt-24 border-t border-slate-900 pt-16">
           <h2 className="text-3xl font-bold text-white mb-10">Project Overview</h2>

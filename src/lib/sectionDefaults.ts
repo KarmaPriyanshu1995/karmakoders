@@ -82,12 +82,14 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       type: "hero",
       order: 0,
       content: {
-        badge: "Trusted Development Partner",
-        headline: "Enterprise Software Engineering",
-        highlight: "Built for the US Market.",
-        subheadline: "We design, engineer, and scale high-performance web, mobile, and AI solutions. Full timezone overlap, NDA-friendly collaboration, and transparent USD pricing.",
+        badge: "US-hours software partner",
+        headline: "Ship the product US buyers already expect.",
+        highlight: "Senior engineers. EST overlap. NDA first.",
+        subheadline: "Custom web, mobile, SaaS, and AI — scoped in USD, built with timezone overlap, and owned by you from day one.",
         ctaPrimary: "Book Discovery Call",
-        ctaSecondary: "Get Free Estimate",
+        ctaSecondary: "Estimate my MVP cost",
+        ctaPrimaryLink: "/contact",
+        ctaSecondaryLink: "/free-tools/mvp-cost-calculator",
       },
     },
     {
@@ -193,6 +195,15 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
         body: "We are a team of passionate designers and engineers building premium digital experiences powered by AI.",
       },
     },
+    {
+      id: "section-team-about",
+      type: "team",
+      order: 1,
+      content: {
+        tagline: "Leadership",
+        heading: "The people on your thread",
+      },
+    },
   ],
   services: [
     {
@@ -260,7 +271,7 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Case Studies",
         heading: "Real Results for Real Businesses",
-        limit: 2,
+        limit: 6,
         showViewAll: true,
       },
     },
@@ -303,8 +314,8 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Selected Works",
         heading: "Transforming Visions into Digital Reality",
-        limit: 4,
-        showViewAll: true,
+        limit: 0,
+        showViewAll: false,
       },
     },
     {
@@ -314,8 +325,8 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Case Studies",
         heading: "Success Stories",
-        limit: 2,
-        showViewAll: true,
+        limit: 0,
+        showViewAll: false,
       },
     },
   ],
@@ -349,7 +360,7 @@ export const PAGE_SECTION_DEFAULTS: Record<string, DefaultSection[]> = {
       content: {
         tagline: "Insights",
         heading: "Explore Our Latest Thinking",
-        limit: 6,
+        limit: 0,
         showViewAll: false,
       },
     },

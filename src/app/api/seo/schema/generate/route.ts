@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
 
     // Save to DB if pageId provided
     if (pageId && pageType) {
-      await verifyPageOwnership(pageType, pageId, tenantId);
+      if (pageType !== "site") {
+        await verifyPageOwnership(pageType, pageId, tenantId);
+      }
 
       const id = `${pageType}-${pageId}-${schemaType}`;
       await prisma.seoSchema.upsert({

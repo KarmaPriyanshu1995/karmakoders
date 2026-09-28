@@ -2,17 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Roboto, Poppins, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-if (typeof window !== "undefined") {
-  const originalWarn = console.warn;
-  console.warn = (...args: any[]) => {
-    if (args[0] && typeof args[0] === "string" && args[0].includes("THREE.Clock")) {
-      return;
-    }
-    originalWarn(...args);
-  };
-}
-
-
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 const poppins = Poppins({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-poppins" });
@@ -68,15 +57,22 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
 import CanonicalURL from "@/components/CanonicalURL";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
+import { TrackingScripts } from "@/components/TrackingScripts";
+import { SiteContentProvider } from "@/components/SiteContentProvider";
+import { ConversionWidgets } from "@/components/sections/ConversionWidgets";
+import { mergeSiteContent } from "@/lib/site-content";
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const config = await getSiteConfig("globalTheme");
+  const [config, savedContent] = await Promise.all([
+    getSiteConfig("globalTheme"),
+    getSiteConfig("publicContent"),
+  ]);
+  const siteContent = mergeSiteContent(savedContent);
   const mode = config?.mode || config?.theme || "dark";
   const isDark = mode === "dark";
 
@@ -186,12 +182,26 @@ export default async function RootLayout({
         />
       </head>
       <body className={bodyClass} suppressHydrationWarning>
+        {process.env.NEXT_PUBLIC_GTM_ID ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        ) : null}
         <ThemeProvider initialConfig={config}>
-          {children}
-          <Toaster richColors position="bottom-right" />
+          <SiteContentProvider value={siteContent}>
+            {children}
+            <ConversionWidgets />
+            <Toaster richColors position="bottom-right" />
+          </SiteContentProvider>
         </ThemeProvider>
+        <TrackingScripts />
       </body>
-      <GoogleAnalytics gaId="G-NG3CPDVF6F" />
     </html>
   );
 }

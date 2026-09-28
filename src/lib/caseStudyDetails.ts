@@ -5,6 +5,7 @@ export interface CaseStudyDetail {
   problem: string;
   solution: string;
   outcome: string;
+  metrics?: Array<{ label: string; value: string }>;
 }
 
 export const structuredCaseStudies: Record<string, CaseStudyDetail> = {
@@ -12,21 +13,38 @@ export const structuredCaseStudies: Record<string, CaseStudyDetail> = {
     problem: "Traditional cross-border payments took 2-4 days with high transaction fees, causing 45% checkout abandonment for merchants.",
     solution: "Engineered a secure, decentralized payment routing gateway on Next.js, integrating custom smart contracts that settle payments under 5 seconds.",
     outcome: "Reduced checkout abandonment by 35% and cut transaction fees by 60% globally.",
+    metrics: [
+      { label: "Checkout abandonment", value: "−35%" },
+      { label: "Transaction fees", value: "−60%" },
+      { label: "Settlement", value: "<5s" },
+    ],
   },
   "nova-health": {
     problem: "Patients faced long wait times (4+ hours) to consult health specialists online, with no instant symptoms sorting tool.",
     solution: "Built a cross-platform mobile application combining a secure TensorFlow screening bot with encrypted WebRTC peer video routing.",
     outcome: "Reduced patient connection times to under 8 minutes with a 99.9% telemedicine connection SLA.",
+    metrics: [
+      { label: "Wait time", value: "<8 min" },
+      { label: "Connection SLA", value: "99.9%" },
+    ],
   },
   "evo-stream": {
     problem: "High-fidelity spatial audio and video streams suffered from severe buffering delays and expensive cloud distribution costs.",
     solution: "Architected a custom media slicing pipeline paired with optimized AWS S3 bucket caching and CloudFront CDN routing.",
     outcome: "Reduced buffering latency by 95% while supporting 140% growth in concurrent streams.",
+    metrics: [
+      { label: "Buffering latency", value: "−95%" },
+      { label: "Concurrent streams", value: "+140%" },
+    ],
   },
   "aura-home": {
     problem: "International luxury property buyers had no realistic way to walk through listings remotely, resulting in slow sales cycles.",
     solution: "Created interactive, photorealistic web-based 3D virtual tours rendering high-poly models in real-time via Three.js.",
     outcome: "Sped up property sales closings by 40% and generated 2.2x more overseas leads.",
+    metrics: [
+      { label: "Sales cycle", value: "−40%" },
+      { label: "Overseas leads", value: "2.2x" },
+    ],
   },
 };
 

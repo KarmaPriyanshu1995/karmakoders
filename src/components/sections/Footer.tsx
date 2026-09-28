@@ -7,6 +7,9 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { subscribeNewsletter } from "@/lib/actions";
 import { toast } from "sonner";
+import { brandPhones } from "@/lib/brand";
+import { useSiteContent } from "@/components/SiteContentProvider";
+import { TrustBadgeStrip } from "@/components/sections/TrustBadgeStrip";
 
 const footerLinks = {
   Services: [
@@ -67,9 +70,12 @@ const footerTools = [
 
 export function Footer() {
   const pathname = usePathname();
+  const { brand } = useSiteContent();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
-  const showFreeTools = !pathname.startsWith("/free-tools");
+  const homepageTools = footerTools.filter((tool) => tool.href.includes("mvp-cost-calculator"));
+  const tools = pathname === "/" ? homepageTools : footerTools;
+  const showFreeTools = !pathname.startsWith("/free-tools") && tools.length > 0;
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -119,7 +125,7 @@ export function Footer() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {footerTools.map((tool) => (
+              {tools.map((tool) => (
                 <Link
                   key={tool.href}
                   href={tool.href}
@@ -173,9 +179,10 @@ export function Footer() {
               Karmakoders
               {/* <span className="text-indigo-500">.ai</span> */}
             </Link>
-            <p className="text-[#D6D6D6] text-base leading-relaxed mb-8 max-w-xs font-medium">
+            <p className="text-[#D6D6D6] text-base leading-relaxed mb-6 max-w-xs font-medium">
               Designing and engineering the future of the web with advanced AI, immersive 3D experiences, and premium aesthetics.
             </p>
+            <TrustBadgeStrip className="mb-8 justify-start" />
 
             <div className="flex gap-3 mb-10" role="list" aria-label="Social media links">
               {[
@@ -244,19 +251,27 @@ export function Footer() {
             <ul className="space-y-6">
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Email</p>
-                <a href="mailto:info@karmakoders.com" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">info@karmakoders.com</a>
+                <a href={`mailto:${brand.email}`} className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">{brand.email}</a>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Phone</p>
-                <a href="tel:+918690071861" className="text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors">+91 86900 71861</a>
+                {brandPhones(brand).map((phone) => (
+                  <a
+                    key={phone.tel}
+                    href={`tel:${phone.tel}`}
+                    className="block text-[#D6D6D6] text-sm font-medium hover:text-indigo-500 transition-colors"
+                  >
+                    {phone.label}: {phone.display}
+                  </a>
+                ))}
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Office</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">JLN Marg, Malviya Nagar,<br />Jaipur, Rajasthan</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">{brand.address.split(", ").slice(0, 2).join(", ")}<br />{brand.address.split(", ").slice(2).join(", ")}</p>
               </li>
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Hours</p>
-                <p className="text-[#D6D6D6] text-sm font-medium">Mon–Fri: 10AM – 7PM IST</p>
+                <p className="text-[#D6D6D6] text-sm font-medium">{brand.hours}</p>
               </li>
             </ul>
           </div>
@@ -266,7 +281,7 @@ export function Footer() {
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
             <p className="text-slate-500 text-sm">
-              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">Karmakoders Technologies</span>. All rights reserved.
+              © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">{brand.legalName}</span>. All rights reserved.
             </p>
             {/* <span className="hidden md:block text-slate-700">•</span>
             <p className="text-slate-600 text-sm">

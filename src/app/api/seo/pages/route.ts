@@ -43,6 +43,15 @@ export async function GET() {
       const url = buildPageUrl(page.slug, page.type as "page" | "post" | "project");
 
       const issues = existing?.issuesJson ? JSON.parse(existing.issuesJson) : [];
+      let eatScore = 0;
+      if (existing?.keywordDensityJson) {
+        try {
+          const density = JSON.parse(existing.keywordDensityJson) as { _eat?: { score?: number } };
+          eatScore = density._eat?.score ?? 0;
+        } catch {
+          eatScore = 0;
+        }
+      }
 
       return {
         id: page.id,
@@ -59,6 +68,8 @@ export async function GET() {
         internalLinkScore: existing?.internalLinkScore ?? 0,
         ctrScore: existing?.ctrScore ?? 0,
         wordCount: existing?.wordCount ?? 0,
+        readabilityScore: existing?.readabilityScore ?? 0,
+        eatScore,
         hasFaq: existing?.hasFaq ?? false,
         hasSchema: existing?.hasSchema ?? false,
         isOrphan: existing?.isOrphan ?? false,

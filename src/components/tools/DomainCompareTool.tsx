@@ -10,6 +10,7 @@ import {
 } from "@/components/tools/DomainCompareVisuals";
 import { AffiliateRegistrarCards } from "@/components/tools/AffiliateRegistrarCards";
 import type { CompareResponse } from "@/components/tools/domain-compare-types";
+import { trackUsage } from "@/components/tools/UsageBeacon";
 
 function relativeTime(iso: string) {
   const then = new Date(iso).getTime();
@@ -62,6 +63,7 @@ export function DomainCompareTool({
       if (!res.ok) {
         setResult(null);
         setError(data.error || "Please enter a valid domain name.");
+        trackUsage("execute_error", "domain-compare");
         return;
       }
       setResult(data);
@@ -73,9 +75,11 @@ export function DomainCompareTool({
         await recordEvent({ eventType: "domain_unavailable", toolSlug: "domain-compare", domain: data.domain, tld: data.tld });
       }
       await recordEvent({ eventType: "comparison_view", toolSlug: "domain-compare", domain: data.domain, tld: data.tld });
+      trackUsage("execute", "domain-compare");
     } catch {
       setResult(null);
       setError("We couldn't retrieve pricing right now. Please try again.");
+      trackUsage("execute_error", "domain-compare");
     } finally {
       setLoading(false);
     }

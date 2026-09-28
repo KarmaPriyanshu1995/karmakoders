@@ -1,29 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings2, Save, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { DEFAULT_SEO_SETTINGS, type SeoSettings } from "@/lib/seo/seoSettings";
 
 export default function SeoSettingsPage() {
-  const [settings, setSettings] = useState({
-    siteUrl: "https://karmakoders.com",
-    siteName: "Karmakoders",
-    defaultOrgName: "Karmakoders",
-    gscSiteUrl: "",
-    gscClientId: "",
-    gscClientSecret: "",
-    gscRefreshToken: "",
-    defaultLocale: "en",
-    defaultCountry: "IN",
-    indexingMode: "auto",
-    schemaAutoApply: false,
-    weeklyReports: true,
-    auditFrequency: "weekly",
-  });
+  const [settings, setSettings] = useState<SeoSettings>(DEFAULT_SEO_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  useEffect(() => {
+    fetch("/api/seo/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings) setSettings(d.settings);
+      })
+      .catch(() => toast.error("Failed to load SEO settings"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/seo/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      if (data.settings) setSettings(data.settings);
+      setSaved(true);
+      toast.success("SEO settings saved");
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const Field = ({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) => (
@@ -39,7 +55,7 @@ export default function SeoSettingsPage() {
         <p className="text-sm font-bold text-white">{label}</p>
         <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
       </div>
-      <button onClick={() => onChange(!value)} className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 mt-0.5 ${value ? "bg-[#FFC300]" : "bg-white/10"}`}>
+      <button type="button" onClick={() => onChange(!value)} className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 mt-0.5 ${value ? "bg-[#FFC300]" : "bg-white/10"}`}>
         <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? "left-5" : "left-0.5"}`} />
       </button>
     </div>
@@ -54,17 +70,16 @@ export default function SeoSettingsPage() {
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-xs font-bold text-green-400">✓ Settings saved</span>}
-          <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all">
-            <Save className="w-4 h-4" /> Save Settings
+          <button onClick={handleSave} disabled={loading || saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFC300] text-[#1C1B1A] font-black text-sm hover:bg-[#FFD60A] transition-all disabled:opacity-60">
+            <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Settings"}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Site Settings */}
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
           <h3 className="font-black text-white flex items-center gap-2"><Settings2 className="w-4 h-4 text-[#FFC300]" /> Site Configuration</h3>
-          <Field label="Site URL" value={settings.siteUrl} onChange={(v) => setSettings((p) => ({ ...p, siteUrl: v }))} placeholder="https://karmakoders.com" />
+          <Field label="Site URL" value={settings.siteUrl} onChange={(v) => setSettings((p) => ({ ...p, siteUrl: v }))} placeholder="https://www.karmakoders.com" />
           <Field label="Site Name" value={settings.siteName} onChange={(v) => setSettings((p) => ({ ...p, siteName: v }))} placeholder="Karmakoders" />
           <Field label="Default Organization Name" value={settings.defaultOrgName} onChange={(v) => setSettings((p) => ({ ...p, defaultOrgName: v }))} />
           <div>
@@ -86,7 +101,6 @@ export default function SeoSettingsPage() {
           </div>
         </div>
 
-        {/* Google Search Console */}
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-black text-white">Google Search Console API</h3>
@@ -94,18 +108,17 @@ export default function SeoSettingsPage() {
               Google Cloud <ExternalLink className="w-3 h-3" />
             </a>
           </div>
-          <Field label="GSC Site URL" value={settings.gscSiteUrl} onChange={(v) => setSettings((p) => ({ ...p, gscSiteUrl: v }))} placeholder="https://karmakoders.com" />
+          <Field label="GSC Site URL" value={settings.gscSiteUrl} onChange={(v) => setSettings((p) => ({ ...p, gscSiteUrl: v }))} placeholder="https://www.karmakoders.com" />
           <Field label="Google Client ID" value={settings.gscClientId} onChange={(v) => setSettings((p) => ({ ...p, gscClientId: v }))} placeholder="From Google Cloud Console" />
           <Field label="Google Client Secret" type="password" value={settings.gscClientSecret} onChange={(v) => setSettings((p) => ({ ...p, gscClientSecret: v }))} placeholder="••••••••" />
           <Field label="OAuth Refresh Token" type="password" value={settings.gscRefreshToken} onChange={(v) => setSettings((p) => ({ ...p, gscRefreshToken: v }))} placeholder="••••••••" />
           <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
             <p className="text-xs text-blue-300">
-              <strong>How to get credentials:</strong> Go to Google Cloud Console → APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID. Then enable the Search Console API.
+              <strong>How to get credentials:</strong> Go to Google Cloud Console → APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID. Then enable the Search Console API. Leave a secret blank to keep the stored value.
             </p>
           </div>
         </div>
 
-        {/* Automation Settings */}
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
           <h3 className="font-black text-white mb-4">Automation Preferences</h3>
           <Toggle
@@ -116,7 +129,7 @@ export default function SeoSettingsPage() {
           />
           <Toggle
             label="Weekly SEO Reports"
-            desc="Generate and save weekly SEO health reports automatically"
+            desc="Generate and save weekly SEO health reports every Monday via cron"
             value={settings.weeklyReports}
             onChange={(v) => setSettings((p) => ({ ...p, weeklyReports: v }))}
           />
@@ -131,7 +144,6 @@ export default function SeoSettingsPage() {
           </div>
         </div>
 
-        {/* SEO Information */}
         <div className="p-6 rounded-2xl bg-[#FFC300]/5 border border-[#FFC300]/10">
           <h3 className="font-black text-white mb-4">SEO Intelligence Center v1.0</h3>
           <div className="space-y-2 text-xs text-slate-400">
@@ -144,6 +156,7 @@ export default function SeoSettingsPage() {
             <p>• CTR optimization with AI-generated titles/descriptions</p>
             <p>• Google Search Console integration (connect above)</p>
             <p>• Automated SEO issue detection and fixing</p>
+            <p>• Weekly HTML reports at /admin/seo/reports (set CRON_SECRET for production cron)</p>
           </div>
         </div>
       </div>
