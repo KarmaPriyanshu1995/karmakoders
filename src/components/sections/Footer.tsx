@@ -283,10 +283,10 @@ export function Footer() {
             <p className="text-slate-500 text-sm">
               © {new Date().getFullYear()} <span className="text-[#D6D6D6] font-semibold">{brand.legalName}</span>. All rights reserved.
             </p>
-            <span className="hidden md:block text-slate-700">•</span>
+            {/* <span className="hidden md:block text-slate-700">•</span>
             <p className="text-slate-600 text-sm">
               Crafted with <span className="text-indigo-500">♥</span> in Jaipur, India
-            </p>
+            </p> */}
           </div>
 
           <button

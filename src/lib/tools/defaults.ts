@@ -297,10 +297,17 @@ export async function ensureMvpCostCalculatorTool(tenantId: string): Promise<voi
     select: { id: true, contentJson: true },
   });
   if (existing) {
-    if (existing.contentJson?.includes("fixed bid")) {
+    if (existing.contentJson?.includes("fixed bid") || existing.contentJson?.includes("Pick your user load, feature tier")) {
       await prisma.freeTool.update({
         where: { id: existing.id },
-        data: { contentJson: JSON.stringify(MVP_COST_CONTENT) },
+        data: {
+          contentJson: JSON.stringify(MVP_COST_CONTENT),
+          shortDescription: "Plan an MVP from product type, platforms, modules, pace, and compliance.",
+          longDescription:
+            "Founders can shape a first release, see a budget band, phased roadmap, team, and monthly run cost, then export the plan.",
+          seoDescription:
+            "Plan MVP scope, budget, timeline, team, and monthly run cost. Export a KarmaKoders development roadmap.",
+        },
       });
     }
     return;
@@ -312,9 +319,9 @@ export async function ensureMvpCostCalculatorTool(tenantId: string): Promise<voi
         tenantId,
         name: "MVP Cost Calculator",
         slug: "mvp-cost-calculator",
-        shortDescription: "Estimate a 4–14 week MVP from user load, feature tier, and compliance.",
+        shortDescription: "Plan an MVP from product type, platforms, modules, pace, and compliance.",
         longDescription:
-          "Founders can generate a planning budget and timeline, then export a technical roadmap via WhatsApp or email.",
+          "Founders can shape a first release, see a budget band, phased roadmap, team, and monthly run cost, then export the plan.",
         icon: "Calculator",
         categoryId: businessCategory.id,
         status: "published",
@@ -324,7 +331,7 @@ export async function ensureMvpCostCalculatorTool(tenantId: string): Promise<voi
         toolUrl: "/free-tools/mvp-cost-calculator",
         seoTitle: "Free MVP Cost Calculator for Startups",
         seoDescription:
-          "Estimate MVP cost and timeline from user load, feature tier, and compliance. Export a KarmaKoders technical roadmap.",
+          "Plan MVP scope, budget, timeline, team, and monthly run cost. Export a KarmaKoders development roadmap.",
         seoKeywords: "mvp cost calculator, startup mvp budget, saas build cost",
         canonicalUrl: "https://www.karmakoders.com/free-tools/mvp-cost-calculator",
         ogTitle: "MVP Cost Calculator",
