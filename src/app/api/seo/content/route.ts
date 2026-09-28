@@ -26,6 +26,7 @@ export async function GET() {
           overallScore: true,
           issuesJson: true,
           recommendationsJson: true,
+          keywordDensityJson: true,
         },
         orderBy: { contentScore: "desc" },
       }),
