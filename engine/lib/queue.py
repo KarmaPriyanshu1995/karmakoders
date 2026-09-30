@@ -17,17 +17,29 @@ class ClaimedJob:
 
 
 CLAIM_SQL = """
-SELECT id, scan_id, attempts
-FROM scan_jobs
-WHERE status = 'queued'
-   OR (
-        status = 'running'
-        AND locked_at IS NOT NULL
-        AND locked_at < now() - (%s || ' minutes')::interval
-      )
-ORDER BY id
-FOR UPDATE SKIP LOCKED
-LIMIT 1
+WITH candidate AS (
+  SELECT id
+  FROM scan_jobs
+  WHERE status = 'queued'
+     OR (
+          status = 'running'
+          AND locked_at IS NOT NULL
+          AND locked_at < now() - (%s || ' minutes')::interval
+        )
+  ORDER BY id
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1
+),
+bumped AS (
+  UPDATE scan_jobs AS j
+  SET status = 'running',
+      locked_at = now(),
+      attempts = j.attempts + 1
+  FROM candidate
+  WHERE j.id = candidate.id
+  RETURNING j.id, j.scan_id, j.attempts
+)
+SELECT * FROM bumped
 """
 
 
@@ -40,16 +52,16 @@ async def claim_job(conn: psycopg.AsyncConnection, settings: Settings) -> Claime
 
         job_id: UUID = row["id"]
         scan_id: UUID = row["scan_id"]
-        attempts: int = int(row["attempts"]) + 1
+        attempts: int = int(row["attempts"])
 
         if attempts > settings.max_job_attempts:
             await conn.execute(
                 """
                 UPDATE scan_jobs
-                SET status = 'failed', locked_at = NULL, attempts = %s
+                SET status = 'failed', locked_at = NULL
                 WHERE id = %s
                 """,
-                (attempts, job_id),
+                (job_id,),
             )
             await conn.execute(
                 """
@@ -68,14 +80,6 @@ async def claim_job(conn: psycopg.AsyncConnection, settings: Settings) -> Claime
             )
             return None
 
-        await conn.execute(
-            """
-            UPDATE scan_jobs
-            SET status = 'running', locked_at = now(), attempts = %s
-            WHERE id = %s
-            """,
-            (attempts, job_id),
-        )
         await conn.execute(
             """
             UPDATE scans
@@ -111,8 +115,6 @@ async def complete_job(conn: psycopg.AsyncConnection, job: ClaimedJob) -> None:
 
 async def fail_job(conn: psycopg.AsyncConnection, job: ClaimedJob, message: str) -> None:
     async with conn.transaction():
-        # Leave status=running with locked_at set so another worker can retry
-        # after JOB_LOCK_MINUTES, unless attempts already exhausted on next claim.
         await conn.execute(
             """
             INSERT INTO scan_events (scan_id, message)

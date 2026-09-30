@@ -55,6 +55,36 @@ export async function GET(_request: Request, { params }: Params) {
       ORDER BY created_at ASC, id ASC
     `;
 
+    const findings = await sql`
+      SELECT
+        f.id,
+        f.severity,
+        f.title,
+        f.explanation,
+        f.status,
+        f.fingerprint,
+        f.first_seen_scan_id,
+        e.redacted_text AS evidence_text
+      FROM findings f
+      LEFT JOIN LATERAL (
+        SELECT redacted_text
+        FROM evidence
+        WHERE finding_id = f.id
+        ORDER BY created_at ASC
+        LIMIT 1
+      ) e ON true
+      WHERE f.scan_id = ${id}
+      ORDER BY
+        CASE f.severity
+          WHEN 'critical' THEN 0
+          WHEN 'high' THEN 1
+          WHEN 'medium' THEN 2
+          WHEN 'low' THEN 3
+          ELSE 4
+        END,
+        f.created_at ASC
+    `;
+
     return noStore({
       id: scan.id,
       projectId: scan.project_id,
@@ -69,6 +99,17 @@ export async function GET(_request: Request, { params }: Params) {
         id: event.id,
         message: event.message,
         createdAt: event.created_at,
+      })),
+      findings: findings.map((finding) => ({
+        id: finding.id,
+        severity: finding.severity,
+        title: finding.title,
+        explanation: finding.explanation,
+        status: finding.status,
+        fingerprint: finding.fingerprint,
+        firstSeenScanId: finding.first_seen_scan_id,
+        evidenceText: finding.evidence_text,
+        isNew: finding.first_seen_scan_id === scan.id,
       })),
     });
   } catch (error) {

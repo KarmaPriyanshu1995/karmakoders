@@ -25,7 +25,10 @@ async def process_once() -> bool:
         if job is None:
             return False
 
-        log.info("claimed job=%s scan=%s attempt=%s", job.job_id, job.scan_id, job.attempts)
+    log.info("claimed job=%s scan=%s attempt=%s", job.job_id, job.scan_id, job.attempts)
+    # Use a fresh connection for the long-running stage work so Neon's pooler
+    # is not holding an idle session open across outbound HTTP probes.
+    async with connect(settings) as conn:
         try:
             await run_stages(conn, job.scan_id)
             await complete_job(conn, job)
@@ -36,7 +39,7 @@ async def process_once() -> bool:
                 await fail_job(conn, job, f"Worker error: {exc}")
             except Exception:  # noqa: BLE001
                 log.exception("could not record failure event for job=%s", job.job_id)
-        return True
+    return True
 
 
 async def run_loop() -> None:

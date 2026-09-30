@@ -1,8 +1,15 @@
 # Scan engine
 
-Python 3.12+ worker that claims rows from `scan_jobs` with `SELECT … FOR UPDATE SKIP LOCKED`, runs stages, and writes `scan_events`.
+Python worker that claims rows from `scan_jobs` with `SELECT … FOR UPDATE SKIP LOCKED`.
 
-Step 2 only runs a fake **hello** stage so we can prove the queue end to end.
+## Current stages (step 3)
+
+Passive URL checks (read-only):
+
+- Security headers (CSP, HSTS, X-Frame-Options, …)
+- Exposed sensitive files (`.env`, `.git`, backups, source maps)
+- TLS / certificate basics
+- Open CORS (`Access-Control-Allow-Origin: *`)
 
 ## Setup
 
@@ -11,7 +18,7 @@ cd engine
 python -m pip install -r requirements.txt
 ```
 
-The worker reads `DATABASE_URL` from `../web/.env.local` automatically. For production, prefer a **direct** (non-pooler) Neon URL in `engine/.env` as `DATABASE_URL_DIRECT`.
+The worker reads `DATABASE_URL` from `../web/.env.local` automatically. Prefer a direct Neon URL as `DATABASE_URL_DIRECT` in `engine/.env` when you can.
 
 ## Run
 
@@ -19,5 +26,3 @@ The worker reads `DATABASE_URL` from `../web/.env.local` automatically. For prod
 cd engine
 python worker.py
 ```
-
-Leave it running. From the web app, click **Scan for free**; the worker should pick up the job within about a second and write hello events.

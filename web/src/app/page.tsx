@@ -8,8 +8,8 @@ export default function HomePage() {
         A plain-English security check for apps built with AI.
       </h1>
       <p className="mt-4 text-lg leading-relaxed text-stone-600">
-        Paste your app URL. For now the worker only runs a hello stage so we can prove the queue
-        end to end. Real checks come next.
+        Paste your app URL for a free passive check: security headers, exposed files, TLS, and
+        open CORS. No signup required.
       </p>
       <ScanForm />
       <p className="mt-8 text-sm leading-relaxed text-stone-500">

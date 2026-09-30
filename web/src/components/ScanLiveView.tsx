@@ -9,12 +9,22 @@ type ScanEvent = {
   createdAt: string;
 };
 
+type Finding = {
+  id: string;
+  severity: string;
+  title: string;
+  explanation: string | null;
+  evidenceText: string | null;
+  isNew: boolean;
+};
+
 type ScanPayload = {
   id: string;
   status: string;
   primaryUrl: string;
   projectName: string;
   events: ScanEvent[];
+  findings?: Finding[];
   error?: string;
 };
 
@@ -23,6 +33,7 @@ const TERMINAL = new Set(["done", "failed"]);
 export function ScanLiveView({ scanId }: { scanId: string }) {
   const [scan, setScan] = useState<ScanPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +88,8 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     );
   }
 
+  const findings = scan.findings ?? [];
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-stone-500">Live scan</p>
@@ -98,6 +111,49 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
           </li>
         ))}
       </ol>
+
+      {findings.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold text-stone-900">
+            Findings ({findings.length})
+          </h2>
+          <ul className="mt-4 space-y-3">
+            {findings.map((finding) => {
+              const open = openId === finding.id;
+              return (
+                <li key={finding.id} className="border-b border-stone-200 pb-3">
+                  <button
+                    type="button"
+                    className="flex w-full items-start justify-between gap-3 text-left"
+                    onClick={() => setOpenId(open ? null : finding.id)}
+                  >
+                    <span>
+                      <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                        {finding.severity}
+                      </span>
+                      {finding.title}
+                      {finding.isNew ? (
+                        <span className="ml-2 text-xs text-stone-400">new</span>
+                      ) : null}
+                    </span>
+                    <span className="text-stone-400">{open ? "−" : "+"}</span>
+                  </button>
+                  {open ? (
+                    <div className="mt-3 space-y-2 text-sm text-stone-600">
+                      {finding.explanation ? <p>{finding.explanation}</p> : null}
+                      {finding.evidenceText ? (
+                        <pre className="overflow-x-auto rounded bg-stone-100 p-3 text-xs text-stone-800 whitespace-pre-wrap">
+                          {finding.evidenceText}
+                        </pre>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {scan.status === "queued" ? (
         <p className="mt-8 text-sm text-stone-500">

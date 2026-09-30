@@ -36,6 +36,6 @@ python -m pip install -r requirements.txt
 python worker.py
 ```
 
-Click **Scan for free** on the landing page. The live scan page should move from `queued` → `running` → `done` with hello events.
+Click **Scan for free** on the landing page. The live scan page should move from `queued` → `running` → `done` and list passive findings (headers, files, TLS, CORS).
 
 Uploads and cloned repos will be deleted within 24 hours (enforced in later steps). A scan is not a guarantee of security and is not a substitute for a professional pentest.
