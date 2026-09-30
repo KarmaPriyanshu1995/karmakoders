@@ -50,6 +50,8 @@ next-env.d.ts
 /engine/__pycache__/
 /engine/**/__pycache__/
 /engine/.env
+/engine/bin/
+/engine/.scan-work/
 
 /src/generated/prisma
 
