@@ -44,6 +44,13 @@ next-env.d.ts
 /web/node_modules/
 /web/.next/
 
+# security scanner (/engine)
+/engine/.venv/
+/engine/venv/
+/engine/__pycache__/
+/engine/**/__pycache__/
+/engine/.env
+
 /src/generated/prisma
 
 # SQLite local databases
