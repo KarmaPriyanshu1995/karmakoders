@@ -36,6 +36,10 @@ python -m pip install -r requirements.txt
 python worker.py
 ```
 
-Click **Scan for free** on the landing page. The live scan page should move from `queued` → `running` → `done` and list passive findings (headers, files, TLS, CORS).
+Click **Scan for free** on the landing page. The live scan page should move from `queued` → `running` → `done` and list passive findings (headers, files, TLS, CORS) plus any secrets found in shipped JavaScript.
+
+Findings include Phase B metadata: **category**, **confidence** (0–100%), **verification status**, and an auditable confidence reason. Confidence is deterministic (no LLM) and is separate from severity.
+
+Completed scans also show a Phase C **security grade (A–F)** with an explainable breakdown, Founder/Developer viewing modes, and live progress via SSE (`/api/scans/[id]/events`).
 
 Uploads and cloned repos will be deleted within 24 hours (enforced in later steps). A scan is not a guarantee of security and is not a substitute for a professional pentest.

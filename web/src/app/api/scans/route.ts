@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
+import { normalizeHost } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -42,18 +43,52 @@ export async function POST(request: Request) {
 
   const primaryUrl = parsed.toString();
   const name = parsed.hostname;
+  const host = normalizeHost(parsed.hostname);
+  const apex = host.startsWith("www.") ? host.slice(4) : host;
+  const www = host.startsWith("www.") ? host : `www.${host}`;
 
   try {
     const sql = getSql();
-    const created = await sql`
-      WITH project AS (
+
+    // Prefer an existing project that already verified this host so active checks can run
+    // on the next scan after ownership proof (anonymous projects only).
+    const owned = await sql`
+      SELECT p.id
+      FROM projects p
+      JOIN verified_domains vd ON vd.project_id = p.id
+      WHERE p.user_id IS NULL
+        AND lower(vd.domain) IN (${host}, ${apex}, ${www})
+        AND (
+          vd.status = 'verified'
+          OR (vd.verified_at IS NOT NULL AND (vd.status IS NULL OR vd.status = 'verified'))
+        )
+        AND (vd.verified_expires_at IS NULL OR vd.verified_expires_at > now())
+      ORDER BY vd.verified_at DESC NULLS LAST
+      LIMIT 1
+    `;
+
+    let projectId: string | null = owned[0]?.id ? String(owned[0].id) : null;
+
+    if (!projectId) {
+      const inserted = await sql`
         INSERT INTO projects (name, primary_url)
         VALUES (${name}, ${primaryUrl})
         RETURNING id
-      ),
-      scan AS (
+      `;
+      projectId = String(inserted[0].id);
+    } else {
+      // Keep primary_url fresh for the verified project
+      await sql`
+        UPDATE projects
+        SET primary_url = ${primaryUrl}, name = ${name}
+        WHERE id = ${projectId}
+      `;
+    }
+
+    const created = await sql`
+      WITH scan AS (
         INSERT INTO scans (project_id, type, status)
-        SELECT id, 'url', 'queued' FROM project
+        VALUES (${projectId}, 'url', 'queued')
         RETURNING id, project_id, status
       ),
       job AS (

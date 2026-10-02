@@ -114,6 +114,7 @@ async def complete_job(conn: psycopg.AsyncConnection, job: ClaimedJob) -> None:
 
 
 async def fail_job(conn: psycopg.AsyncConnection, job: ClaimedJob, message: str) -> None:
+    """Record failure. Do not assign a security grade for incomplete scans."""
     async with conn.transaction():
         await conn.execute(
             """
@@ -121,6 +122,18 @@ async def fail_job(conn: psycopg.AsyncConnection, job: ClaimedJob, message: str)
             VALUES (%s, %s)
             """,
             (job.scan_id, message),
+        )
+        # Leave job lockable for retry until attempts exhausted; clear any partial grade.
+        await conn.execute(
+            """
+            UPDATE scans
+            SET grade = NULL,
+                grade_algorithm_version = NULL,
+                grade_breakdown = NULL,
+                grade_calculated_at = NULL
+            WHERE id = %s AND status = 'running'
+            """,
+            (job.scan_id,),
         )
 
 

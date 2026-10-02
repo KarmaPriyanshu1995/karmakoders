@@ -8,6 +8,7 @@ import sys
 
 from lib.config import get_settings
 from lib.db import connect
+from lib.llm import enrich_scan_findings
 from lib.queue import claim_job, complete_job, fail_job
 from lib.stages import run_stages
 
@@ -31,6 +32,7 @@ async def process_once() -> bool:
     async with connect(settings) as conn:
         try:
             await run_stages(conn, job.scan_id)
+            # Security scan completes before optional LLM enrichment.
             await complete_job(conn, job)
             log.info("completed job=%s scan=%s", job.job_id, job.scan_id)
         except Exception as exc:  # noqa: BLE001 — surface then let lock expire / retry
@@ -39,6 +41,17 @@ async def process_once() -> bool:
                 await fail_job(conn, job, f"Worker error: {exc}")
             except Exception:  # noqa: BLE001
                 log.exception("could not record failure event for job=%s", job.job_id)
+            return True
+
+        # Phase D: AI explanations are optional. Failures must never reopen/fail the scan.
+        try:
+            await enrich_scan_findings(conn, job.scan_id)
+        except Exception:  # noqa: BLE001
+            log.exception(
+                "AI enrichment failed (scan remains done) job=%s scan=%s",
+                job.job_id,
+                job.scan_id,
+            )
     return True
 
 

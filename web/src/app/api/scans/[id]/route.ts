@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
+import { deriveProgress } from "@/lib/scan-progress";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,6 +20,37 @@ function noStore(data: unknown, status = 200) {
   });
 }
 
+function summarizeFindings(
+  findings: Array<{
+    severity: string;
+    category: string | null;
+    verification_status: string | null;
+  }>
+) {
+  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  const byVerification = {
+    verified: 0,
+    unverified: 0,
+    not_applicable: 0,
+    candidate: 0,
+  };
+  const categories = new Set<string>();
+  for (const f of findings) {
+    const sev = (f.severity || "info") as keyof typeof bySeverity;
+    if (sev in bySeverity) bySeverity[sev] += 1;
+    else bySeverity.info += 1;
+    const ver = (f.verification_status || "unverified") as keyof typeof byVerification;
+    if (ver in byVerification) byVerification[ver] += 1;
+    if (f.category) categories.add(f.category);
+  }
+  return {
+    findingCount: findings.length,
+    bySeverity,
+    byVerification,
+    categories: Array.from(categories).sort(),
+  };
+}
+
 export async function GET(_request: Request, { params }: Params) {
   const id = params.id;
   if (!UUID_RE.test(id)) {
@@ -34,6 +66,10 @@ export async function GET(_request: Request, { params }: Params) {
         s.type,
         s.status,
         s.grade,
+        s.grade_algorithm_version,
+        s.grade_breakdown,
+        s.grade_calculated_at,
+        s.active_checks_status,
         s.started_at,
         s.finished_at,
         p.primary_url,
@@ -61,9 +97,24 @@ export async function GET(_request: Request, { params }: Params) {
         f.severity,
         f.title,
         f.explanation,
+        f.fix_prompt,
         f.status,
         f.fingerprint,
         f.first_seen_scan_id,
+        f.category,
+        f.confidence,
+        f.confidence_reason,
+        f.finding_type,
+        f.scanner_source,
+        f.verification_status,
+        f.ai_status,
+        f.ai_explanation,
+        f.ai_provider,
+        f.ai_model,
+        f.ai_prompt_version,
+        f.ai_content_version,
+        f.ai_generated_at,
+        f.ai_error,
         e.redacted_text AS evidence_text
       FROM findings f
       LEFT JOIN LATERAL (
@@ -85,32 +136,164 @@ export async function GET(_request: Request, { params }: Params) {
         f.created_at ASC
     `;
 
+    const summary = summarizeFindings(
+      findings.map((f) => ({
+        severity: f.severity,
+        category: f.category ?? null,
+        verification_status: f.verification_status ?? null,
+      }))
+    );
+
+    const progress = deriveProgress(
+      scan.status,
+      events.map((e) => String(e.message))
+    );
+
+    const gradeAvailable =
+      scan.status === "done" && scan.grade != null && scan.grade_algorithm_version != null;
+
+    let ownershipStatus = "unverified";
+    let ownershipMethod: string | null = null;
+    let ownershipFailureReason: string | null = null;
+    try {
+      const host = new URL(String(scan.primary_url)).hostname.toLowerCase();
+      const ownershipRows = await sql`
+        SELECT domain, method, status, verified_at, verified_expires_at, failure_reason, challenge_expires_at
+        FROM verified_domains
+        WHERE project_id = ${scan.project_id}
+        ORDER BY created_at DESC NULLS LAST
+        LIMIT 5
+      `;
+      const match =
+        ownershipRows.find((r) => {
+          const d = String(r.domain || "").toLowerCase();
+          return (
+            d === host ||
+            (host.startsWith("www.") && d === host.slice(4)) ||
+            (!host.startsWith("www.") && d === `www.${host}`)
+          );
+        }) ?? ownershipRows[0];
+      if (match) {
+        ownershipMethod = match.method ?? null;
+        ownershipFailureReason = match.failure_reason ?? null;
+        let st = String(match.status || (match.verified_at ? "verified" : "pending"));
+        if (
+          st === "verified" &&
+          match.verified_expires_at &&
+          new Date(String(match.verified_expires_at)).getTime() < Date.now()
+        ) {
+          st = "expired";
+        }
+        if (
+          st === "pending" &&
+          match.challenge_expires_at &&
+          new Date(String(match.challenge_expires_at)).getTime() < Date.now()
+        ) {
+          st = "expired";
+        }
+        ownershipStatus = st;
+      }
+    } catch {
+      ownershipStatus = "unverified";
+    }
+
+    const activeChecksStatus = scan.active_checks_status ?? null;
+
     return noStore({
       id: scan.id,
       projectId: scan.project_id,
       type: scan.type,
       status: scan.status,
-      grade: scan.grade,
+      grade: gradeAvailable ? scan.grade : null,
+      gradeAlgorithmVersion: scan.grade_algorithm_version ?? null,
+      gradeBreakdown: gradeAvailable ? scan.grade_breakdown ?? null : null,
+      gradeCalculatedAt: scan.grade_calculated_at ?? null,
+      gradeUnavailableReason:
+        scan.status === "failed"
+          ? "The scan did not complete, so a complete security grade is unavailable."
+          : scan.status === "done" && !gradeAvailable
+            ? "This scan has no persisted grade (completed before grading or grade was cleared)."
+            : scan.status !== "done"
+              ? "Grade is available after the scan completes."
+              : null,
       startedAt: scan.started_at,
       finishedAt: scan.finished_at,
       primaryUrl: scan.primary_url,
       projectName: scan.project_name,
+      ownershipStatus,
+      ownershipMethod,
+      ownershipFailureReason,
+      activeChecksStatus,
+      activeChecksNote:
+        activeChecksStatus === "skipped_unverified"
+          ? "Active checks were skipped because domain ownership is not verified. Passive findings remain valid."
+          : activeChecksStatus === "done"
+            ? "Ownership-gated active checks completed for this scan."
+            : activeChecksStatus === "failed"
+              ? "Active checks failed; passive findings remain valid."
+              : activeChecksStatus === "running"
+                ? "Ownership-gated active checks are running."
+                : "Active checks run only after you verify you control this domain.",
+      summary,
+      progress,
       events: events.map((event) => ({
         id: event.id,
         message: event.message,
         createdAt: event.created_at,
       })),
-      findings: findings.map((finding) => ({
-        id: finding.id,
-        severity: finding.severity,
-        title: finding.title,
-        explanation: finding.explanation,
-        status: finding.status,
-        fingerprint: finding.fingerprint,
-        firstSeenScanId: finding.first_seen_scan_id,
-        evidenceText: finding.evidence_text,
-        isNew: finding.first_seen_scan_id === scan.id,
-      })),
+      findings: findings.map((finding) => {
+        const aiExplanation =
+          finding.ai_explanation && typeof finding.ai_explanation === "object"
+            ? finding.ai_explanation
+            : null;
+        const scannerSource = finding.scanner_source ?? null;
+        const isGated =
+          scannerSource === "active_config" ||
+          String(finding.finding_type || "").startsWith("active_");
+        return {
+          id: finding.id,
+          severity: finding.severity,
+          title: finding.title,
+          explanation: finding.explanation,
+          status: finding.status,
+          fingerprint: finding.fingerprint,
+          firstSeenScanId: finding.first_seen_scan_id,
+          category: finding.category ?? null,
+          confidence: finding.confidence ?? null,
+          confidenceReason: finding.confidence_reason ?? null,
+          findingType: finding.finding_type ?? null,
+          scannerSource,
+          verificationStatus: finding.verification_status ?? null,
+          evidenceText: finding.evidence_text,
+          isNew: finding.first_seen_scan_id === scan.id,
+          isGated,
+          checkKind: isGated ? "active" : "passive",
+          aiStatus: finding.ai_status ?? "not_generated",
+          aiExplanation: aiExplanation
+            ? {
+                summary: aiExplanation.summary ?? null,
+                whyItMatters: aiExplanation.why_it_matters ?? null,
+                technicalExplanation: aiExplanation.technical_explanation ?? null,
+                recommendedAction: aiExplanation.recommended_action ?? null,
+                limitations: Array.isArray(aiExplanation.limitations)
+                  ? aiExplanation.limitations
+                  : [],
+              }
+            : null,
+          aiFixPrompt: finding.fix_prompt ?? null,
+          aiModel: finding.ai_model ?? null,
+          aiPromptVersion: finding.ai_prompt_version ?? null,
+          aiGeneratedAt: finding.ai_generated_at ?? null,
+          aiUnavailableReason:
+            finding.ai_status === "failed"
+              ? "AI explanation unavailable. The security finding itself is still valid and was detected by the scanner."
+              : finding.ai_status === "generating"
+                ? "AI explanation is generating."
+                : finding.ai_status === "stale"
+                  ? "AI explanation is stale because the finding evidence changed."
+                  : null,
+        };
+      }),
     });
   } catch (error) {
     console.error("get scan failed", error);

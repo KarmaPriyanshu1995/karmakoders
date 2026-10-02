@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import shutil
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 import psycopg
 
+from .checks.active_config import run_active_config_probes
 from .checks.bundles import capture_js_bundles_subprocess
 from .checks.cors import check_cors
 from .checks.exposed_files import check_exposed_files
@@ -16,7 +19,10 @@ from .checks.headers import check_security_headers
 from .checks.secrets import scan_bundles_for_secrets
 from .checks.tls_check import check_tls
 from .findings import FindingDraft, save_findings
+from .grade import GRADE_ALGORITHM_VERSION, calculate_grade, finding_rows_to_grade_inputs
 from .http_fetch import fetch
+from .ownership.gate import assert_ownership_verified
+from .ownership.ssrf import normalize_host
 from .queue import add_event
 
 log = logging.getLogger("scanner.stages")
@@ -39,15 +45,27 @@ async def _load_scan_target(
     return await cur.fetchone()
 
 
+async def _set_active_checks_status(
+    conn: psycopg.AsyncConnection, scan_id: UUID, status: str
+) -> None:
+    await conn.execute(
+        """
+        UPDATE scans SET active_checks_status = %s WHERE id = %s
+        """,
+        (status, scan_id),
+    )
+
+
 async def _run_bundle_secret_stage(target_url: str, scan_id: UUID) -> list[FindingDraft]:
     work_dir = WORK_ROOT / str(scan_id)
     if work_dir.exists():
         shutil.rmtree(work_dir, ignore_errors=True)
     try:
-        # Subprocess avoids Windows SelectorEventLoop vs Playwright conflicts.
         captured = await capture_js_bundles_subprocess(target_url, work_dir)
         drafts = await scan_bundles_for_secrets(work_dir)
-        if captured.bundle_count == 0 and not any(d.finding_type == "secret_tools_missing" for d in drafts):
+        if captured.bundle_count == 0 and not any(
+            d.finding_type == "secret_tools_missing" for d in drafts
+        ):
             drafts.append(
                 FindingDraft(
                     finding_type="no_js_bundles",
@@ -60,13 +78,97 @@ async def _run_bundle_secret_stage(target_url: str, scan_id: UUID) -> list[Findi
                         "Secret checks for shipped bundles were skipped."
                     ),
                     evidence_text=f"script_urls_seen={len(captured.script_urls)}",
+                    scanner_source="engine",
                 )
             )
         return drafts
     finally:
-        # Auto-delete captured bundles after the stage (24h retention seam for uploads later).
         shutil.rmtree(work_dir, ignore_errors=True)
-        # TODO: enforce 24h TTL sweeper for any retained upload/clone dirs.
+
+
+async def _persist_grade(conn: psycopg.AsyncConnection, scan_id: UUID) -> None:
+    cur = await conn.execute(
+        """
+        SELECT severity, confidence, verification_status, category,
+               finding_type, fingerprint, title
+        FROM findings
+        WHERE scan_id = %s
+        """,
+        (scan_id,),
+    )
+    rows = await cur.fetchall()
+    result = calculate_grade(finding_rows_to_grade_inputs(rows), scan_complete=True)
+    await conn.execute(
+        """
+        UPDATE scans
+        SET grade = %s,
+            grade_algorithm_version = %s,
+            grade_breakdown = %s::jsonb,
+            grade_calculated_at = now()
+        WHERE id = %s
+        """,
+        (
+            result.grade,
+            result.algorithm_version,
+            json.dumps(result.breakdown),
+            scan_id,
+        ),
+    )
+    await add_event(
+        conn,
+        scan_id,
+        f"Security grade: {result.grade} ({GRADE_ALGORITHM_VERSION}) — {result.summary}",
+    )
+
+
+async def _run_ownership_gated_active(
+    conn: psycopg.AsyncConnection,
+    *,
+    scan_id: UUID,
+    project_id: UUID,
+    primary_url: str,
+) -> int:
+    """Run safe active probes only when ownership is verified for this project+host."""
+    host = normalize_host(urlparse(primary_url).hostname or "")
+    verified = await assert_ownership_verified(conn, project_id=project_id, host=host)
+    if not verified:
+        await _set_active_checks_status(conn, scan_id, "skipped_unverified")
+        await add_event(
+            conn,
+            scan_id,
+            "Active checks skipped — domain ownership is not verified for this project. "
+            "Passive findings remain valid.",
+        )
+        return 0
+
+    await _set_active_checks_status(conn, scan_id, "running")
+    await add_event(conn, scan_id, "Running ownership-gated active configuration checks")
+    try:
+        drafts = await run_active_config_probes(
+            primary_url=primary_url, ownership_verified=True
+        )
+        saved = await save_findings(
+            conn, scan_id=scan_id, project_id=project_id, drafts=drafts
+        )
+        await _set_active_checks_status(conn, scan_id, "done")
+        await add_event(
+            conn,
+            scan_id,
+            f"Active checks finished — {saved} gated finding(s)",
+        )
+        if saved:
+            await add_event(conn, scan_id, "Recalculating security grade after active checks")
+            await _persist_grade(conn, scan_id)
+        return saved
+    except Exception as exc:  # noqa: BLE001
+        log.exception("active checks failed scan=%s: %s", scan_id, exc)
+        await _set_active_checks_status(conn, scan_id, "failed")
+        await add_event(
+            conn,
+            scan_id,
+            "Active checks failed — passive findings and grade remain valid.",
+        )
+        return 0
 
 
 async def run_passive_url_checks(
@@ -88,8 +190,12 @@ async def run_passive_url_checks(
             title="Could not reach the URL during the scan",
             explanation="The scanner could not load the page, so header and file checks were skipped.",
             evidence_text=homepage.error or "unknown error",
+            scanner_source="engine",
         )
-        return await save_findings(conn, scan_id=scan_id, project_id=project_id, drafts=[draft])
+        saved = await save_findings(conn, scan_id=scan_id, project_id=project_id, drafts=[draft])
+        await _set_active_checks_status(conn, scan_id, "skipped_unverified")
+        await _persist_grade(conn, scan_id)
+        return saved
 
     await add_event(
         conn,
@@ -118,14 +224,21 @@ async def run_passive_url_checks(
     labels = ("headers", "exposed files", "TLS", "CORS", "bundle secrets")
     for label, part in zip(labels, parts, strict=True):
         if isinstance(part, Exception):
-            log.exception("%s check failed", label)
+            log.error("%s check failed: %s", label, part, exc_info=part)
             await add_event(conn, scan_id, f"{label} check failed: {part!r}")
             continue
         drafts.extend(part)
 
     saved = await save_findings(conn, scan_id=scan_id, project_id=project_id, drafts=drafts)
     await add_event(conn, scan_id, f"Passive + secret checks finished — {saved} finding(s)")
-    return saved
+    await add_event(conn, scan_id, "Calculating security grade")
+    await _persist_grade(conn, scan_id)
+
+    # Phase E: ownership-gated active stage (same scan). Never blocks passive success.
+    active_saved = await _run_ownership_gated_active(
+        conn, scan_id=scan_id, project_id=project_id, primary_url=primary_url
+    )
+    return saved + active_saved
 
 
 async def run_stages(conn: psycopg.AsyncConnection, scan_id: UUID) -> None:
@@ -133,7 +246,6 @@ async def run_stages(conn: psycopg.AsyncConnection, scan_id: UUID) -> None:
     if target is None:
         raise RuntimeError(f"scan {scan_id} not found")
 
-    # TODO: step 5 ownership-gated Supabase/Firebase probes.
     if target["type"] == "url":
         await run_passive_url_checks(
             conn,
@@ -143,4 +255,5 @@ async def run_stages(conn: psycopg.AsyncConnection, scan_id: UUID) -> None:
         )
         return
 
+    await _set_active_checks_status(conn, scan_id, "not_applicable")
     await add_event(conn, scan_id, "Repo scans are not implemented yet (step 8).")

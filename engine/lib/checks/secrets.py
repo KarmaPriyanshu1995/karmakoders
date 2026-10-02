@@ -153,6 +153,9 @@ def _from_gitleaks(item: dict, bundles_dir: Path) -> FindingDraft | None:
             "from the browser and use it as if they were your server."
         ),
         evidence_text=evidence,
+        scanner_source="gitleaks",
+        rule_id=rule_id,
+        verified=False,
     )
 
 
@@ -169,10 +172,12 @@ def _from_trufflehog(item: dict) -> FindingDraft | None:
     location = file_path or "captured-bundle"
     redacted = redact_secret(secret)
     digest = sha256_secret(secret)
+    verified = bool(item.get("Verified") is True)
     evidence = scrub_text(
         (
             f"tool: trufflehog\n"
             f"detector: {detector}\n"
+            f"verified: {str(verified).lower()}\n"
             f"file: {Path(file_path).name if file_path else '(unknown)'}\n"
             f"redacted: {redacted}\n"
             f"sha256: {digest}"
@@ -190,6 +195,9 @@ def _from_trufflehog(item: dict) -> FindingDraft | None:
             "from the browser and use it as if they were your server."
         ),
         evidence_text=evidence,
+        scanner_source="trufflehog",
+        rule_id=detector,
+        verified=verified,
     )
 
 
@@ -215,6 +223,7 @@ async def scan_bundles_for_secrets(work_dir: Path) -> list[FindingDraft]:
                     "so shipped JavaScript can be checked for keys."
                 ),
                 evidence_text="gitleaks and trufflehog were not found in engine/bin or PATH.",
+                scanner_source="engine",
             )
         )
         return drafts
@@ -224,19 +233,25 @@ async def scan_bundles_for_secrets(work_dir: Path) -> list[FindingDraft]:
         _run_trufflehog(bundles_dir),
     )
 
-    seen_hashes: set[str] = set()
+    # Dedup by secret hash; prefer verified TruffleHog over unverified Gitleaks.
+    by_hash: dict[str, FindingDraft] = {}
     for item in gitleaks_items:
         draft = _from_gitleaks(item, bundles_dir)
-        if draft is None or draft.param in seen_hashes:
+        if draft is None:
             continue
-        seen_hashes.add(draft.param)
-        drafts.append(draft)
+        by_hash[draft.param] = draft
 
     for item in trufflehog_items:
         draft = _from_trufflehog(item)
-        if draft is None or draft.param in seen_hashes:
+        if draft is None:
             continue
-        seen_hashes.add(draft.param)
-        drafts.append(draft)
+        existing = by_hash.get(draft.param)
+        if existing is None:
+            by_hash[draft.param] = draft
+            continue
+        # Upgrade when TruffleHog verified the same secret hash.
+        if draft.verified and not existing.verified:
+            by_hash[draft.param] = draft
 
+    drafts.extend(by_hash.values())
     return drafts
