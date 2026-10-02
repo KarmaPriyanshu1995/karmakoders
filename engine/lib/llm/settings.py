@@ -30,7 +30,7 @@ class LLMSettings:
 
 def _openrouter_model() -> str:
     return os.environ.get("OPENROUTER_MODEL") or os.environ.get(
-        "LLM_MODEL", "meta-llama/llama-3.1-8b-instruct"
+        "LLM_MODEL", "google/gemma-4-31b-it"
     )
 
 

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ScanForm } from "@/components/ScanForm";
 
 export default function HomePage() {
@@ -11,7 +12,9 @@ export default function HomePage() {
         Paste your app URL for a free passive check: security headers, exposed files, TLS, and
         open CORS. No signup required.
       </p>
-      <ScanForm />
+      <Suspense fallback={<p className="mt-8 text-sm text-stone-500">Loading scanner…</p>}>
+        <ScanForm />
+      </Suspense>
       <p className="mt-8 text-sm leading-relaxed text-stone-500">
         Uploads and cloned repos are deleted within 24 hours. A scan is not a guarantee of security.
       </p>

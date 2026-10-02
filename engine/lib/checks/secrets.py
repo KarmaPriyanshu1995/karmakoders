@@ -47,8 +47,10 @@ def _severity_for(rule_id: str, secret: str) -> str:
     return "medium"
 
 
-def _title_for(rule_id: str) -> str:
+def _title_for(rule_id: str, *, repo: bool = False) -> str:
     rid = (rule_id or "secret").replace("-", " ").replace("_", " ")
+    if repo:
+        return f"Secret found in repository source ({rid})"
     return f"Secret found in shipped JavaScript ({rid})"
 
 
@@ -118,39 +120,43 @@ async def _run_trufflehog(bundles_dir: Path) -> list[dict]:
     return await asyncio.to_thread(_run_trufflehog_sync, bundles_dir)
 
 
-def _from_gitleaks(item: dict, bundles_dir: Path) -> FindingDraft | None:
-    secret = str(item.get("Secret") or "")
+def _from_gitleaks(
+    item: dict, bundles_dir: Path, *, repo: bool = False, location_prefix: str | None = None
+) -> FindingDraft | None:
+    secret = str(item.get("Secret") or item.get("Match") or "")
     if not secret:
         return None
-    file_name = str(item.get("File") or "")
-    path = Path(file_name)
-    if not path.is_file():
-        path = bundles_dir / Path(file_name).name
-    location = _url_for_file(path) if path.exists() else file_name
     rule_id = str(item.get("RuleID") or item.get("Description") or "gitleaks")
+    file_path = str(item.get("File") or "")
+    location = file_path or bundles_dir.name
+    if location_prefix:
+        location = f"{location_prefix}:{Path(file_path).name if file_path else 'source'}"
     redacted = redact_secret(secret)
     digest = sha256_secret(secret)
     evidence = scrub_text(
         (
             f"tool: gitleaks\n"
             f"rule: {rule_id}\n"
-            f"file: {path.name}\n"
-            f"source: {location}\n"
+            f"file: {Path(file_path).name if file_path else '(unknown)'}\n"
             f"redacted: {redacted}\n"
             f"sha256: {digest}\n"
-            f"snippet: {item.get('Match') or item.get('Line') or ''}"
         ),
         [secret],
     )
     return FindingDraft(
-        finding_type="secret_in_bundle",
+        finding_type="secret_in_repo" if repo else "secret_in_bundle",
         location=location,
         param=digest,
-        severity=_severity_for(rule_id, secret),  # type: ignore[arg-type]
-        title=_title_for(rule_id),
+        severity=_severity_for(rule_id, secret),
+        title=_title_for(rule_id, repo=repo),
         explanation=(
-            "A live secret appears in JavaScript your visitors download. Anyone can extract it "
-            "from the browser and use it as if they were your server."
+            "A secret-like string was detected in repository source. "
+            "Rotate the credential and remove it from the repository."
+            if repo
+            else (
+                "A live secret appears in JavaScript your visitors download. Anyone can extract it "
+                "from the browser and use it as if they were your server."
+            )
         ),
         evidence_text=evidence,
         scanner_source="gitleaks",
@@ -159,7 +165,9 @@ def _from_gitleaks(item: dict, bundles_dir: Path) -> FindingDraft | None:
     )
 
 
-def _from_trufflehog(item: dict) -> FindingDraft | None:
+def _from_trufflehog(
+    item: dict, *, repo: bool = False, location_prefix: str | None = None
+) -> FindingDraft | None:
     raw_secret = item.get("Raw") or item.get("RawV2") or ""
     secret = str(raw_secret)
     if not secret:
@@ -169,7 +177,9 @@ def _from_trufflehog(item: dict) -> FindingDraft | None:
     data = source.get("Data") if isinstance(source, dict) else {}
     filesystem = (data or {}).get("Filesystem") if isinstance(data, dict) else {}
     file_path = str((filesystem or {}).get("file") or "")
-    location = file_path or "captured-bundle"
+    location = file_path or ("repository-source" if repo else "captured-bundle")
+    if location_prefix:
+        location = f"{location_prefix}:{Path(file_path).name if file_path else 'source'}"
     redacted = redact_secret(secret)
     digest = sha256_secret(secret)
     verified = bool(item.get("Verified") is True)
@@ -185,20 +195,80 @@ def _from_trufflehog(item: dict) -> FindingDraft | None:
         [secret],
     )
     return FindingDraft(
-        finding_type="secret_in_bundle",
+        finding_type="secret_in_repo" if repo else "secret_in_bundle",
         location=location,
         param=digest,
-        severity=_severity_for(detector, secret),  # type: ignore[arg-type]
-        title=_title_for(detector),
+        severity=_severity_for(detector, secret),
+        title=_title_for(detector, repo=repo),
         explanation=(
-            "A live secret appears in JavaScript your visitors download. Anyone can extract it "
-            "from the browser and use it as if they were your server."
+            "A secret-like string was detected in repository source. "
+            "Rotate the credential and remove it from the repository."
+            if repo
+            else (
+                "A live secret appears in JavaScript your visitors download. Anyone can extract it "
+                "from the browser and use it as if they were your server."
+            )
         ),
         evidence_text=evidence,
         scanner_source="trufflehog",
         rule_id=detector,
         verified=verified,
     )
+
+
+async def scan_directory_for_secrets(
+    source_dir: Path, *, location_prefix: str | None = None, repo: bool = True
+) -> list[FindingDraft]:
+    """Run gitleaks/trufflehog against an arbitrary directory (Phase G repo snapshots)."""
+    if not source_dir.is_dir():
+        return []
+
+    gitleaks_missing = resolve_tool("gitleaks") is None
+    trufflehog_missing = resolve_tool("trufflehog") is None
+    drafts: list[FindingDraft] = []
+
+    if gitleaks_missing and trufflehog_missing:
+        drafts.append(
+            FindingDraft(
+                finding_type="secret_tools_missing",
+                location=str(source_dir),
+                param="tools",
+                severity="info",
+                title="Secret scanners are not installed on this worker",
+                explanation=(
+                    "Install gitleaks and trufflehog into engine/bin so repository source "
+                    "can be checked for keys."
+                ),
+                evidence_text="gitleaks and trufflehog were not found in engine/bin or PATH.",
+                scanner_source="engine",
+            )
+        )
+        return drafts
+
+    gitleaks_items, trufflehog_items = await asyncio.gather(
+        _run_gitleaks(source_dir),
+        _run_trufflehog(source_dir),
+    )
+
+    by_hash: dict[str, FindingDraft] = {}
+    for item in gitleaks_items:
+        draft = _from_gitleaks(
+            item, source_dir, repo=repo, location_prefix=location_prefix
+        )
+        if draft is None:
+            continue
+        by_hash[draft.param] = draft
+
+    for item in trufflehog_items:
+        draft = _from_trufflehog(item, repo=repo, location_prefix=location_prefix)
+        if draft is None:
+            continue
+        existing = by_hash.get(draft.param)
+        if existing is None or (draft.verified and not existing.verified):
+            by_hash[draft.param] = draft
+
+    drafts.extend(by_hash.values())
+    return drafts
 
 
 async def scan_bundles_for_secrets(work_dir: Path) -> list[FindingDraft]:

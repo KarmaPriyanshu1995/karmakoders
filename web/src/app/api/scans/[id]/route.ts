@@ -70,6 +70,13 @@ export async function GET(_request: Request, { params }: Params) {
         s.grade_breakdown,
         s.grade_calculated_at,
         s.active_checks_status,
+        s.attack_surface_summary,
+        s.type,
+        s.repo_full_name,
+        s.repo_commit_sha,
+        s.github_scan_status,
+        s.repo_scan_summary,
+        s.github_repo_id,
         s.started_at,
         s.finished_at,
         p.primary_url,
@@ -107,6 +114,10 @@ export async function GET(_request: Request, { params }: Params) {
         f.finding_type,
         f.scanner_source,
         f.verification_status,
+        f.fix_verify_status,
+        f.fix_verify_at,
+        f.fix_verify_note,
+        f.metadata,
         f.ai_status,
         f.ai_explanation,
         f.ai_provider,
@@ -151,6 +162,26 @@ export async function GET(_request: Request, { params }: Params) {
 
     const gradeAvailable =
       scan.status === "done" && scan.grade != null && scan.grade_algorithm_version != null;
+
+    let scanDiff: {
+      diff_status: string;
+      new_count: number;
+      fixed_count: number;
+      unresolved_count: number;
+      regression_count: number;
+      grade_previous: string | null;
+      grade_current: string | null;
+    } | null = null;
+    try {
+      const diffs = await sql`
+        SELECT diff_status, new_count, fixed_count, unresolved_count, regression_count,
+               grade_previous, grade_current
+        FROM scan_diffs WHERE scan_id = ${id} LIMIT 1
+      `;
+      scanDiff = diffs[0] ?? null;
+    } catch {
+      scanDiff = null;
+    }
 
     let ownershipStatus = "unverified";
     let ownershipMethod: string | null = null;
@@ -226,14 +257,35 @@ export async function GET(_request: Request, { params }: Params) {
       activeChecksStatus,
       activeChecksNote:
         activeChecksStatus === "skipped_unverified"
-          ? "Active checks were skipped because domain ownership is not verified. Passive findings remain valid."
+          ? "Active discovery and fuzzing were skipped because domain ownership is not verified. Passive findings remain valid."
           : activeChecksStatus === "done"
-            ? "Ownership-gated active checks completed for this scan."
-            : activeChecksStatus === "failed"
-              ? "Active checks failed; passive findings remain valid."
-              : activeChecksStatus === "running"
-                ? "Ownership-gated active checks are running."
-                : "Active checks run only after you verify you control this domain.",
+            ? "Ownership-gated attack-surface discovery and safe fuzzing completed for this scan."
+            : activeChecksStatus === "partial"
+              ? "Active discovery completed partially (some items skipped)."
+              : activeChecksStatus === "budget_exhausted"
+                ? "Active discovery/fuzzing stopped early because the scan request budget was exhausted. Results are partial but real."
+                : activeChecksStatus === "failed"
+                  ? "Active checks failed; passive findings remain valid."
+                  : activeChecksStatus === "running"
+                    ? "Ownership-gated attack-surface discovery is running."
+                    : "Active discovery runs only after you verify you control this domain.",
+      attackSurfaceSummary: scan.attack_surface_summary ?? null,
+      repoFullName: scan.repo_full_name ?? null,
+      repoCommitSha: scan.repo_commit_sha ?? null,
+      githubScanStatus: scan.github_scan_status ?? null,
+      repoScanSummary: scan.repo_scan_summary ?? null,
+      projectId: scan.project_id,
+      diff: scanDiff
+        ? {
+            status: scanDiff.diff_status,
+            newCount: scanDiff.new_count,
+            fixedCount: scanDiff.fixed_count,
+            unresolvedCount: scanDiff.unresolved_count,
+            regressionCount: scanDiff.regression_count,
+            gradePrevious: scanDiff.grade_previous,
+            gradeCurrent: scanDiff.grade_current,
+          }
+        : null,
       summary,
       progress,
       events: events.map((event) => ({
@@ -249,6 +301,7 @@ export async function GET(_request: Request, { params }: Params) {
         const scannerSource = finding.scanner_source ?? null;
         const isGated =
           scannerSource === "active_config" ||
+          scannerSource === "fuzzing" ||
           String(finding.finding_type || "").startsWith("active_");
         return {
           id: finding.id,
@@ -264,6 +317,9 @@ export async function GET(_request: Request, { params }: Params) {
           findingType: finding.finding_type ?? null,
           scannerSource,
           verificationStatus: finding.verification_status ?? null,
+          fixVerifyStatus: finding.fix_verify_status ?? null,
+          fixVerifyAt: finding.fix_verify_at ?? null,
+          fixVerifyNote: finding.fix_verify_note ?? null,
           evidenceText: finding.evidence_text,
           isNew: finding.first_seen_scan_id === scan.id,
           isGated,

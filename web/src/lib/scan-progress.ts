@@ -14,6 +14,17 @@ export function deriveProgress(
     return { stage: "queued", progress: 0, label: "Queued" };
   }
   const joined = messages.join("\n").toLowerCase();
+  if (joined.includes("fuzzing.completed") || joined.includes("active discovery/fuzzing finished")) {
+    return { stage: "active", progress: 94, label: "Active discovery & fuzzing" };
+  }
+  if (
+    joined.includes("discovery.started") ||
+    joined.includes("discovery.progress") ||
+    joined.includes("attack-surface discovery") ||
+    joined.includes("fuzzing.started")
+  ) {
+    return { stage: "discovery", progress: 88, label: "Attack-surface discovery" };
+  }
   if (joined.includes("ownership-gated active") || joined.includes("active checks")) {
     return { stage: "active", progress: 92, label: "Ownership-gated active checks" };
   }

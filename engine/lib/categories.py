@@ -69,6 +69,16 @@ FINDING_TYPE_CATEGORY: Final[dict[str, str]] = {
     "active_sensitive_config_exposure": "exposure",
     "active_public_config_endpoint": "configuration",
     "active_probe_redirect_blocked": "other",
+    "potential_reflection": "input_validation",
+    "error_information_disclosure": "exposure",
+    "error_handling_anomaly": "other",
+    "discovery_external_host": "other",
+    "secret_in_repo": "secrets",
+    "committed_env_file": "exposure",
+    "committed_private_key": "secrets",
+    "missing_security_md": "other",
+    "insecure_cors_in_config": "cors",
+    "debug_flag_in_config": "configuration",
 }
 
 

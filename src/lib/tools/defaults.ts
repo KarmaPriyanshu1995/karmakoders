@@ -4,6 +4,7 @@ import { HOSTINGER_DOMAIN_AFFILIATE_URL } from "@/lib/tools/hostinger-affiliate"
 import { DOMAIN_COMPARE_CONTENT, HOSTINGER_VS_NAMECHEAP_CONTENT } from "@/lib/tools/domain-compare-content";
 import { COMPRESS_IMAGE_CONTENT } from "@/lib/tools/compress-image-content";
 import { MVP_COST_CONTENT } from "@/lib/tools/mvp-cost-content";
+import { SECURITY_SCANNER_CONTENT } from "@/lib/tools/security-scanner-content";
 
 export async function ensureDomainProviders(tenantId: string): Promise<void> {
   const providers = [
@@ -347,10 +348,79 @@ export async function ensureMvpCostCalculatorTool(tenantId: string): Promise<voi
   }
 }
 
+export async function ensureSecurityScannerTool(tenantId: string): Promise<void> {
+  const developmentCategory = await prisma.toolCategory.upsert({
+    where: { tenantId_slug: { tenantId, slug: "development" } },
+    update: { name: "Development", sortOrder: 40 },
+    create: { tenantId, name: "Development", slug: "development", sortOrder: 40 },
+  });
+
+  const existing = await prisma.freeTool.findFirst({
+    where: { tenantId, slug: "security-scanner" },
+    select: { id: true },
+  });
+  if (existing) {
+    await prisma.freeTool.update({
+      where: { id: existing.id },
+      data: {
+        status: "published",
+        isPublic: true,
+        isFeatured: true,
+        toolUrl: "/free-tools/security-scanner",
+        contentJson: JSON.stringify(SECURITY_SCANNER_CONTENT),
+        seoTitle: "Free App Security Scanner for AI-Built Apps",
+        seoDescription:
+          "Plain-English security checks for apps built with Lovable, Bolt, v0, Cursor, or Replit. Headers, secrets signals, TLS, CORS, GitHub repo scans, and fix verification.",
+        canonicalUrl: "https://www.karmakoders.com/free-tools/security-scanner",
+      },
+    });
+    return;
+  }
+
+  try {
+    await prisma.freeTool.create({
+      data: {
+        tenantId,
+        name: "App Security Scanner",
+        slug: "security-scanner",
+        shortDescription:
+          "Plain-English security checks for AI-built apps — headers, exposure, TLS, CORS, and authorized GitHub scans.",
+        longDescription:
+          "Open the KarmaKoders security scanner to paste a URL or connect a GitHub repo. Get a grade, redacted evidence, AI fix prompts, history diffs, and Verify Fix after you remediate.",
+        icon: "Shield",
+        categoryId: developmentCategory.id,
+        status: "published",
+        isFeatured: true,
+        isPublic: true,
+        sortOrder: 5,
+        toolUrl: "/free-tools/security-scanner",
+        seoTitle: "Free App Security Scanner for AI-Built Apps",
+        seoDescription:
+          "Plain-English security checks for apps built with Lovable, Bolt, v0, Cursor, or Replit. Headers, secrets signals, TLS, CORS, GitHub repo scans, and fix verification.",
+        seoKeywords:
+          "app security scanner, free security scan, lovable security, bolt security, ai app security",
+        canonicalUrl: "https://www.karmakoders.com/free-tools/security-scanner",
+        ogTitle: "Free App Security Scanner",
+        ogDescription: "Plain-English security checks for AI-built apps.",
+        robots: "index,follow",
+        contentJson: JSON.stringify(SECURITY_SCANNER_CONTENT),
+      },
+    });
+  } catch (error) {
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "";
+    if (code === "P2002") return;
+    throw error;
+  }
+}
+
 export async function ensureFreeToolsDefaults(tenantId: string): Promise<void> {
   await ensureDomainProviders(tenantId);
   await ensureCompressImageTool(tenantId);
   await ensureMvpCostCalculatorTool(tenantId);
+  await ensureSecurityScannerTool(tenantId);
 
   const already = await prisma.freeTool.findFirst({
     where: { tenantId, slug: "domain-compare" },

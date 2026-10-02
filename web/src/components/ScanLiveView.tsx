@@ -30,6 +30,9 @@ type Finding = {
   findingType?: string | null;
   scannerSource?: string | null;
   verificationStatus?: string | null;
+  fixVerifyStatus?: string | null;
+  fixVerifyAt?: string | null;
+  fixVerifyNote?: string | null;
   isGated?: boolean;
   checkKind?: string | null;
   aiStatus?: string | null;
@@ -68,6 +71,47 @@ type ScanPayload = {
   ownershipFailureReason?: string | null;
   activeChecksStatus?: string | null;
   activeChecksNote?: string | null;
+  attackSurfaceSummary?: {
+    urls_discovered?: number;
+    pages?: number;
+    apis?: number;
+    forms?: number;
+    parameters?: number;
+    js_assets?: number;
+    source_maps?: number;
+    configs_and_files?: number;
+    external_references?: number;
+    fetched?: number;
+    tested?: number;
+    skipped?: number;
+  } | null;
+  type?: string | null;
+  repoFullName?: string | null;
+  repoCommitSha?: string | null;
+  githubScanStatus?: string | null;
+  repoScanSummary?: {
+    files_discovered?: number;
+    files_scanned?: number;
+    files_skipped?: number;
+    commit_sha?: string;
+    inventory?: {
+      manifest_count?: number;
+      package_count?: number;
+      cve_claims?: boolean;
+      note?: string;
+    };
+    budget_exhausted?: boolean;
+    exhaust_reason?: string | null;
+  } | null;
+  diff?: {
+    status?: string;
+    newCount?: number;
+    fixedCount?: number;
+    unresolvedCount?: number;
+    regressionCount?: number;
+    gradePrevious?: string | null;
+    gradeCurrent?: string | null;
+  } | null;
   summary?: {
     findingCount: number;
     bySeverity: Record<string, number>;
@@ -130,8 +174,26 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [mode, setMode] = useState<"founder" | "developer">("founder");
   const [sseState, setSseState] = useState<"connecting" | "live" | "idle" | "error">("connecting");
+  const [surfaceFilter, setSurfaceFilter] = useState<string>("all");
+  const [surfaceItems, setSurfaceItems] = useState<
+    Array<{
+      id: string;
+      url: string;
+      method: string;
+      endpointType: string;
+      statusCode: number | null;
+      source: string;
+      testStatus: string;
+      fetched: boolean;
+      tested: boolean;
+      isGated: boolean;
+    }>
+  >([]);
+  const [surfaceLoaded, setSurfaceLoaded] = useState(false);
   const [ownershipBusy, setOwnershipBusy] = useState(false);
   const [ownershipMsg, setOwnershipMsg] = useState<string | null>(null);
+  const [verifyFixBusy, setVerifyFixBusy] = useState<string | null>(null);
+  const [verifyFixMsg, setVerifyFixMsg] = useState<string | null>(null);
   const [ownershipInstructions, setOwnershipInstructions] = useState<{
     summary?: string;
     steps?: string[];
@@ -285,6 +347,55 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     }, 2500);
     return () => clearTimeout(timer);
   }, [scan]);
+
+  useEffect(() => {
+    if (!scan || scan.status !== "done") return;
+    if (scan.activeChecksStatus === "skipped_unverified") return;
+    let cancelled = false;
+    async function loadSurface() {
+      try {
+        const q =
+          surfaceFilter === "all" ? "" : `?type=${encodeURIComponent(surfaceFilter)}`;
+        const res = await fetch(`/api/scans/${scanId}/attack-surface${q}`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (!res.ok || cancelled) return;
+        setSurfaceItems(data.items ?? []);
+        setSurfaceLoaded(true);
+      } catch {
+        if (!cancelled) setSurfaceLoaded(true);
+      }
+    }
+    void loadSurface();
+    return () => {
+      cancelled = true;
+    };
+  }, [scan?.status, scan?.activeChecksStatus, scanId, surfaceFilter]);
+
+  async function verifyFix(findingId: string) {
+    setVerifyFixBusy(findingId);
+    setVerifyFixMsg(null);
+    try {
+      const res = await fetch(`/api/findings/${findingId}/verify-fix`, { method: "POST" });
+      const data = (await res.json()) as {
+        error?: string;
+        result?: string;
+        note?: string;
+      };
+      if (!res.ok) {
+        setVerifyFixMsg(data.error ?? "Verify fix failed.");
+        return;
+      }
+      setVerifyFixMsg(`${data.result}: ${data.note ?? ""}`.trim());
+      const refreshed = await loadScan();
+      setScan(refreshed);
+    } catch (err) {
+      setVerifyFixMsg(err instanceof Error ? err.message : "Verify fix failed.");
+    } finally {
+      setVerifyFixBusy(null);
+    }
+  }
 
   async function startOwnershipChallenge(method: "http_file" | "dns_txt") {
     if (!scan?.projectId) {
@@ -455,6 +566,31 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
         <p className="mt-8 text-sm text-stone-600">{scan.gradeUnavailableReason}</p>
       ) : null}
 
+      {scan.status === "done" && scan.diff ? (
+        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Since last scan
+          </p>
+          <p className="mt-2 text-sm text-stone-700">
+            New: {scan.diff.newCount ?? 0} · Fixed: {scan.diff.fixedCount ?? 0} · Still open:{" "}
+            {scan.diff.unresolvedCount ?? 0} · Regressions: {scan.diff.regressionCount ?? 0}
+          </p>
+          {scan.diff.gradePrevious || scan.diff.gradeCurrent ? (
+            <p className="mt-1 text-sm text-stone-600">
+              Grade: {scan.diff.gradePrevious ?? "—"} → {scan.diff.gradeCurrent ?? scan.grade ?? "—"}
+            </p>
+          ) : null}
+          {(scan.diff.regressionCount ?? 0) > 0 ? (
+            <p className="mt-2 text-sm font-medium text-amber-800">
+              One or more previously fixed issues came back (regression).
+            </p>
+          ) : null}
+          {scan.diff.status === "skipped_no_baseline" ? (
+            <p className="mt-2 text-xs text-stone-500">First completed scan for this target — no baseline yet.</p>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-8 flex gap-2">
         <button
           type="button"
@@ -557,6 +693,162 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
         {ownershipMsg ? <p className="mt-2 text-xs text-amber-900">{ownershipMsg}</p> : null}
       </section>
 
+      {scan.type === "repo" ? (
+        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Repository scan
+          </p>
+          <p className="mt-2 text-sm font-medium text-stone-900">
+            {scan.repoFullName ?? "Repository"}
+          </p>
+          <p className="mt-1 text-xs text-stone-600">
+            commit={scan.repoCommitSha ?? "—"} · status={scan.githubScanStatus ?? "—"}
+          </p>
+          {scan.repoScanSummary ? (
+            <ul className="mt-3 grid grid-cols-2 gap-2 text-sm text-stone-700 sm:grid-cols-4">
+              <li>
+                <span className="font-medium">
+                  {scan.repoScanSummary.files_discovered ?? 0}
+                </span>{" "}
+                files discovered
+              </li>
+              <li>
+                <span className="font-medium">{scan.repoScanSummary.files_scanned ?? 0}</span>{" "}
+                scanned
+              </li>
+              <li>
+                <span className="font-medium">{scan.repoScanSummary.files_skipped ?? 0}</span>{" "}
+                skipped
+              </li>
+              <li>
+                <span className="font-medium">
+                  {scan.repoScanSummary.inventory?.package_count ?? 0}
+                </span>{" "}
+                packages inventoried
+              </li>
+            </ul>
+          ) : null}
+          <p className="mt-3 text-xs text-stone-500">
+            {scan.repoScanSummary?.inventory?.note ??
+              "Dependency inventory only — no CVE database consulted."}
+            {scan.repoScanSummary?.budget_exhausted
+              ? ` Limits stopped the scan early (${scan.repoScanSummary.exhaust_reason}).`
+              : ""}
+          </p>
+        </section>
+      ) : null}
+
+      {scan.attackSurfaceSummary && scan.type !== "repo" ? (
+        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Attack surface
+          </p>
+          {mode === "founder" ? (
+            <p className="mt-2 text-sm text-stone-700">
+              Pages and endpoints we inspected on your verified host (same-origin only).
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-stone-600">
+              Coverage is budget-bounded. Discovered ≠ vulnerable. Active testing requires ownership.
+            </p>
+          )}
+          <ul className="mt-3 grid grid-cols-2 gap-2 text-sm text-stone-700 sm:grid-cols-4">
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.urls_discovered ?? 0}</span>{" "}
+              URLs discovered
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.apis ?? 0}</span> APIs
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.forms ?? 0}</span> forms
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.parameters ?? 0}</span>{" "}
+              parameters
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.js_assets ?? 0}</span> JS
+              assets
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.source_maps ?? 0}</span>{" "}
+              source maps
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.fetched ?? 0}</span> fetched
+            </li>
+            <li>
+              <span className="font-medium">{scan.attackSurfaceSummary.tested ?? 0}</span> tested
+            </li>
+          </ul>
+          <p className="mt-3 text-xs text-stone-500">
+            Discovered {scan.attackSurfaceSummary.urls_discovered ?? 0} same-origin URLs; fetched{" "}
+            {scan.attackSurfaceSummary.fetched ?? 0}; actively tested{" "}
+            {scan.attackSurfaceSummary.tested ?? 0}
+            {(scan.attackSurfaceSummary.skipped ?? 0) > 0
+              ? `; skipped ${scan.attackSurfaceSummary.skipped} (limits/policy)`
+              : ""}
+            .
+            {(scan.attackSurfaceSummary.external_references ?? 0) > 0
+              ? ` ${scan.attackSurfaceSummary.external_references} external references recorded but not crawled.`
+              : ""}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(
+              [
+                "all",
+                "page",
+                "api",
+                "form",
+                "script",
+                "config",
+                "authentication",
+                "source_map",
+              ] as const
+            ).map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`rounded px-2 py-1 text-xs ${
+                  surfaceFilter === f ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
+                }`}
+                onClick={() => setSurfaceFilter(f)}
+              >
+                {f === "all" ? "All" : f}
+              </button>
+            ))}
+          </div>
+          {surfaceLoaded && surfaceItems.length > 0 ? (
+            <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto text-xs text-stone-700">
+              {surfaceItems.slice(0, 80).map((it) => (
+                <li key={it.id} className="flex flex-wrap gap-2 border-b border-stone-100 py-1">
+                  <span className="font-mono text-stone-500">{it.method}</span>
+                  <span className="break-all">{it.url}</span>
+                  <span className="text-stone-400">
+                    {it.statusCode ?? "—"} · {it.source} · {it.testStatus}
+                    {it.tested ? " · tested" : it.fetched ? " · fetched" : ""}
+                    {mode === "developer" ? ` · ${it.endpointType}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : surfaceLoaded ? (
+            <p className="mt-3 text-xs text-stone-500">No attack-surface rows for this filter.</p>
+          ) : null}
+        </section>
+      ) : scan.activeChecksStatus === "skipped_unverified" && scan.type !== "repo" ? (
+        <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-stone-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Attack surface
+          </p>
+          <p className="mt-2 text-sm text-stone-700">
+            Active discovery is ownership-gated. Verify this domain to unlock crawl, JS endpoint
+            discovery, and safe fuzzing.
+          </p>
+        </section>
+      ) : null}
+
       <ol className="mt-8 space-y-3 border-l border-stone-200 pl-4">
         {scan.events.map((event) => (
           <li key={event.id} className="text-stone-800">
@@ -593,6 +885,9 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
                       {finding.title}
                       {finding.isNew ? (
                         <span className="ml-2 text-xs text-stone-400">new</span>
+                      ) : null}
+                      {finding.fixVerifyStatus === "fix_verified" ? (
+                        <span className="ml-2 text-xs font-medium text-emerald-700">fix verified</span>
                       ) : null}
                       {finding.isGated ? (
                         <span className="ml-2 text-xs font-medium text-amber-800">active</span>
@@ -751,6 +1046,25 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
                             {finding.evidenceText}
                           </pre>
                         </div>
+                      ) : null}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                          disabled={verifyFixBusy === finding.id}
+                          onClick={() => void verifyFix(finding.id)}
+                        >
+                          {verifyFixBusy === finding.id ? "Verifying…" : "Verify Fix"}
+                        </button>
+                        {finding.fixVerifyStatus ? (
+                          <span className="text-xs text-stone-600">
+                            Last result: {finding.fixVerifyStatus}
+                            {finding.fixVerifyNote ? ` — ${finding.fixVerifyNote}` : ""}
+                          </span>
+                        ) : null}
+                      </div>
+                      {verifyFixMsg && openId === finding.id ? (
+                        <p className="text-xs text-stone-600">{verifyFixMsg}</p>
                       ) : null}
                     </div>
                   ) : null}

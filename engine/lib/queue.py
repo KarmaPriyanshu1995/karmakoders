@@ -111,6 +111,17 @@ async def complete_job(conn: psycopg.AsyncConnection, job: ClaimedJob) -> None:
             """,
             (job.scan_id,),
         )
+    # Phase I: history/diff only after a successful done scan (never on fail/partial).
+    try:
+        from .history import finalize_scan_history
+
+        await finalize_scan_history(conn, job.scan_id)
+    except Exception:  # noqa: BLE001 — history must not reopen the job
+        import logging
+
+        logging.getLogger("scanner.worker").exception(
+            "history finalize failed scan=%s (scan remains done)", job.scan_id
+        )
 
 
 async def fail_job(conn: psycopg.AsyncConnection, job: ClaimedJob, message: str) -> None:

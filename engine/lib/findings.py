@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 import psycopg
@@ -14,6 +16,10 @@ if TYPE_CHECKING:
     from .normalize import FindingCandidate
 
 Severity = Literal["critical", "high", "medium", "low", "info"]
+
+# Phase I: versioned fingerprint algorithm. Do not change the hash formula
+# without a migration/backfill plan — history + regression depend on stability.
+FINGERPRINT_ALGO_VERSION = "v1"
 
 
 @dataclass(frozen=True)
@@ -33,8 +39,53 @@ class FindingDraft:
     verified: bool = False
 
 
+def normalize_fingerprint_location(location: str) -> str:
+    """Canonicalize location for stable fingerprints across scans."""
+    raw = (location or "").strip()
+    if not raw:
+        return ""
+    if "://" not in raw:
+        return raw.rstrip("/")
+    try:
+        parts = urlsplit(raw)
+    except ValueError:
+        return raw.rstrip("/")
+    scheme = (parts.scheme or "https").lower()
+    netloc = (parts.netloc or "").lower()
+    # Drop default ports.
+    if netloc.endswith(":443") and scheme == "https":
+        netloc = netloc[:-4]
+    elif netloc.endswith(":80") and scheme == "http":
+        netloc = netloc[:-3]
+    path = parts.path or "/"
+    if path != "/" and path.endswith("/"):
+        path = path.rstrip("/")
+    # Keep query (some findings are path+query specific); drop fragment.
+    return urlunsplit((scheme, netloc, path, parts.query, ""))
+
+
+def normalize_fingerprint_param(param: str) -> str:
+    """Header/param names are case-insensitive; secret hashes stay as-is."""
+    p = (param or "").strip()
+    if not p:
+        return ""
+    # Hex digests / secret hashes must remain exact.
+    if re.fullmatch(r"[0-9a-fA-F]{32,128}", p):
+        return p.lower()
+    return p.lower()
+
+
 def fingerprint_for(finding_type: str, location: str, param: str) -> str:
-    raw = f"{finding_type}|{location}|{param}".encode("utf-8")
+    """
+    Stable SHA-256 fingerprint (algo v1).
+
+    Formula (do not change casually):
+      sha256(f"{finding_type}|{normalized_location}|{normalized_param}")
+    """
+    ftype = (finding_type or "").strip()
+    loc = normalize_fingerprint_location(location)
+    p = normalize_fingerprint_param(param)
+    raw = f"{ftype}|{loc}|{p}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
 

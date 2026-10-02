@@ -54,6 +54,10 @@ def _safe_metadata(draft: FindingDraft) -> dict[str, Any]:
     # location hostname/path only — already used in fingerprint; truncate for storage
     if draft.location:
         meta["location_hint"] = draft.location[:300]
+    # Non-secret param (header names, paths) — needed for fix-verify re-checks.
+    # Secret hashes are hex digests; still safe to store (not the secret itself).
+    if draft.param:
+        meta["param_hint"] = draft.param[:200]
     return meta
 
 

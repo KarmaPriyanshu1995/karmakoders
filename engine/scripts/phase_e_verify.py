@@ -213,7 +213,12 @@ def test_api_ownership_flow() -> None:
             and isinstance(verified, dict)
             and verified.get("status") == "verified"
             and reused
-            and after.get("activeChecksStatus") in {"done", "failed"}
+            and after.get("activeChecksStatus") in {
+                "done",
+                "failed",
+                "partial",
+                "budget_exhausted",
+            }
             and after.get("ownershipStatus") == "verified"
         )
         # Cross-project: first leaky scan project should not auto-inherit this port's ownership
