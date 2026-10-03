@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ScannerShell } from "@/components/scanner/ScannerShell";
+import { IconSpinner } from "@/components/scanner/icons";
+import {
+  ConfidenceBadge,
+  EmptyState,
+  GradeCard,
+  MethodBadge,
+  MetricCard,
+  SeverityBadge,
+  StatusBadge,
+} from "@/components/scanner/ui";
 
-type ScanEvent = {
-  id: string;
-  message: string;
-  createdAt: string;
-};
-
+type ScanEvent = { id: string; message: string; createdAt: string };
 type AiExplanation = {
   summary?: string | null;
   whyItMatters?: string | null;
@@ -16,7 +22,6 @@ type AiExplanation = {
   recommendedAction?: string | null;
   limitations?: string[];
 };
-
 type Finding = {
   id: string;
   severity: string;
@@ -31,10 +36,8 @@ type Finding = {
   scannerSource?: string | null;
   verificationStatus?: string | null;
   fixVerifyStatus?: string | null;
-  fixVerifyAt?: string | null;
   fixVerifyNote?: string | null;
   isGated?: boolean;
-  checkKind?: string | null;
   aiStatus?: string | null;
   aiExplanation?: AiExplanation | null;
   aiFixPrompt?: string | null;
@@ -42,20 +45,6 @@ type Finding = {
   aiPromptVersion?: string | null;
   aiUnavailableReason?: string | null;
 };
-
-type GradeBreakdown = {
-  algorithm_version?: string;
-  score?: number;
-  counts?: {
-    by_severity?: Record<string, number>;
-    by_verification?: Record<string, number>;
-    categories?: string[];
-    finding_count?: number;
-  };
-  drivers?: Array<{ title?: string; severity?: string; impact?: number }>;
-  scope_note?: string;
-};
-
 type ScanPayload = {
   id: string;
   status: string;
@@ -64,27 +53,18 @@ type ScanPayload = {
   projectId?: string;
   grade?: string | null;
   gradeAlgorithmVersion?: string | null;
-  gradeBreakdown?: GradeBreakdown | null;
+  gradeBreakdown?: {
+    algorithm_version?: string;
+    score?: number;
+    scope_note?: string;
+  } | null;
   gradeUnavailableReason?: string | null;
   ownershipStatus?: string | null;
   ownershipMethod?: string | null;
   ownershipFailureReason?: string | null;
   activeChecksStatus?: string | null;
   activeChecksNote?: string | null;
-  attackSurfaceSummary?: {
-    urls_discovered?: number;
-    pages?: number;
-    apis?: number;
-    forms?: number;
-    parameters?: number;
-    js_assets?: number;
-    source_maps?: number;
-    configs_and_files?: number;
-    external_references?: number;
-    fetched?: number;
-    tested?: number;
-    skipped?: number;
-  } | null;
+  attackSurfaceSummary?: Record<string, number | undefined> | null;
   type?: string | null;
   repoFullName?: string | null;
   repoCommitSha?: string | null;
@@ -93,13 +73,7 @@ type ScanPayload = {
     files_discovered?: number;
     files_scanned?: number;
     files_skipped?: number;
-    commit_sha?: string;
-    inventory?: {
-      manifest_count?: number;
-      package_count?: number;
-      cve_claims?: boolean;
-      note?: string;
-    };
+    inventory?: { package_count?: number; note?: string };
     budget_exhausted?: boolean;
     exhaust_reason?: string | null;
   } | null;
@@ -115,7 +89,6 @@ type ScanPayload = {
   summary?: {
     findingCount: number;
     bySeverity: Record<string, number>;
-    byVerification: Record<string, number>;
     categories: string[];
   };
   progress?: { stage: string; progress: number; label: string };
@@ -124,8 +97,22 @@ type ScanPayload = {
   error?: string;
 };
 
-const TERMINAL = new Set(["done", "failed"]);
+type SurfaceItem = {
+  id: string;
+  url: string;
+  method: string;
+  endpointType: string;
+  statusCode: number | null;
+  source: string;
+  testStatus: string;
+  fetched: boolean;
+  tested: boolean;
+  isGated: boolean;
+};
 
+type Tab = "overview" | "surface" | "findings" | "activity";
+
+const TERMINAL = new Set(["done", "failed"]);
 const CATEGORY_LABELS: Record<string, string> = {
   secrets: "Secrets",
   authentication: "Authentication",
@@ -147,25 +134,36 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-function categoryLabel(category: string | null | undefined): string | null {
+function categoryLabel(category: string | null | undefined) {
   if (!category) return null;
   return CATEGORY_LABELS[category] ?? category;
 }
 
-function confidencePercent(confidence: number | null | undefined): string | null {
-  if (confidence == null || Number.isNaN(confidence)) return null;
-  return `${Math.round(confidence * 100)}%`;
+function verificationLabel(status: string | null | undefined) {
+  if (!status) return null;
+  return (
+    {
+      verified: "Verified",
+      unverified: "Unverified",
+      not_applicable: "Observed",
+      candidate: "Candidate",
+    }[status] ?? status
+  );
 }
 
-function verificationLabel(status: string | null | undefined): string | null {
-  if (!status) return null;
-  const map: Record<string, string> = {
-    verified: "Verified",
-    unverified: "Unverified",
-    not_applicable: "Observed",
-    candidate: "Candidate",
-  };
-  return map[status] ?? status;
+function ownershipTone(status: string | null | undefined) {
+  const s = (status || "unverified").toLowerCase();
+  if (s === "verified") return "success" as const;
+  if (s === "failed" || s === "expired" || s === "revoked") return "danger" as const;
+  if (s === "pending") return "warning" as const;
+  return "neutral" as const;
+}
+
+function scanStatusTone(status: string) {
+  if (status === "done") return "success" as const;
+  if (status === "failed") return "danger" as const;
+  if (status === "running" || status === "queued") return "info" as const;
+  return "neutral" as const;
 }
 
 export function ScanLiveView({ scanId }: { scanId: string }) {
@@ -173,23 +171,14 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [mode, setMode] = useState<"founder" | "developer">("founder");
-  const [sseState, setSseState] = useState<"connecting" | "live" | "idle" | "error">("connecting");
-  const [surfaceFilter, setSurfaceFilter] = useState<string>("all");
-  const [surfaceItems, setSurfaceItems] = useState<
-    Array<{
-      id: string;
-      url: string;
-      method: string;
-      endpointType: string;
-      statusCode: number | null;
-      source: string;
-      testStatus: string;
-      fetched: boolean;
-      tested: boolean;
-      isGated: boolean;
-    }>
-  >([]);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [surfaceFilter, setSurfaceFilter] = useState("all");
+  const [surfaceQuery, setSurfaceQuery] = useState("");
+  const [surfaceItems, setSurfaceItems] = useState<SurfaceItem[]>([]);
   const [surfaceLoaded, setSurfaceLoaded] = useState(false);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [sseState, setSseState] = useState<"connecting" | "live" | "idle" | "error">("connecting");
   const [ownershipBusy, setOwnershipBusy] = useState(false);
   const [ownershipMsg, setOwnershipMsg] = useState<string | null>(null);
   const [verifyFixBusy, setVerifyFixBusy] = useState<string | null>(null);
@@ -200,16 +189,13 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     httpPath?: string | null;
     httpBody?: string | null;
     txtRecord?: string | null;
-    method?: string;
   } | null>(null);
   const lastEventId = useRef<string | null>(null);
 
   async function loadScan() {
     const response = await fetch(`/api/scans/${scanId}`, { cache: "no-store" });
     const data = (await response.json()) as ScanPayload;
-    if (!response.ok) {
-      throw new Error(data.error ?? "Could not load the scan.");
-    }
+    if (!response.ok) throw new Error(data.error ?? "Could not load the scan.");
     return data;
   }
 
@@ -228,11 +214,9 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
           setSseState("idle");
           return;
         }
-        // Live progress via SSE; still refresh full payload on terminal / periodically.
         const after = lastEventId.current ? `?after=${lastEventId.current}` : "";
         es = new EventSource(`/api/scans/${scanId}/events${after}`);
         setSseState("connecting");
-
         es.addEventListener("scan.snapshot", () => {
           if (!cancelled) setSseState("live");
         });
@@ -267,59 +251,49 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
                 events,
                 progress: {
                   stage: payload.stage || prev.progress?.stage || "running",
-                  progress: Math.max(0, Math.min(100, payload.progress ?? prev.progress?.progress ?? 0)),
-                  label: payload.message || prev.progress?.label || "Scanning",
+                  progress: payload.progress ?? prev.progress?.progress ?? 0,
+                  label: payload.message || prev.progress?.label || "Scanning…",
                 },
               };
             });
           } catch {
-            /* ignore malformed event */
+            /* ignore malformed SSE */
           }
         });
         es.addEventListener("scan.terminal", async () => {
           if (cancelled) return;
-          es?.close();
           setSseState("idle");
           try {
-            const finalData = await loadScan();
-            if (!cancelled) setScan(finalData);
-          } catch (err) {
-            if (!cancelled) setError(err instanceof Error ? err.message : "Could not load final scan.");
+            const refreshed = await loadScan();
+            if (!cancelled) setScan(refreshed);
+          } catch {
+            /* keep last known */
           }
         });
         es.onerror = () => {
-          if (cancelled) return;
-          setSseState("error");
-          // Fallback poll — do not restart the scan.
-          void loadScan()
-            .then((data) => {
-              if (cancelled) return;
-              setScan(data);
-              if (TERMINAL.has(data.status)) {
-                es?.close();
-                setSseState("idle");
-              } else {
-                pollTimer = setTimeout(() => {
-                  void loadScan().then((d) => {
-                    if (!cancelled) setScan(d);
-                  });
-                }, 3000);
-              }
-            })
-            .catch(() => {
-              /* keep last good state */
-            });
+          if (!cancelled) setSseState("error");
         };
+        const poll = async () => {
+          if (cancelled) return;
+          try {
+            const refreshed = await loadScan();
+            if (cancelled) return;
+            setScan(refreshed);
+            if (TERMINAL.has(refreshed.status)) {
+              setSseState("idle");
+              es?.close();
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          pollTimer = setTimeout(poll, 4000);
+        };
+        pollTimer = setTimeout(poll, 4000);
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not reach the server.");
-          pollTimer = setTimeout(() => {
-            void bootstrap();
-          }, 2000);
-        }
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load scan.");
       }
     }
-
     void bootstrap();
     return () => {
       cancelled = true;
@@ -328,37 +302,18 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     };
   }, [scanId]);
 
-  // After scan completes, keep refreshing briefly while AI artifacts generate.
   useEffect(() => {
-    if (!scan || scan.status !== "done") return;
-    const stillGenerating = (scan.findings ?? []).some((f) => f.aiStatus === "generating");
-    const started = scan.events.some((e) => /generating ai explanations/i.test(e.message));
-    const finished = scan.events.some((e) =>
-      /ai enrichment finished|ai explanations unavailable/i.test(e.message)
-    );
-    if (!stillGenerating && (!started || finished)) return;
-
-    const timer = setTimeout(() => {
-      void loadScan()
-        .then((data) => setScan(data))
-        .catch(() => {
-          /* keep last */
-        });
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [scan]);
-
-  useEffect(() => {
-    if (!scan || scan.status !== "done") return;
-    if (scan.activeChecksStatus === "skipped_unverified") return;
     let cancelled = false;
     async function loadSurface() {
+      if (!scan || scan.type === "repo") return;
+      if (scan.status !== "done" && scan.activeChecksStatus !== "done" && scan.activeChecksStatus !== "partial") {
+        return;
+      }
       try {
-        const q =
-          surfaceFilter === "all" ? "" : `?type=${encodeURIComponent(surfaceFilter)}`;
-        const res = await fetch(`/api/scans/${scanId}/attack-surface${q}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/scans/${scanId}/attack-surface?type=${encodeURIComponent(surfaceFilter)}`,
+          { cache: "no-store" }
+        );
         const data = await res.json();
         if (!res.ok || cancelled) return;
         setSurfaceItems(data.items ?? []);
@@ -371,25 +326,20 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [scan?.status, scan?.activeChecksStatus, scanId, surfaceFilter]);
+  }, [scan?.status, scan?.activeChecksStatus, scan?.type, scanId, surfaceFilter]);
 
   async function verifyFix(findingId: string) {
     setVerifyFixBusy(findingId);
     setVerifyFixMsg(null);
     try {
       const res = await fetch(`/api/findings/${findingId}/verify-fix`, { method: "POST" });
-      const data = (await res.json()) as {
-        error?: string;
-        result?: string;
-        note?: string;
-      };
+      const data = (await res.json()) as { error?: string; result?: string; note?: string };
       if (!res.ok) {
         setVerifyFixMsg(data.error ?? "Verify fix failed.");
         return;
       }
       setVerifyFixMsg(`${data.result}: ${data.note ?? ""}`.trim());
-      const refreshed = await loadScan();
-      setScan(refreshed);
+      setScan(await loadScan());
     } catch (err) {
       setVerifyFixMsg(err instanceof Error ? err.message : "Verify fix failed.");
     } finally {
@@ -410,18 +360,7 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: scan.projectId, method }),
       });
-      const data = (await res.json()) as {
-        error?: string;
-        instructions?: {
-          summary?: string;
-          steps?: string[];
-          httpPath?: string | null;
-          httpBody?: string | null;
-          txtRecord?: string | null;
-          method?: string;
-        };
-        status?: string;
-      };
+      const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start verification.");
       setOwnershipInstructions(data.instructions ?? null);
       setOwnershipMsg(
@@ -429,8 +368,7 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
           ? "Verification file challenge created. Publish the file, then click Verify."
           : "DNS TXT challenge created. Add the TXT record, then click Verify."
       );
-      const refreshed = await loadScan();
-      setScan(refreshed);
+      setScan(await loadScan());
     } catch (err) {
       setOwnershipMsg(err instanceof Error ? err.message : "Ownership challenge failed.");
     } finally {
@@ -448,19 +386,13 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: scan.projectId }),
       });
-      const data = (await res.json()) as {
-        error?: string;
-        status?: string;
-        message?: string;
-        failureReason?: string;
-      };
+      const data = await res.json();
       if (!res.ok && !data.status) throw new Error(data.error ?? "Verify failed.");
       setOwnershipMsg(data.message ?? `Ownership status: ${data.status}`);
       if (data.failureReason) {
         setOwnershipMsg((prev) => `${prev ?? ""} (${data.failureReason})`.trim());
       }
-      const refreshed = await loadScan();
-      setScan(refreshed);
+      setScan(await loadScan());
     } catch (err) {
       setOwnershipMsg(err instanceof Error ? err.message : "Verify failed.");
     } finally {
@@ -468,637 +400,775 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
     }
   }
 
+  const findings = scan?.findings ?? [];
+  const filteredFindings = useMemo(() => {
+    if (severityFilter === "all") return findings;
+    return findings.filter((f) => f.severity.toLowerCase() === severityFilter);
+  }, [findings, severityFilter]);
+
+  const filteredSurface = useMemo(() => {
+    const q = surfaceQuery.trim().toLowerCase();
+    if (!q) return surfaceItems;
+    return surfaceItems.filter(
+      (item) =>
+        item.url.toLowerCase().includes(q) ||
+        item.method.toLowerCase().includes(q) ||
+        item.source.toLowerCase().includes(q) ||
+        item.endpointType.toLowerCase().includes(q)
+    );
+  }, [surfaceItems, surfaceQuery]);
+
+  const drawerItem = filteredSurface.find((i) => i.id === drawerId) ?? null;
+  const sev = scan?.summary?.bySeverity;
+  const progressPct = Math.max(0, Math.min(100, scan?.progress?.progress ?? 0));
+  const showGrade = scan?.status === "done" && !!scan.grade;
+  const targetLabel = scan?.repoFullName || scan?.primaryUrl || "Target";
+
   if (error && !scan) {
     return (
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-        <p className="text-red-700">{error}</p>
-        <Link href="/" className="mt-6 inline-block text-sm text-stone-700 underline">
-          Back
-        </Link>
-      </main>
+      <ScannerShell title="Scan unavailable">
+        <EmptyState
+          title="Could not load this scan"
+          body={error}
+          action={
+            <Link href="/" className="scanner-btn-primary">
+              Start a new scan
+            </Link>
+          }
+        />
+      </ScannerShell>
     );
   }
 
   if (!scan) {
     return (
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-        <p className="text-stone-600">Loading scan…</p>
-      </main>
+      <ScannerShell title="Loading scan">
+        <div className="space-y-4" aria-busy="true" aria-live="polite">
+          <div className="scanner-skeleton h-28 w-full" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="scanner-skeleton h-24" />
+            <div className="scanner-skeleton h-24" />
+            <div className="scanner-skeleton h-24" />
+          </div>
+        </div>
+      </ScannerShell>
     );
   }
 
-  const findings = scan.findings ?? [];
-  const sev = scan.summary?.bySeverity;
-  const progressPct = Math.max(0, Math.min(100, scan.progress?.progress ?? 0));
-  const showGrade = scan.status === "done" && scan.grade;
-
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-      <p className="text-sm font-medium tracking-wide text-stone-500">Security report</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-stone-900">
-        {scan.projectName}
-      </h1>
-      <p className="mt-2 break-all text-stone-600">{scan.primaryUrl}</p>
-      <p className="mt-4 text-sm uppercase tracking-wide text-stone-500">
-        Status: <span className="font-medium text-stone-900">{scan.status}</span>
-        {scan.status !== "done" && scan.status !== "failed" ? (
-          <span className="ml-3 normal-case tracking-normal text-stone-500">
-            · Live: {sseState} · {scan.progress?.label ?? "…"} ({progressPct}%)
-          </span>
-        ) : null}
-      </p>
-
+    <ScannerShell
+      title={scan.projectName}
+      subtitle={targetLabel}
+      badge={
+        <>
+          <StatusBadge label={scan.status} tone={scanStatusTone(scan.status)} />
+          <StatusBadge
+            label={`Ownership: ${scan.ownershipStatus ?? "unverified"}`}
+            tone={ownershipTone(scan.ownershipStatus)}
+          />
+          {!TERMINAL.has(scan.status) ? (
+            <StatusBadge
+              label={
+                sseState === "error"
+                  ? "Live connection interrupted — reconnecting…"
+                  : `Live · ${sseState}`
+              }
+              tone={sseState === "error" ? "warning" : "info"}
+            />
+          ) : null}
+        </>
+      }
+      actions={
+        <Link href="/" className="scanner-btn-secondary">
+          New scan
+        </Link>
+      }
+    >
       {!TERMINAL.has(scan.status) ? (
-        <div className="mt-4 h-2 w-full overflow-hidden rounded bg-stone-200" aria-label="Scan progress">
+        <section className="scanner-card-pad mb-6 animate-fade-up">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="scanner-label">Live scan</p>
+              <p className="mt-2 text-lg font-semibold text-white">
+                {scan.progress?.label ?? "Scanning…"}
+              </p>
+              <p className="mt-1 text-sm text-slate-400">
+                Phase: {scan.progress?.stage ?? "running"} · {progressPct}%
+              </p>
+            </div>
+          </div>
           <div
-            className="h-full bg-stone-800 transition-all"
-            style={{ width: `${progressPct}%` }}
+            className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10"
             role="progressbar"
             aria-valuenow={progressPct}
             aria-valuemin={0}
             aria-valuemax={100}
-          />
-        </div>
+            aria-label="Scan progress"
+          >
+            <div
+              className="h-full rounded-full bg-scanner-brand transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <ul className="mt-4 max-h-40 space-y-2 overflow-y-auto text-sm text-slate-300">
+            {scan.events.slice(-8).map((event) => (
+              <li key={event.id} className="flex gap-3">
+                <span className="shrink-0 text-xs text-slate-500">
+                  {new Date(event.createdAt).toLocaleTimeString("en-US")}
+                </span>
+                <span>{event.message}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {scan.status === "failed" ? (
-        <div className="mt-8 rounded border border-red-200 bg-red-50 p-4 text-red-900">
-          <p className="font-semibold">Scan failed</p>
-          <p className="mt-1 text-sm">
+        <section className="mb-6 rounded-[var(--scanner-radius-lg)] border border-rose-500/30 bg-rose-500/10 p-5 text-rose-100">
+          <h2 className="font-semibold">Scan failed</h2>
+          <p className="mt-2 text-sm">
             {scan.gradeUnavailableReason ??
               "The scan did not complete, so a complete security grade is unavailable."}
           </p>
+          <p className="mt-2 text-sm text-rose-200/80">
+            Passive findings already saved remain valid. Start a new scan after fixing connectivity.
+          </p>
+        </section>
+      ) : null}
+
+      <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Report sections">
+        {(
+          [
+            ["overview", "Overview"],
+            ["findings", `Findings (${findings.length})`],
+            ["surface", "Attack surface"],
+            ["activity", "Activity"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+              tab === id ? "bg-scanner-brand text-scanner-on-brand" : "bg-white/5 text-slate-300 hover:bg-white/10"
+            }`}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            className={`rounded-xl px-3 py-2 text-sm ${
+              mode === "founder" ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5"
+            }`}
+            onClick={() => setMode("founder")}
+          >
+            Founder
+          </button>
+          <button
+            type="button"
+            className={`rounded-xl px-3 py-2 text-sm ${
+              mode === "developer" ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5"
+            }`}
+            onClick={() => setMode("developer")}
+          >
+            Developer
+          </button>
         </div>
-      ) : null}
-
-      {showGrade ? (
-        <section className="mt-10 border-b border-stone-200 pb-8">
-          <p className="text-sm uppercase tracking-wide text-stone-500">Security grade</p>
-          <p className="mt-2 text-6xl font-semibold tracking-tight text-stone-900">{scan.grade}</p>
-          <p className="mt-2 text-sm text-stone-500">
-            Algorithm {scan.gradeAlgorithmVersion}
-            {typeof scan.gradeBreakdown?.score === "number"
-              ? ` · weighted score ${scan.gradeBreakdown.score}`
-              : null}
-          </p>
-          <p className="mt-4 text-stone-700">
-            {scan.gradeBreakdown?.scope_note ??
-              "Based on the checks performed — not a guarantee of security."}
-          </p>
-          {sev ? (
-            <ul className="mt-4 grid grid-cols-2 gap-2 text-sm text-stone-700 sm:grid-cols-5">
-              {(["critical", "high", "medium", "low", "info"] as const).map((k) => (
-                <li key={k}>
-                  <span className="font-medium capitalize">{k}</span>: {sev[k] ?? 0}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {scan.summary?.categories?.length ? (
-            <p className="mt-3 text-sm text-stone-600">
-              Categories: {scan.summary.categories.map((c) => categoryLabel(c) ?? c).join(", ")}
-            </p>
-          ) : null}
-        </section>
-      ) : null}
-
-      {scan.status === "done" && !showGrade ? (
-        <p className="mt-8 text-sm text-stone-600">{scan.gradeUnavailableReason}</p>
-      ) : null}
-
-      {scan.status === "done" && scan.diff ? (
-        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-            Since last scan
-          </p>
-          <p className="mt-2 text-sm text-stone-700">
-            New: {scan.diff.newCount ?? 0} · Fixed: {scan.diff.fixedCount ?? 0} · Still open:{" "}
-            {scan.diff.unresolvedCount ?? 0} · Regressions: {scan.diff.regressionCount ?? 0}
-          </p>
-          {scan.diff.gradePrevious || scan.diff.gradeCurrent ? (
-            <p className="mt-1 text-sm text-stone-600">
-              Grade: {scan.diff.gradePrevious ?? "—"} → {scan.diff.gradeCurrent ?? scan.grade ?? "—"}
-            </p>
-          ) : null}
-          {(scan.diff.regressionCount ?? 0) > 0 ? (
-            <p className="mt-2 text-sm font-medium text-amber-800">
-              One or more previously fixed issues came back (regression).
-            </p>
-          ) : null}
-          {scan.diff.status === "skipped_no_baseline" ? (
-            <p className="mt-2 text-xs text-stone-500">First completed scan for this target — no baseline yet.</p>
-          ) : null}
-        </section>
-      ) : null}
-
-      <div className="mt-8 flex gap-2">
-        <button
-          type="button"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
-            mode === "founder" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
-          }`}
-          onClick={() => setMode("founder")}
-        >
-          Founder mode
-        </button>
-        <button
-          type="button"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
-            mode === "developer" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
-          }`}
-          onClick={() => setMode("developer")}
-        >
-          Developer mode
-        </button>
       </div>
 
-      <section className="mt-8 rounded-lg border border-stone-200 bg-stone-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-          Domain ownership
-        </p>
-        {mode === "founder" ? (
-          <p className="mt-2 text-sm text-stone-700">
-            Prove you own this site to unlock deeper active checks. Passive findings above do not
-            require ownership and remain valid either way.
-          </p>
-        ) : (
-          <p className="mt-2 text-xs text-stone-600">
-            status={scan.ownershipStatus ?? "unverified"} · method={scan.ownershipMethod ?? "—"} ·
-            active={scan.activeChecksStatus ?? "—"}
-            {scan.ownershipFailureReason ? ` · failure=${scan.ownershipFailureReason}` : ""}
-          </p>
-        )}
-        <p className="mt-2 text-sm font-medium text-stone-800">
-          Ownership:{" "}
-          <span className="capitalize">{scan.ownershipStatus ?? "unverified"}</span>
-          {scan.activeChecksStatus ? (
-            <span className="ml-2 text-xs font-normal text-stone-500">
-              · Active checks: {scan.activeChecksStatus}
-            </span>
-          ) : null}
-        </p>
-        {scan.activeChecksNote ? (
-          <p className="mt-1 text-xs text-stone-600">{scan.activeChecksNote}</p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={ownershipBusy || !scan.projectId}
-            className="rounded bg-stone-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-            onClick={() => void startOwnershipChallenge("http_file")}
-          >
-            Verify via file
-          </button>
-          <button
-            type="button"
-            disabled={ownershipBusy || !scan.projectId}
-            className="rounded bg-stone-200 px-3 py-1.5 text-xs font-medium text-stone-800 disabled:opacity-50"
-            onClick={() => void startOwnershipChallenge("dns_txt")}
-          >
-            Verify via DNS TXT
-          </button>
-          <button
-            type="button"
-            disabled={ownershipBusy || !scan.projectId}
-            className="rounded border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-800 disabled:opacity-50"
-            onClick={() => void verifyOwnership()}
-          >
-            Recheck / Verify
-          </button>
-        </div>
-        {ownershipInstructions ? (
-          <div className="mt-3 text-sm text-stone-700">
-            <p className="font-medium">{ownershipInstructions.summary}</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-stone-600">
-              {(ownershipInstructions.steps ?? []).map((step) => (
-                <li key={step}>
-                  <code className="break-all rounded bg-white px-1">{step}</code>
-                </li>
-              ))}
-            </ol>
-            {ownershipInstructions.httpBody ? (
-              <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-xs">
-                {ownershipInstructions.httpPath}
-                {"\n"}
-                {ownershipInstructions.httpBody}
-              </pre>
-            ) : null}
-            {ownershipInstructions.txtRecord ? (
-              <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-xs">
-                {ownershipInstructions.txtRecord}
-              </pre>
-            ) : null}
-          </div>
-        ) : null}
-        {ownershipMsg ? <p className="mt-2 text-xs text-amber-900">{ownershipMsg}</p> : null}
-      </section>
+      {tab === "overview" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            {showGrade ? (
+              <GradeCard
+                grade={String(scan.grade)}
+                reason={
+                  scan.gradeBreakdown?.scope_note ??
+                  "Based on the checks performed — not a guarantee of security."
+                }
+                algorithmVersion={scan.gradeAlgorithmVersion}
+                animate
+              />
+            ) : (
+              <div className="scanner-card-pad">
+                <p className="scanner-label">Security grade</p>
+                <p className="mt-3 text-sm text-slate-400">
+                  {scan.status === "done"
+                    ? scan.gradeUnavailableReason ?? "No grade available for this scan."
+                    : "Grade appears after the scan completes."}
+                </p>
+              </div>
+            )}
 
-      {scan.type === "repo" ? (
-        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-            Repository scan
-          </p>
-          <p className="mt-2 text-sm font-medium text-stone-900">
-            {scan.repoFullName ?? "Repository"}
-          </p>
-          <p className="mt-1 text-xs text-stone-600">
-            commit={scan.repoCommitSha ?? "—"} · status={scan.githubScanStatus ?? "—"}
-          </p>
-          {scan.repoScanSummary ? (
-            <ul className="mt-3 grid grid-cols-2 gap-2 text-sm text-stone-700 sm:grid-cols-4">
-              <li>
-                <span className="font-medium">
-                  {scan.repoScanSummary.files_discovered ?? 0}
-                </span>{" "}
-                files discovered
-              </li>
-              <li>
-                <span className="font-medium">{scan.repoScanSummary.files_scanned ?? 0}</span>{" "}
-                scanned
-              </li>
-              <li>
-                <span className="font-medium">{scan.repoScanSummary.files_skipped ?? 0}</span>{" "}
-                skipped
-              </li>
-              <li>
-                <span className="font-medium">
-                  {scan.repoScanSummary.inventory?.package_count ?? 0}
-                </span>{" "}
-                packages inventoried
-              </li>
-            </ul>
+            <div className="scanner-card-pad">
+              <p className="scanner-label">Severity summary</p>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {(["critical", "high", "medium", "low", "info"] as const).map((k) => {
+                  const count = sev?.[k] ?? 0;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
+                      onClick={() => {
+                        setSeverityFilter(k);
+                        setTab("findings");
+                      }}
+                    >
+                      <SeverityBadge severity={k} />
+                      <p className="mt-2 text-xl font-semibold tabular-nums text-white">{count}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-xs text-slate-500">
+                Counts come from this scan’s findings. Click a severity to filter.
+              </p>
+            </div>
+          </div>
+
+          {scan.diff ? (
+            <section className="scanner-card-pad">
+              <p className="scanner-label">Since last scan</p>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <MetricCard label="New" value={scan.diff.newCount ?? 0} />
+                <MetricCard label="Fixed" value={scan.diff.fixedCount ?? 0} />
+                <MetricCard label="Still open" value={scan.diff.unresolvedCount ?? 0} />
+                <MetricCard label="Regressions" value={scan.diff.regressionCount ?? 0} />
+              </div>
+              {(scan.diff.regressionCount ?? 0) > 0 ? (
+                <p className="mt-3 text-sm text-amber-200">
+                  One or more previously fixed issues returned (regression).
+                </p>
+              ) : null}
+            </section>
           ) : null}
-          <p className="mt-3 text-xs text-stone-500">
-            {scan.repoScanSummary?.inventory?.note ??
-              "Dependency inventory only — no CVE database consulted."}
-            {scan.repoScanSummary?.budget_exhausted
-              ? ` Limits stopped the scan early (${scan.repoScanSummary.exhaust_reason}).`
-              : ""}
-          </p>
-        </section>
+
+          <section className="scanner-card-pad">
+            <p className="scanner-label">Verify ownership</p>
+            <p className="mt-2 text-sm text-slate-300">
+              {mode === "founder"
+                ? "Deeper security checks require proof that you control this domain. Passive findings do not require ownership."
+                : `status=${scan.ownershipStatus ?? "unverified"} · method=${scan.ownershipMethod ?? "—"} · active=${scan.activeChecksStatus ?? "—"}`}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <StatusBadge
+                label={scan.ownershipStatus ?? "unverified"}
+                tone={ownershipTone(scan.ownershipStatus)}
+              />
+              {scan.activeChecksStatus ? (
+                <StatusBadge
+                  label={`Active: ${scan.activeChecksStatus}`}
+                  tone={
+                    scan.activeChecksStatus === "skipped_unverified" ? "warning" : "neutral"
+                  }
+                />
+              ) : null}
+            </div>
+            {scan.activeChecksNote ? (
+              <p className="mt-3 text-xs text-slate-500">{scan.activeChecksNote}</p>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={ownershipBusy || !scan.projectId}
+                className="scanner-btn-primary"
+                onClick={() => void startOwnershipChallenge("http_file")}
+              >
+                Verify via file
+              </button>
+              <button
+                type="button"
+                disabled={ownershipBusy || !scan.projectId}
+                className="scanner-btn-secondary"
+                onClick={() => void startOwnershipChallenge("dns_txt")}
+              >
+                Verify via DNS TXT
+              </button>
+              <button
+                type="button"
+                disabled={ownershipBusy || !scan.projectId}
+                className="scanner-btn-ghost"
+                onClick={() => void verifyOwnership()}
+              >
+                Recheck / Verify
+              </button>
+            </div>
+            {ownershipInstructions ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-scanner-bg/50 p-4 text-sm text-slate-300">
+                <p className="font-medium text-white">{ownershipInstructions.summary}</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-slate-400">
+                  {(ownershipInstructions.steps ?? []).map((step) => (
+                    <li key={step}>
+                      <code className="scanner-mono break-all">{step}</code>
+                    </li>
+                  ))}
+                </ol>
+                {ownershipInstructions.httpBody ? (
+                  <pre className="scanner-mono mt-3 overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-slate-300">
+                    {ownershipInstructions.httpPath}
+                    {"\n"}
+                    {ownershipInstructions.httpBody}
+                  </pre>
+                ) : null}
+                {ownershipInstructions.txtRecord ? (
+                  <pre className="scanner-mono mt-3 overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-slate-300">
+                    {ownershipInstructions.txtRecord}
+                  </pre>
+                ) : null}
+              </div>
+            ) : null}
+            {ownershipMsg ? <p className="mt-3 text-xs text-amber-200">{ownershipMsg}</p> : null}
+          </section>
+
+          {scan.type === "repo" && scan.repoScanSummary ? (
+            <section className="scanner-card-pad">
+              <p className="scanner-label">Repository coverage</p>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <MetricCard label="Discovered" value={scan.repoScanSummary.files_discovered ?? 0} />
+                <MetricCard label="Scanned" value={scan.repoScanSummary.files_scanned ?? 0} />
+                <MetricCard label="Skipped" value={scan.repoScanSummary.files_skipped ?? 0} />
+                <MetricCard
+                  label="Packages"
+                  value={scan.repoScanSummary.inventory?.package_count ?? 0}
+                />
+              </div>
+              <p className="mt-3 text-xs text-slate-500">
+                {scan.repoScanSummary.inventory?.note ??
+                  "Dependency inventory only — no CVE database consulted."}
+              </p>
+            </section>
+          ) : null}
+
+          {scan.attackSurfaceSummary && scan.type !== "repo" ? (
+            <section className="scanner-card-pad">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="scanner-label">Attack surface coverage</p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Discovered ≠ vulnerable. Active testing requires ownership.
+                  </p>
+                </div>
+                <button type="button" className="scanner-btn-secondary" onClick={() => setTab("surface")}>
+                  Open explorer
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <MetricCard label="Discovered" value={scan.attackSurfaceSummary.urls_discovered ?? 0} />
+                <MetricCard label="Fetched" value={scan.attackSurfaceSummary.fetched ?? 0} />
+                <MetricCard label="Tested" value={scan.attackSurfaceSummary.tested ?? 0} />
+                <MetricCard label="Skipped" value={scan.attackSurfaceSummary.skipped ?? 0} />
+                <MetricCard label="APIs" value={scan.attackSurfaceSummary.apis ?? 0} />
+                <MetricCard label="Forms" value={scan.attackSurfaceSummary.forms ?? 0} />
+                <MetricCard label="Parameters" value={scan.attackSurfaceSummary.parameters ?? 0} />
+                <MetricCard label="JS assets" value={scan.attackSurfaceSummary.js_assets ?? 0} />
+              </div>
+            </section>
+          ) : null}
+
+          <section className="scanner-card-pad">
+            <p className="scanner-label">Passive vs active</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm font-semibold text-white">Passive</p>
+                <p className="mt-2 text-sm text-slate-400">
+                  Checks that can run without proving ownership (headers, TLS, CORS, exposure).
+                </p>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="text-sm font-semibold text-amber-100">Active</p>
+                <p className="mt-2 text-sm text-slate-400">
+                  Deeper discovery and safe fuzzing after ownership verification.
+                  {scan.activeChecksStatus === "skipped_unverified"
+                    ? " Currently skipped — ownership not verified."
+                    : ""}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
       ) : null}
 
-      {scan.attackSurfaceSummary && scan.type !== "repo" ? (
-        <section className="mt-8 rounded-lg border border-stone-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-            Attack surface
-          </p>
-          {mode === "founder" ? (
-            <p className="mt-2 text-sm text-stone-700">
-              Pages and endpoints we inspected on your verified host (same-origin only).
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-stone-600">
-              Coverage is budget-bounded. Discovered ≠ vulnerable. Active testing requires ownership.
-            </p>
-          )}
-          <ul className="mt-3 grid grid-cols-2 gap-2 text-sm text-stone-700 sm:grid-cols-4">
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.urls_discovered ?? 0}</span>{" "}
-              URLs discovered
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.apis ?? 0}</span> APIs
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.forms ?? 0}</span> forms
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.parameters ?? 0}</span>{" "}
-              parameters
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.js_assets ?? 0}</span> JS
-              assets
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.source_maps ?? 0}</span>{" "}
-              source maps
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.fetched ?? 0}</span> fetched
-            </li>
-            <li>
-              <span className="font-medium">{scan.attackSurfaceSummary.tested ?? 0}</span> tested
-            </li>
-          </ul>
-          <p className="mt-3 text-xs text-stone-500">
-            Discovered {scan.attackSurfaceSummary.urls_discovered ?? 0} same-origin URLs; fetched{" "}
-            {scan.attackSurfaceSummary.fetched ?? 0}; actively tested{" "}
-            {scan.attackSurfaceSummary.tested ?? 0}
-            {(scan.attackSurfaceSummary.skipped ?? 0) > 0
-              ? `; skipped ${scan.attackSurfaceSummary.skipped} (limits/policy)`
-              : ""}
-            .
-            {(scan.attackSurfaceSummary.external_references ?? 0) > 0
-              ? ` ${scan.attackSurfaceSummary.external_references} external references recorded but not crawled.`
-              : ""}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {(
-              [
-                "all",
-                "page",
-                "api",
-                "form",
-                "script",
-                "config",
-                "authentication",
-                "source_map",
-              ] as const
-            ).map((f) => (
+      {tab === "findings" ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                severityFilter === "all" ? "bg-scanner-brand text-scanner-on-brand" : "bg-white/5 text-slate-300"
+              }`}
+              onClick={() => setSeverityFilter("all")}
+            >
+              All ({findings.length})
+            </button>
+            {(["critical", "high", "medium", "low", "info"] as const).map((k) => (
               <button
-                key={f}
+                key={k}
                 type="button"
-                className={`rounded px-2 py-1 text-xs ${
-                  surfaceFilter === f ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
+                  severityFilter === k ? "bg-scanner-brand text-scanner-on-brand" : "bg-white/5 text-slate-300"
                 }`}
-                onClick={() => setSurfaceFilter(f)}
+                onClick={() => setSeverityFilter(k)}
               >
-                {f === "all" ? "All" : f}
+                {k} ({sev?.[k] ?? 0})
               </button>
             ))}
           </div>
-          {surfaceLoaded && surfaceItems.length > 0 ? (
-            <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto text-xs text-stone-700">
-              {surfaceItems.slice(0, 80).map((it) => (
-                <li key={it.id} className="flex flex-wrap gap-2 border-b border-stone-100 py-1">
-                  <span className="font-mono text-stone-500">{it.method}</span>
-                  <span className="break-all">{it.url}</span>
-                  <span className="text-stone-400">
-                    {it.statusCode ?? "—"} · {it.source} · {it.testStatus}
-                    {it.tested ? " · tested" : it.fetched ? " · fetched" : ""}
-                    {mode === "developer" ? ` · ${it.endpointType}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : surfaceLoaded ? (
-            <p className="mt-3 text-xs text-stone-500">No attack-surface rows for this filter.</p>
-          ) : null}
-        </section>
-      ) : scan.activeChecksStatus === "skipped_unverified" && scan.type !== "repo" ? (
-        <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-stone-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-            Attack surface
-          </p>
-          <p className="mt-2 text-sm text-stone-700">
-            Active discovery is ownership-gated. Verify this domain to unlock crawl, JS endpoint
-            discovery, and safe fuzzing.
-          </p>
-        </section>
-      ) : null}
 
-      <ol className="mt-8 space-y-3 border-l border-stone-200 pl-4">
-        {scan.events.map((event) => (
-          <li key={event.id} className="text-stone-800">
-            <p>{event.message}</p>
-            <p className="text-xs text-stone-400">
-              {new Date(event.createdAt).toLocaleTimeString()}
-            </p>
-          </li>
-        ))}
-      </ol>
+          {filteredFindings.length === 0 ? (
+            <EmptyState
+              title="No security issues matched"
+              body={
+                findings.length === 0
+                  ? "No security issues were verified for this scan. That is not a guarantee of security."
+                  : "No findings for this severity filter."
+              }
+            />
+          ) : (
+            <ul className="space-y-3">
+              {filteredFindings.map((finding) => {
+                const open = openId === finding.id;
+                return (
+                  <li key={finding.id} className="scanner-card overflow-hidden">
+                    <button
+                      type="button"
+                      className="flex w-full items-start justify-between gap-3 p-4 text-left hover:bg-white/[0.03]"
+                      onClick={() => setOpenId(open ? null : finding.id)}
+                      aria-expanded={open}
+                    >
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <SeverityBadge severity={finding.severity} />
+                          {finding.isGated ? <StatusBadge label="Active" tone="warning" /> : <StatusBadge label="Passive" />}
+                          {finding.isNew ? <StatusBadge label="New" tone="info" /> : null}
+                          {finding.fixVerifyStatus === "fix_verified" ? (
+                            <StatusBadge label="Fix verified" tone="success" />
+                          ) : null}
+                        </span>
+                        <span className="mt-2 block font-medium text-white">{finding.title}</span>
+                        <span className="mt-1 block text-xs text-slate-500">
+                          {[
+                            categoryLabel(finding.category),
+                            verificationLabel(finding.verificationStatus),
+                            finding.confidence != null
+                              ? `Confidence ${Math.round(finding.confidence * 100)}%`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </span>
+                      <span className="text-slate-500" aria-hidden="true">
+                        {open ? "−" : "+"}
+                      </span>
+                    </button>
+                    {open ? (
+                      <div className="space-y-4 border-t border-white/10 p-4 text-sm text-slate-300">
+                        {mode === "founder" ? (
+                          <>
+                            <p>
+                              <span className="font-medium text-white">What we found</span>
+                              <br />
+                              {finding.aiExplanation?.summary ?? finding.explanation ?? finding.title}
+                            </p>
+                            <p>
+                              <span className="font-medium text-white">Why it matters</span>
+                              <br />
+                              {finding.aiExplanation?.whyItMatters ??
+                                "This issue can weaken the security posture of the application."}
+                            </p>
+                            <p>
+                              <span className="font-medium text-white">What you should do</span>
+                              <br />
+                              {finding.aiExplanation?.recommendedAction ??
+                                "Review the evidence and fix the underlying configuration or secret exposure."}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            {finding.explanation ? <p>{finding.explanation}</p> : null}
+                            <p className="scanner-mono text-xs text-slate-500">
+                              type={finding.findingType ?? "—"} · scanner={finding.scannerSource ?? "—"} ·
+                              verification={finding.verificationStatus ?? "—"}
+                            </p>
+                            {finding.confidenceReason ? (
+                              <p className="text-xs text-slate-500">
+                                Why this confidence: {finding.confidenceReason}
+                              </p>
+                            ) : null}
+                            <ConfidenceBadge confidence={finding.confidence} />
+                          </>
+                        )}
 
-      {findings.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="text-lg font-semibold text-stone-900">
-            Findings ({findings.length})
-          </h2>
-          <ul className="mt-4 space-y-3">
-            {findings.map((finding) => {
-              const open = openId === finding.id;
-              const cat = categoryLabel(finding.category);
-              const conf = confidencePercent(finding.confidence);
-              const ver = verificationLabel(finding.verificationStatus);
-              return (
-                <li key={finding.id} className="border-b border-stone-200 pb-3">
-                  <button
-                    type="button"
-                    className="flex w-full items-start justify-between gap-3 text-left"
-                    onClick={() => setOpenId(open ? null : finding.id)}
-                  >
-                    <span>
-                      <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
-                        {finding.severity}
-                      </span>
-                      {finding.title}
-                      {finding.isNew ? (
-                        <span className="ml-2 text-xs text-stone-400">new</span>
-                      ) : null}
-                      {finding.fixVerifyStatus === "fix_verified" ? (
-                        <span className="ml-2 text-xs font-medium text-emerald-700">fix verified</span>
-                      ) : null}
-                      {finding.isGated ? (
-                        <span className="ml-2 text-xs font-medium text-amber-800">active</span>
-                      ) : (
-                        <span className="ml-2 text-xs text-stone-400">passive</span>
-                      )}
-                      <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-stone-500">
-                        {[cat, conf ? `Confidence: ${conf}` : null, ver ? `Status: ${ver}` : null]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    </span>
-                    <span className="text-stone-400">{open ? "−" : "+"}</span>
-                  </button>
-                  {open ? (
-                    <div className="mt-3 space-y-4 text-sm text-stone-600">
-                      {mode === "founder" ? (
-                        <>
-                          {finding.aiStatus === "generated" && finding.aiExplanation ? (
-                            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                                AI-generated explanation
-                                {finding.aiPromptVersion
-                                  ? ` · prompt ${finding.aiPromptVersion}`
-                                  : ""}
-                              </p>
-                              <p className="mt-2">
-                                <span className="font-medium text-stone-800">What we found</span>
-                                <br />
-                                {finding.aiExplanation.summary ?? finding.explanation ?? finding.title}
-                              </p>
-                              <p className="mt-2">
-                                <span className="font-medium text-stone-800">Why it matters</span>
-                                <br />
-                                {finding.aiExplanation.whyItMatters ??
-                                  "This issue can weaken the security posture of the application."}
-                              </p>
-                              <p className="mt-2">
-                                <span className="font-medium text-stone-800">What you should do</span>
-                                <br />
-                                {finding.aiExplanation.recommendedAction ??
-                                  "Review the evidence and fix the underlying configuration or secret exposure."}
-                              </p>
-                            </div>
-                          ) : (
-                            <>
-                              <p>
-                                <span className="font-medium text-stone-800">What we found</span>
-                                <br />
-                                {finding.explanation ?? finding.title}
-                              </p>
-                              <p>
-                                <span className="font-medium text-stone-800">Why it matters</span>
-                                <br />
-                                {finding.explanation ??
-                                  "This issue can weaken the security posture of the application."}
-                              </p>
-                              <p>
-                                <span className="font-medium text-stone-800">What you should do</span>
-                                <br />
-                                Review the evidence below and fix the underlying configuration or
-                                secret exposure.
-                              </p>
-                              {finding.aiUnavailableReason ? (
-                                <p className="text-xs text-amber-800">{finding.aiUnavailableReason}</p>
-                              ) : finding.aiStatus === "generating" ? (
-                                <p className="text-xs text-stone-500">
-                                  AI explanation is generating…
-                                </p>
-                              ) : null}
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {finding.explanation ? <p>{finding.explanation}</p> : null}
-                          <p className="text-xs text-stone-500">
-                            type={finding.findingType ?? "—"} · scanner=
-                            {finding.scannerSource ?? "—"} · verification=
-                            {finding.verificationStatus ?? "—"}
-                          </p>
-                          {finding.confidenceReason ? (
-                            <p className="text-xs text-stone-500">
-                              Why this confidence: {finding.confidenceReason}
+                        {finding.evidenceText ? (
+                          <div className="rounded-xl border border-white/10 bg-scanner-bg/60 p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                              Scanner evidence
                             </p>
-                          ) : null}
-                          {finding.aiStatus === "generated" && finding.aiExplanation ? (
-                            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                                AI-generated explanation
-                                {finding.aiModel ? ` · ${finding.aiModel}` : ""}
-                              </p>
-                              {finding.aiExplanation.technicalExplanation ? (
-                                <p className="mt-2">
-                                  <span className="font-medium text-stone-800">
-                                    Technical explanation
-                                  </span>
-                                  <br />
-                                  {finding.aiExplanation.technicalExplanation}
-                                </p>
-                              ) : null}
-                              {finding.aiExplanation.recommendedAction ? (
-                                <p className="mt-2">
-                                  <span className="font-medium text-stone-800">
-                                    Recommended remediation
-                                  </span>
-                                  <br />
-                                  {finding.aiExplanation.recommendedAction}
-                                </p>
-                              ) : null}
-                              {finding.aiExplanation.limitations &&
-                              finding.aiExplanation.limitations.length > 0 ? (
-                                <p className="mt-2 text-xs text-stone-500">
-                                  Limitations: {finding.aiExplanation.limitations.join(" · ")}
-                                </p>
-                              ) : null}
-                              {finding.aiFixPrompt ? (
-                                <div className="mt-3">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                                      AI fix prompt
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className="rounded bg-stone-900 px-2 py-1 text-xs font-medium text-white"
-                                      onClick={() => {
-                                        void navigator.clipboard.writeText(
-                                          finding.aiFixPrompt ?? ""
-                                        );
-                                      }}
-                                    >
-                                      Copy
-                                    </button>
-                                  </div>
-                                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-xs text-stone-800">
-                                    {finding.aiFixPrompt}
-                                  </pre>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : finding.aiUnavailableReason ? (
-                            <p className="text-xs text-amber-800">{finding.aiUnavailableReason}</p>
-                          ) : finding.aiStatus === "generating" ? (
-                            <p className="text-xs text-stone-500">
-                              AI explanation is generating…
+                            <pre className="scanner-mono mt-2 max-h-56 overflow-auto whitespace-pre-wrap text-xs text-slate-300">
+                              {finding.evidenceText}
+                            </pre>
+                          </div>
+                        ) : null}
+
+                        {finding.aiStatus === "generated" && finding.aiExplanation ? (
+                          <div className="rounded-xl border border-scanner-brand/20 bg-scanner-brand-soft p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-scanner-brand-label">
+                              AI-generated explanation
+                              {finding.aiPromptVersion ? ` · prompt ${finding.aiPromptVersion}` : ""}
+                              {finding.aiModel ? ` · ${finding.aiModel}` : ""}
                             </p>
+                            {finding.aiExplanation.technicalExplanation ? (
+                              <p className="mt-2">{finding.aiExplanation.technicalExplanation}</p>
+                            ) : null}
+                            {finding.aiFixPrompt ? (
+                              <div className="mt-3">
+                                <button
+                                  type="button"
+                                  className="scanner-btn-secondary"
+                                  onClick={() =>
+                                    void navigator.clipboard.writeText(finding.aiFixPrompt ?? "")
+                                  }
+                                >
+                                  Copy AI fix prompt
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : finding.aiUnavailableReason ? (
+                          <p className="text-xs text-amber-200">{finding.aiUnavailableReason}</p>
+                        ) : null}
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="scanner-btn-primary"
+                            disabled={verifyFixBusy === finding.id}
+                            onClick={() => void verifyFix(finding.id)}
+                          >
+                            {verifyFixBusy === finding.id ? (
+                              <>
+                                <IconSpinner className="h-4 w-4 animate-spin" aria-hidden="true" /> Verifying…
+                              </>
+                            ) : (
+                              "Verify Fix"
+                            )}
+                          </button>
+                          {finding.fixVerifyStatus ? (
+                            <span className="text-xs text-slate-400">
+                              Last result: {finding.fixVerifyStatus}
+                              {finding.fixVerifyNote ? ` — ${finding.fixVerifyNote}` : ""}
+                            </span>
                           ) : null}
-                        </>
-                      )}
-                      {finding.evidenceText ? (
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                            Scanner evidence
-                          </p>
-                          <pre className="mt-1 overflow-x-auto rounded bg-stone-100 p-3 text-xs text-stone-800 whitespace-pre-wrap">
-                            {finding.evidenceText}
-                          </pre>
                         </div>
-                      ) : null}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          className="rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                          disabled={verifyFixBusy === finding.id}
-                          onClick={() => void verifyFix(finding.id)}
-                        >
-                          {verifyFixBusy === finding.id ? "Verifying…" : "Verify Fix"}
-                        </button>
-                        {finding.fixVerifyStatus ? (
-                          <span className="text-xs text-stone-600">
-                            Last result: {finding.fixVerifyStatus}
-                            {finding.fixVerifyNote ? ` — ${finding.fixVerifyNote}` : ""}
-                          </span>
+                        {verifyFixMsg && openId === finding.id ? (
+                          <p className="text-xs text-slate-400">{verifyFixMsg}</p>
                         ) : null}
                       </div>
-                      {verifyFixMsg && openId === finding.id ? (
-                        <p className="text-xs text-stone-600">{verifyFixMsg}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : scan.status === "done" ? (
-        <p className="mt-10 text-stone-600">
-          No issues were detected by the checks performed. This is not a guarantee of security.
-        </p>
-      ) : null}
-
-      {scan.status === "queued" ? (
-        <p className="mt-8 text-sm text-stone-500">
-          Waiting for the Python worker. In another terminal run{" "}
-          <code className="rounded bg-stone-100 px-1.5 py-0.5 text-stone-800">
-            python worker.py
-          </code>{" "}
-          from <code className="rounded bg-stone-100 px-1.5 py-0.5">engine/</code>.
-        </p>
-      ) : null}
-
-      {TERMINAL.has(scan.status) ? (
-        <div className="mt-10 flex gap-4">
-          <Link
-            href="/"
-            className="inline-flex rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            Scan another URL
-          </Link>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       ) : null}
-    </main>
+
+      {tab === "surface" ? (
+        <div className="space-y-4">
+          {scan.type === "repo" ? (
+            <EmptyState
+              title="Attack surface explorer is for URL scans"
+              body="Repository scans show file coverage on the Overview tab instead."
+            />
+          ) : scan.activeChecksStatus === "skipped_unverified" ? (
+            <EmptyState
+              title="Active discovery was skipped"
+              body="Verify domain ownership to unlock crawl, JS endpoint discovery, and safe fuzzing."
+              action={
+                <button type="button" className="scanner-btn-primary" onClick={() => setTab("overview")}>
+                  Go to ownership
+                </button>
+              }
+            />
+          ) : (
+            <>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <input
+                  type="search"
+                  value={surfaceQuery}
+                  onChange={(e) => setSurfaceQuery(e.target.value)}
+                  placeholder="Search paths, endpoints, sources…"
+                  className="scanner-input md:max-w-md"
+                  aria-label="Search attack surface"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {["all", "page", "api", "form", "asset", "config"].map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
+                        surfaceFilter === f
+                          ? "bg-scanner-brand text-scanner-on-brand"
+                          : "bg-white/5 text-slate-300"
+                      }`}
+                      onClick={() => setSurfaceFilter(f)}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {!surfaceLoaded ? (
+                <div className="scanner-skeleton h-40 w-full" aria-busy="true" />
+              ) : filteredSurface.length === 0 ? (
+                <EmptyState
+                  title="No attack surface items"
+                  body="No attack surface discovered yet for this filter."
+                />
+              ) : (
+                <div className="scanner-card overflow-hidden">
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="sticky top-0 border-b border-white/10 bg-scanner-bg/90 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Type</th>
+                          <th className="px-4 py-3 font-semibold">Method</th>
+                          <th className="px-4 py-3 font-semibold">URL</th>
+                          <th className="px-4 py-3 font-semibold">Status</th>
+                          <th className="px-4 py-3 font-semibold">Via</th>
+                          <th className="px-4 py-3 font-semibold">Test</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredSurface.map((item) => (
+                          <tr
+                            key={item.id}
+                            className="cursor-pointer border-b border-white/5 hover:bg-white/[0.03]"
+                            onClick={() => setDrawerId(item.id)}
+                          >
+                            <td className="px-4 py-3 capitalize text-slate-300">{item.endpointType}</td>
+                            <td className="px-4 py-3">
+                              <MethodBadge method={item.method} />
+                            </td>
+                            <td className="scanner-mono max-w-md truncate px-4 py-3 text-slate-200">
+                              {item.url}
+                            </td>
+                            <td className="px-4 py-3 tabular-nums text-slate-400">
+                              {item.statusCode ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-400">{item.source}</td>
+                            <td className="px-4 py-3 text-slate-400">{item.testStatus}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <ul className="divide-y divide-white/5 md:hidden">
+                    {filteredSurface.map((item) => (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className="w-full p-4 text-left"
+                          onClick={() => setDrawerId(item.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <MethodBadge method={item.method} />
+                            <span className="text-xs capitalize text-slate-400">{item.endpointType}</span>
+                          </div>
+                          <p className="scanner-mono mt-2 break-all text-sm text-slate-200">{item.url}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {item.source} · {item.testStatus}
+                          </p>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+
+          {drawerItem ? (
+            <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/60"
+                aria-label="Close endpoint details"
+                onClick={() => setDrawerId(null)}
+              />
+              <aside className="relative flex h-full w-full max-w-md flex-col border-l border-white/10 bg-scanner-bg p-5 shadow-scanner">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="scanner-label">Endpoint</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <MethodBadge method={drawerItem.method} />
+                      <span className="text-xs capitalize text-slate-400">{drawerItem.endpointType}</span>
+                    </div>
+                  </div>
+                  <button type="button" className="scanner-btn-ghost" onClick={() => setDrawerId(null)}>
+                    Close
+                  </button>
+                </div>
+                <p className="scanner-mono mt-4 break-all text-sm text-slate-200">{drawerItem.url}</p>
+                <dl className="mt-6 space-y-3 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">HTTP status</dt>
+                    <dd className="text-slate-200">{drawerItem.statusCode ?? "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Discovered via</dt>
+                    <dd className="text-slate-200">{drawerItem.source}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Test status</dt>
+                    <dd className="text-slate-200">{drawerItem.testStatus}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Fetched</dt>
+                    <dd className="text-slate-200">{drawerItem.fetched ? "Yes" : "No"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Tested</dt>
+                    <dd className="text-slate-200">{drawerItem.tested ? "Yes" : "No"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Ownership gated</dt>
+                    <dd className="text-slate-200">{drawerItem.isGated ? "Yes" : "No"}</dd>
+                  </div>
+                </dl>
+              </aside>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "activity" ? (
+        <section className="scanner-card-pad">
+          <p className="scanner-label">Scan activity</p>
+          <p className="mt-2 text-sm text-slate-400">
+            Real events from the scanner worker. No invented progress.
+          </p>
+          <ol className="mt-6 space-y-4 border-l border-white/10 pl-4">
+            {scan.events.map((event) => (
+              <li key={event.id} className="animate-fade-up">
+                <p className="text-sm text-slate-200">{event.message}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {new Date(event.createdAt).toLocaleString("en-US")}
+                </p>
+              </li>
+            ))}
+          </ol>
+          {scan.events.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">No events yet.</p>
+          ) : null}
+        </section>
+      ) : null}
+    </ScannerShell>
   );
 }

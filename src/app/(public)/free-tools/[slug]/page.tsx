@@ -101,7 +101,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
       ))}
       <Navbar />
       <div className="pt-32 pb-24 px-6 md:px-12 max-w-5xl mx-auto w-full">
-        <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">
+        <p className="text-[#FFC300] text-sm font-bold uppercase tracking-widest mb-4">
           <Link href="/free-tools" className="hover:text-white">Free Tools</Link>
           {tool.category ? ` · ${tool.category.name}` : ""}
         </p>

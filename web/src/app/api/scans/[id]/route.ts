@@ -163,7 +163,7 @@ export async function GET(_request: Request, { params }: Params) {
     const gradeAvailable =
       scan.status === "done" && scan.grade != null && scan.grade_algorithm_version != null;
 
-    let scanDiff: {
+    type ScanDiffRow = {
       diff_status: string;
       new_count: number;
       fixed_count: number;
@@ -171,14 +171,15 @@ export async function GET(_request: Request, { params }: Params) {
       regression_count: number;
       grade_previous: string | null;
       grade_current: string | null;
-    } | null = null;
+    };
+    let scanDiff: ScanDiffRow | null = null;
     try {
       const diffs = await sql`
         SELECT diff_status, new_count, fixed_count, unresolved_count, regression_count,
                grade_previous, grade_current
         FROM scan_diffs WHERE scan_id = ${id} LIMIT 1
       `;
-      scanDiff = diffs[0] ?? null;
+      scanDiff = (diffs[0] as ScanDiffRow | undefined) ?? null;
     } catch {
       scanDiff = null;
     }
@@ -274,7 +275,6 @@ export async function GET(_request: Request, { params }: Params) {
       repoCommitSha: scan.repo_commit_sha ?? null,
       githubScanStatus: scan.github_scan_status ?? null,
       repoScanSummary: scan.repo_scan_summary ?? null,
-      projectId: scan.project_id,
       diff: scanDiff
         ? {
             status: scanDiff.diff_status,

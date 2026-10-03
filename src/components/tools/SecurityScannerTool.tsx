@@ -37,11 +37,11 @@ export function SecurityScannerTool({ scannerBaseUrl, initialUrl = "" }: Props) 
           placeholder="https://your-app.example"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="flex-1 rounded-xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 rounded-xl border border-white/15 bg-[#1C1B1A]/60 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#FFC300]"
         />
         <button
           type="submit"
-          className="rounded-xl bg-indigo-500 px-5 py-3 font-semibold text-white hover:bg-indigo-400"
+          className="rounded-xl bg-[#FFC300] px-5 py-3 font-semibold text-[#1C1B1A] hover:bg-[#FFD60A] shadow-[0_4px_20px_rgba(255,195,0,0.25)]"
         >
           Open security scanner
         </button>
@@ -51,7 +51,7 @@ export function SecurityScannerTool({ scannerBaseUrl, initialUrl = "" }: Props) 
         {base ? (
           <>
             {" "}
-            (<a className="text-indigo-300 hover:text-white underline" href={base}>
+            (<a className="text-[#FFC300] hover:text-white underline" href={base}>
               {base}
             </a>
             )

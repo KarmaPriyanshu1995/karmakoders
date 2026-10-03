@@ -1,35 +1,27 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { IconGlobe, IconRepo, IconSpinner } from "@/components/scanner/icons";
 
 type Mode = "url" | "repo";
 
-export function ScanForm() {
+type Props = {
+  initialUrl?: string;
+  initialRepo?: string;
+};
+
+export function ScanForm({ initialUrl = "", initialRepo = "" }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [mode, setMode] = useState<Mode>("url");
-  const [url, setUrl] = useState("");
+  const [mode, setMode] = useState<Mode>(initialRepo ? "repo" : "url");
+  const [url, setUrl] = useState(initialUrl);
   const [projectId, setProjectId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [githubMsg, setGithubMsg] = useState<string | null>(null);
   const [repos, setRepos] = useState<Array<{ id: string; fullName: string }>>([]);
   const [repoId, setRepoId] = useState("");
-  const [publicRepo, setPublicRepo] = useState("");
-
-  useEffect(() => {
-    const inboundUrl = searchParams.get("url");
-    const inboundRepo = searchParams.get("repo");
-    if (inboundUrl) {
-      setMode("url");
-      setUrl(inboundUrl);
-    }
-    if (inboundRepo) {
-      setMode("repo");
-      setPublicRepo(inboundRepo);
-    }
-  }, [searchParams]);
+  const [publicRepo, setPublicRepo] = useState(initialRepo);
 
   async function refreshRepos(pid: string) {
     const list = await fetch(`/api/github/repos?projectId=${pid}`, { cache: "no-store" });
@@ -167,31 +159,37 @@ export function ScanForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-10 space-y-4">
-      <div className="flex gap-2">
+    <form onSubmit={onSubmit} className="mt-8 space-y-5">
+      <div className="inline-flex rounded-xl border border-white/10 bg-scanner-bg/50 p-1" role="tablist">
         <button
           type="button"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
-            mode === "url" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
+          role="tab"
+          aria-selected={mode === "url"}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            mode === "url" ? "bg-scanner-brand text-scanner-on-brand" : "text-slate-300 hover:bg-white/5"
           }`}
           onClick={() => setMode("url")}
         >
-          Scan URL
+          <IconGlobe className="h-4 w-4" aria-hidden="true" />
+          Website URL
         </button>
         <button
           type="button"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
-            mode === "repo" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"
+          role="tab"
+          aria-selected={mode === "repo"}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            mode === "repo" ? "bg-scanner-brand text-scanner-on-brand" : "text-slate-300 hover:bg-white/5"
           }`}
           onClick={() => setMode("repo")}
         >
-          Scan GitHub repo
+          <IconRepo className="h-4 w-4" aria-hidden="true" />
+          GitHub repo
         </button>
       </div>
 
       {mode === "url" ? (
         <label className="block">
-          <span className="sr-only">App URL</span>
+          <span className="mb-2 block text-sm font-medium text-slate-300">Enter a website URL</span>
           <input
             type="url"
             name="url"
@@ -199,53 +197,54 @@ export function ScanForm() {
             placeholder="https://your-app.example"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 shadow-sm outline-none ring-stone-400 placeholder:text-stone-400 focus:ring-2"
+            className="scanner-input"
+            autoComplete="url"
           />
+          <span className="mt-2 block text-xs text-slate-500">
+            Safe by default · Non-destructive · Ownership required for deeper testing
+          </span>
         </label>
       ) : (
-        <div className="space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4">
-          <p className="text-sm text-stone-700">
-            Paste a <span className="font-medium">public</span> GitHub repository URL or{" "}
-            <code className="text-xs">owner/name</code>. Private repos need a real GitHub App
-            (not configured yet — currently mock mode only links a local fixture).
+        <div className="space-y-4 rounded-xl border border-white/10 bg-scanner-bg/40 p-4">
+          <p className="text-sm text-slate-400">
+            Paste a <span className="font-medium text-slate-200">public</span> GitHub repository URL
+            or <code className="scanner-mono text-scanner-brand-label">owner/name</code>. Private repos need a
+            real GitHub App (mock mode can link a local fixture).
           </p>
-
-          <label className="block text-sm text-stone-700">
-            Public repository
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-300">Public repository</span>
             <input
               type="text"
               value={publicRepo}
               onChange={(e) => setPublicRepo(e.target.value)}
               placeholder="https://github.com/owner/repo or owner/repo"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              className="scanner-input"
             />
           </label>
-          <button
-            type="button"
-            disabled={pending || !publicRepo.trim()}
-            onClick={() => void addPublicRepo()}
-            className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
-            Authorize public repo
-          </button>
-
-          <div className="border-t border-stone-200 pt-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending || !publicRepo.trim()}
+              onClick={() => void addPublicRepo()}
+              className="scanner-btn-primary"
+            >
+              Authorize public repo
+            </button>
             <button
               type="button"
               disabled={pending}
               onClick={() => void connectMockFixture()}
-              className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 disabled:opacity-60"
+              className="scanner-btn-secondary"
             >
               Use local mock fixture
             </button>
           </div>
-
-          {githubMsg ? <p className="text-xs text-stone-600">{githubMsg}</p> : null}
+          {githubMsg ? <p className="text-xs text-slate-400">{githubMsg}</p> : null}
           {repos.length > 0 ? (
-            <label className="block text-sm text-stone-700">
-              Repository to scan
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-300">Repository to scan</span>
               <select
-                className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2"
+                className="scanner-input"
                 value={repoId}
                 onChange={(e) => setRepoId(e.target.value)}
               >
@@ -260,13 +259,23 @@ export function ScanForm() {
         </div>
       )}
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex items-center justify-center rounded-lg bg-stone-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? "Starting…" : mode === "repo" ? "Scan repository" : "Scan for free"}
+      {error ? (
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <button type="submit" disabled={pending} className="scanner-btn-primary min-w-[12rem]">
+        {pending ? (
+          <>
+            <IconSpinner className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Starting…
+          </>
+        ) : mode === "repo" ? (
+          "Start repository scan"
+        ) : (
+          "Start security scan"
+        )}
       </button>
     </form>
   );

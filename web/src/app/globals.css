@@ -1,3 +1,147 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* Match live Karmakoders theme (ThemeProvider / site sections) */
+  --scanner-bg: #1c1b1a;
+  --scanner-bg-elevated: #221f1d;
+  --scanner-surface: #252422;
+  --scanner-surface-raised: #2c2a27;
+  --scanner-surface-hover: #35322e;
+  --scanner-border: rgba(255, 255, 255, 0.1);
+  --scanner-border-subtle: rgba(255, 255, 255, 0.06);
+  --scanner-text: #ffffff;
+  --scanner-text-muted: #a39f97;
+  --scanner-text-faint: #7a7670;
+  /* Site primaryColor = #FFC300 */
+  --scanner-brand: #ffc300;
+  --scanner-brand-hover: #ffd60a;
+  --scanner-brand-soft: rgba(255, 195, 0, 0.12);
+  --scanner-brand-glow: rgba(255, 195, 0, 0.3);
+  --scanner-brand-label: #ffc300;
+  --scanner-on-brand: #1c1b1a;
+  --scanner-critical: #f43f5e;
+  --scanner-high: #f97316;
+  --scanner-medium: #eab308;
+  --scanner-low: #38bdf8;
+  --scanner-info: #a39f97;
+  --scanner-success: #34d399;
+  --scanner-warning: #ffc300;
+  --scanner-danger: #fb7185;
+  --scanner-radius: 0.875rem;
+  --scanner-radius-lg: 1.25rem;
+  --scanner-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 18px 50px rgba(0, 0, 0, 0.35);
+  --scanner-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-[var(--scanner-bg)] text-[var(--scanner-text)] antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 195, 0, 0.1), transparent),
+      radial-gradient(ellipse 40% 30% at 100% 0%, rgba(255, 195, 0, 0.04), transparent);
+    background-attachment: fixed;
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--scanner-bg),
+      0 0 0 4px var(--scanner-brand-hover);
+  }
+}
+
+@layer components {
+  .scanner-card {
+    @apply rounded-[var(--scanner-radius-lg)] border border-white/10 bg-white/[0.03] shadow-[var(--scanner-shadow)];
+    background-color: color-mix(in srgb, var(--scanner-surface) 85%, transparent);
+  }
+
+  .scanner-card-pad {
+    @apply scanner-card p-5 md:p-6;
+  }
+
+  .scanner-label {
+    @apply text-xs font-bold uppercase tracking-widest;
+    color: var(--scanner-brand-label);
+  }
+
+  .scanner-muted {
+    @apply text-sm;
+    color: var(--scanner-text-muted);
+  }
+
+  .scanner-mono {
+    font-family: var(--scanner-font-mono);
+    @apply text-[0.8125rem] tracking-tight;
+  }
+
+  .scanner-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .scanner-btn-primary {
+    @apply scanner-btn;
+    color: var(--scanner-on-brand);
+    background-color: var(--scanner-brand);
+    box-shadow: 0 4px 20px var(--scanner-brand-glow);
+  }
+
+  .scanner-btn-primary:hover {
+    background-color: var(--scanner-brand-hover);
+  }
+
+  .scanner-btn-secondary {
+    @apply scanner-btn border border-white/10 bg-white/5 text-white hover:bg-white/10;
+  }
+
+  .scanner-btn-ghost {
+    @apply scanner-btn text-slate-300 hover:bg-white/5 hover:text-white;
+  }
+
+  .scanner-input {
+    @apply w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:outline-none;
+    background-color: color-mix(in srgb, var(--scanner-bg) 70%, #000);
+  }
+
+  .scanner-input:focus {
+    border-color: var(--scanner-brand);
+    box-shadow: 0 0 0 3px var(--scanner-brand-soft);
+  }
+
+  .scanner-skeleton {
+    @apply animate-pulse rounded-lg bg-white/5;
+  }
+
+  .scanner-brand-fill {
+    background-color: var(--scanner-brand);
+  }
+
+  .scanner-brand-soft-fill {
+    background-color: var(--scanner-brand-soft);
+  }
+
+  .scanner-brand-text {
+    color: var(--scanner-brand-label);
+  }
+
+  .scanner-brand-ring {
+    box-shadow: 0 0 20px var(--scanner-brand-glow);
+  }
+}

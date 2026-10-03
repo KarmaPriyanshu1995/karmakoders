@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import socket
 import urllib.error
 import urllib.request
@@ -219,6 +220,86 @@ class OpenAICompatibleProvider:
         )
 
 
+class AnthropicProvider:
+    """Direct Anthropic Messages API (Claude). Not OpenAI-compatible."""
+
+    name = "anthropic"
+
+    def __init__(self, *, api_key: str, version: str = "2023-06-01"):
+        self.api_key = api_key
+        self.version = version
+        self.base_url = "https://api.anthropic.com/v1"
+
+    def generate(
+        self,
+        *,
+        system: str,
+        user: str,
+        model: str,
+        max_tokens: int,
+        timeout_seconds: float,
+    ) -> LLMResult:
+        import time
+
+        url = f"{self.base_url}/messages"
+        body = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": 0.2,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        }
+        data = json.dumps(body).encode("utf-8")
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": self.version,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        started = time.monotonic()
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                raw = resp.read().decode("utf-8")
+                status = getattr(resp, "status", 200)
+        except urllib.error.HTTPError as exc:
+            err_body = exc.read().decode("utf-8", errors="replace")[:200]
+            retryable = exc.code in {408, 429, 500, 502, 503, 504}
+            raise LLMError(
+                f"{self.name} HTTP {exc.code}: {err_body}",
+                retryable=retryable,
+                status=exc.code,
+            ) from exc
+        except (TimeoutError, socket.timeout) as exc:
+            raise LLMError(f"{self.name} timeout", retryable=True) from exc
+        except urllib.error.URLError as exc:
+            raise LLMError(f"{self.name} network error: {exc.reason}", retryable=True) from exc
+
+        latency_ms = int((time.monotonic() - started) * 1000)
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise LLMError(f"{self.name} non-JSON response", retryable=False, status=status) from exc
+
+        blocks = parsed.get("content") or []
+        parts: list[str] = []
+        for block in blocks:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text") or ""))
+        text = "\n".join(parts).strip()
+        if not text:
+            raise LLMError(f"{self.name} empty content", retryable=False, status=status)
+        usage = parsed.get("usage") or {}
+        return LLMResult(
+            text=text,
+            provider=self.name,
+            model=parsed.get("model") or model,
+            latency_ms=latency_ms,
+            input_tokens=usage.get("input_tokens"),
+            output_tokens=usage.get("output_tokens"),
+        )
+
+
 def build_provider_named(
     name: str, api_key: str | None, *, mock: MockProvider | None = None
 ) -> LLMProvider | None:
@@ -246,6 +327,11 @@ def build_provider_named(
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key,
         )
+    if name in {"anthropic", "claude"}:
+        if not api_key:
+            return None
+        version = (os.environ.get("ANTHROPIC_VERSION") or "2023-06-01").strip()
+        return AnthropicProvider(api_key=api_key, version=version)
     return None
 
 

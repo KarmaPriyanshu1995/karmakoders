@@ -14,7 +14,7 @@ PROMPT_VERSION = "v1"
 @dataclass(frozen=True)
 class LLMSettings:
     enabled: bool
-    provider: str  # openrouter | groq | mock | none
+    provider: str  # openrouter | groq | anthropic | mock | none
     api_key: str | None
     model: str
     timeout_seconds: float
@@ -40,12 +40,31 @@ def _groq_model() -> str:
     )
 
 
+def _anthropic_model() -> str:
+    return os.environ.get("ANTHROPIC_MODEL") or os.environ.get(
+        "LLM_MODEL", "claude-sonnet-4-5"
+    )
+
+
+def _add_fallback(
+    fallbacks: list[tuple[str, str, str]],
+    *,
+    name: str,
+    key: str | None,
+    model: str,
+    skip: str,
+) -> None:
+    if key and name != skip:
+        fallbacks.append((name, key, model))
+
+
 def get_llm_settings() -> LLMSettings:
     load_env()
 
     forced = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
     openrouter_key = (os.environ.get("OPENROUTER_API_KEY") or "").strip() or None
     groq_key = (os.environ.get("GROQ_API_KEY") or "").strip() or None
+    anthropic_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip() or None
 
     fallbacks: list[tuple[str, str, str]] = []
 
@@ -53,23 +72,30 @@ def get_llm_settings() -> LLMSettings:
         provider, key, model = "mock", None, os.environ.get("LLM_MODEL", "mock-v1")
     elif forced == "openrouter":
         provider, key, model = "openrouter", openrouter_key, _openrouter_model()
-        if groq_key:
-            fallbacks.append(("groq", groq_key, _groq_model()))
     elif forced == "groq":
         provider, key, model = "groq", groq_key, _groq_model()
-        if openrouter_key:
-            fallbacks.append(("openrouter", openrouter_key, _openrouter_model()))
+    elif forced in {"anthropic", "claude"}:
+        provider, key, model = "anthropic", anthropic_key, _anthropic_model()
     elif forced in {"none", "off", "disabled"}:
         provider, key, model = "none", None, ""
     # Prefer OpenRouter when both exist — Groq may be Cloudflare-blocked in some envs.
     elif openrouter_key:
         provider, key, model = "openrouter", openrouter_key, _openrouter_model()
-        if groq_key:
-            fallbacks.append(("groq", groq_key, _groq_model()))
     elif groq_key:
         provider, key, model = "groq", groq_key, _groq_model()
+    elif anthropic_key:
+        provider, key, model = "anthropic", anthropic_key, _anthropic_model()
     else:
         provider, key, model = "none", None, ""
+
+    if provider not in {"mock", "none"}:
+        _add_fallback(
+            fallbacks, name="openrouter", key=openrouter_key, model=_openrouter_model(), skip=provider
+        )
+        _add_fallback(fallbacks, name="groq", key=groq_key, model=_groq_model(), skip=provider)
+        _add_fallback(
+            fallbacks, name="anthropic", key=anthropic_key, model=_anthropic_model(), skip=provider
+        )
 
     enabled_raw = (os.environ.get("LLM_ENABLED") or "true").strip().lower()
     enabled = enabled_raw not in {"0", "false", "no", "off"} and provider != "none"
