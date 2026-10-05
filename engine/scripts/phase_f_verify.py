@@ -17,7 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 REPORT: dict[str, object] = {"sections": {}}
-API = os.environ.get("PHASE_F_API", "http://127.0.0.1:3001")
+API = os.environ.get("PHASE_F_API", "http://127.0.0.1:3000")
+# Scanner pages live on the main site under /security-scanner.
+UI_PREFIX = os.environ.get("SCANNER_UI_PREFIX", "/security-scanner")
 
 
 def section(name: str, payload: dict) -> None:
@@ -282,7 +284,7 @@ def main() -> int:
 
                 # UI page loads
                 try:
-                    with urllib.request.urlopen(f"{API}/scans/{scan_id}", timeout=30) as resp:
+                    with urllib.request.urlopen(f"{API}{UI_PREFIX}/scans/{scan_id}", timeout=30) as resp:
                         html = resp.read().decode("utf-8", errors="replace")
                     section(
                         "ui",

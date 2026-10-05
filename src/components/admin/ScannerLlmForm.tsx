@@ -106,7 +106,8 @@ export function ScannerLlmForm({ initial }: { initial: ScannerLlmState }) {
           <KeyBadge ok={keys.anthropic} label="Anthropic" />
         </div>
         <p className="text-xs text-slate-500">
-          API keys stay in the scanner&apos;s <code>.env</code> (never stored in the database). Add{" "}
+          Badges show keys set in this website&apos;s environment. The scan worker uses the keys in its own{" "}
+          <code>.env</code> on the worker server (never stored in the database) — add{" "}
           <code>ANTHROPIC_API_KEY</code> there once, then switch here anytime.
         </p>
         {state.overrides?.updatedAt && (

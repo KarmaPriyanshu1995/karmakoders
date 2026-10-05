@@ -25,7 +25,9 @@ import asyncio  # noqa: E402
 import selectors  # noqa: E402
 
 REPORT: dict[str, object] = {"sections": {}}
-API = "http://127.0.0.1:3001"
+API = os.environ.get("PHASE_E_API", "http://127.0.0.1:3000")
+# Scanner pages live on the main site under /security-scanner.
+UI_PREFIX = os.environ.get("SCANNER_UI_PREFIX", "/security-scanner")
 
 
 def section(name: str, payload: dict) -> None:
@@ -302,7 +304,7 @@ def test_ui(scan_id: str | None) -> None:
         section("ui", {"status": "FAIL"})
         return
     try:
-        with urllib.request.urlopen(f"{API}/scans/{scan_id}", timeout=30) as resp:
+        with urllib.request.urlopen(f"{API}{UI_PREFIX}/scans/{scan_id}", timeout=30) as resp:
             html = resp.read().decode("utf-8", errors="replace")
     except Exception as exc:  # noqa: BLE001
         section("ui", {"status": "FAIL", "error": repr(exc)})
