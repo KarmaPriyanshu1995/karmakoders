@@ -184,11 +184,27 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
   const [verifyFixBusy, setVerifyFixBusy] = useState<string | null>(null);
   const [verifyFixMsg, setVerifyFixMsg] = useState<string | null>(null);
   const [ownershipInstructions, setOwnershipInstructions] = useState<{
+    method?: string;
     summary?: string;
     steps?: string[];
     httpPath?: string | null;
     httpBody?: string | null;
     txtRecord?: string | null;
+    // DNS TXT values come from the API verbatim — never derived or shortened here.
+    claimedHost?: string | null;
+    verificationHostname?: string | null;
+    dnsRecordName?: string | null;
+    recordType?: string | null;
+    txtValue?: string | null;
+    ttl?: string | null;
+    cnameNote?: string | null;
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [ownershipCheck, setOwnershipCheck] = useState<{
+    checkedHostname: string | null;
+    failureReason: string | null;
+    message: string | null;
+    hint: string | null;
   } | null>(null);
   const lastEventId = useRef<string | null>(null);
 
@@ -363,6 +379,7 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start verification.");
       setOwnershipInstructions(data.instructions ?? null);
+      setOwnershipCheck(null);
       setOwnershipMsg(
         method === "http_file"
           ? "Verification file challenge created. Publish the file, then click Verify."
@@ -373,6 +390,16 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
       setOwnershipMsg(err instanceof Error ? err.message : "Ownership challenge failed.");
     } finally {
       setOwnershipBusy(false);
+    }
+  }
+
+  async function copyExact(field: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField((f) => (f === field ? null : f)), 2000);
+    } catch {
+      setOwnershipMsg("Copy failed — select the value and copy it manually.");
     }
   }
 
@@ -388,9 +415,23 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
       });
       const data = await res.json();
       if (!res.ok && !data.status) throw new Error(data.error ?? "Verify failed.");
-      setOwnershipMsg(data.message ?? `Ownership status: ${data.status}`);
-      if (data.failureReason) {
-        setOwnershipMsg((prev) => `${prev ?? ""} (${data.failureReason})`.trim());
+      if (data.status === "failed" && data.method === "dns_txt" && data.instructions) {
+        // Show exactly what we checked plus the exact record to add.
+        setOwnershipInstructions(data.instructions);
+        setOwnershipCheck({
+          checkedHostname: data.checkedHostname ?? null,
+          failureReason: data.failureReason ?? null,
+          message: data.message ?? null,
+          hint: data.hint ?? null,
+        });
+        setOwnershipMsg(null);
+      } else {
+        setOwnershipCheck(null);
+        setOwnershipMsg(data.message ?? `Ownership status: ${data.status}`);
+        if (data.failureReason) {
+          setOwnershipMsg((prev) => `${prev ?? ""} (${data.failureReason})`.trim());
+        }
+        if (data.status === "verified") setOwnershipInstructions(null);
       }
       setScan(await loadScan());
     } catch (err) {
@@ -698,7 +739,98 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
                 Recheck / Verify
               </button>
             </div>
-            {ownershipInstructions ? (
+            {ownershipInstructions?.method === "dns_txt" && ownershipInstructions.txtValue ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-scanner-bg/50 p-4 text-sm text-slate-300">
+                {ownershipCheck ? (
+                  <div className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                    <p className="font-semibold text-amber-200">
+                      {ownershipCheck.failureReason === "dns_timeout" ||
+                      ownershipCheck.failureReason === "dns_servfail" ||
+                      ownershipCheck.failureReason === "dns_resolution_error" ||
+                      ownershipCheck.failureReason === "dns_permission_error"
+                        ? "DNS lookup did not complete"
+                        : ownershipCheck.failureReason === "wrong_token"
+                          ? "Verification value does not match"
+                          : "Verification record not found"}
+                    </p>
+                    {ownershipCheck.checkedHostname ? (
+                      <p className="mt-1">
+                        We checked:{" "}
+                        <code className="scanner-mono break-all text-white" data-testid="dns-checked-hostname">
+                          {ownershipCheck.checkedHostname}
+                        </code>
+                      </p>
+                    ) : null}
+                    {ownershipCheck.message ? <p className="mt-1 text-amber-100/80">{ownershipCheck.message}</p> : null}
+                    {ownershipCheck.hint ? (
+                      <p className="mt-2 font-medium text-amber-200" data-testid="dns-misplaced-hint">
+                        {ownershipCheck.hint}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-amber-100/80">
+                      Make sure your DNS provider contains the record below, then wait for DNS propagation and try
+                      again.
+                    </p>
+                  </div>
+                ) : null}
+                <p className="font-medium text-white">Add a DNS TXT record</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Create the following DNS record in your domain provider:
+                </p>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
+                  <dt className="text-slate-500">Type</dt>
+                  <dd className="scanner-mono text-white">{ownershipInstructions.recordType ?? "TXT"}</dd>
+                  <dt className="text-slate-500">Name</dt>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    <code className="scanner-mono break-all text-white" data-testid="dns-record-name">
+                      {ownershipInstructions.dnsRecordName}
+                    </code>
+                    <button
+                      type="button"
+                      className="scanner-btn-ghost !px-2 !py-0.5 text-[11px]"
+                      onClick={() => void copyExact("name", ownershipInstructions.dnsRecordName ?? "")}
+                    >
+                      {copiedField === "name" ? "Copied" : "Copy name"}
+                    </button>
+                  </dd>
+                  <dt className="text-slate-500">Value</dt>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    {/* Full token: no truncation, no ellipsis — wraps instead. */}
+                    <code className="scanner-mono break-all whitespace-pre-wrap text-white" data-testid="dns-txt-value">
+                      {ownershipInstructions.txtValue}
+                    </code>
+                    <button
+                      type="button"
+                      className="scanner-btn-ghost !px-2 !py-0.5 text-[11px]"
+                      onClick={() => void copyExact("value", ownershipInstructions.txtValue ?? "")}
+                    >
+                      {copiedField === "value" ? "Copied" : "Copy value"}
+                    </button>
+                  </dd>
+                  <dt className="text-slate-500">TTL</dt>
+                  <dd className="text-white">{ownershipInstructions.ttl ?? "1 hour / default"}</dd>
+                </dl>
+                <p className="mt-3 text-xs text-slate-400">
+                  We will look up exactly{" "}
+                  <code className="scanner-mono break-all text-slate-200" data-testid="dns-verification-hostname">
+                    {ownershipInstructions.verificationHostname}
+                  </code>
+                  . Some providers want the full name instead of the short one — either form points to the same
+                  record.
+                </p>
+                {ownershipInstructions.cnameNote ? (
+                  <p className="mt-2 text-xs text-sky-300">{ownershipInstructions.cnameNote}</p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={ownershipBusy}
+                  className="scanner-btn-primary mt-4"
+                  onClick={() => void verifyOwnership()}
+                >
+                  Verify ownership
+                </button>
+              </div>
+            ) : ownershipInstructions ? (
               <div className="mt-4 rounded-xl border border-white/10 bg-scanner-bg/50 p-4 text-sm text-slate-300">
                 <p className="font-medium text-white">{ownershipInstructions.summary}</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-slate-400">
@@ -713,11 +845,6 @@ export function ScanLiveView({ scanId }: { scanId: string }) {
                     {ownershipInstructions.httpPath}
                     {"\n"}
                     {ownershipInstructions.httpBody}
-                  </pre>
-                ) : null}
-                {ownershipInstructions.txtRecord ? (
-                  <pre className="scanner-mono mt-3 overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-slate-300">
-                    {ownershipInstructions.txtRecord}
                   </pre>
                 ) : null}
               </div>

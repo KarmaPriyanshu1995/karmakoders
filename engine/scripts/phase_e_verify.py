@@ -255,28 +255,37 @@ def test_cross_project_isolation() -> None:
     wait_scan(str(b["scanId"]))
     # If both reused same verified project, projectIds may match — then create challenges
     # only proves tokens differ when projects differ. Prefer asserting challenge API isolation:
-    ca, cha = http_json(
+    # Loopback fixture is an IP: DNS TXT has no hostname to publish under, so the
+    # challenge API must refuse it. Isolation itself is checked with http_file.
+    cip, _ = http_json(
         "POST",
         f"{API}/api/ownership/challenges",
         {"projectId": a["projectId"], "method": "dns_txt"},
+    )
+    ca, cha = http_json(
+        "POST",
+        f"{API}/api/ownership/challenges",
+        {"projectId": a["projectId"], "method": "http_file"},
     )
     # Second project: if same as first due to reuse after prior verify in suite, still OK —
     # creating challenge for same project replaces token (per-project upsert).
     cb, chb = http_json(
         "POST",
         f"{API}/api/ownership/challenges",
-        {"projectId": b["projectId"], "method": "dns_txt"},
+        {"projectId": b["projectId"], "method": "http_file"},
     )
-    ok = ca == 200 and cb == 200 and isinstance(cha, dict) and isinstance(chb, dict)
+    ok = cip == 400 and ca == 200 and cb == 200 and isinstance(cha, dict) and isinstance(chb, dict)
+    tokens_ok = isinstance(cha, dict) and isinstance(chb, dict) and (
+        cha.get("token") != chb.get("token") or a.get("projectId") == b.get("projectId")
+    )
     # Cross-tenant rule: ownership row is always scoped by project_id (UNIQUE project_id, domain)
     section(
         "cross_project",
         {
-            "status": "PASS" if ok else "FAIL",
+            "status": "PASS" if ok and tokens_ok else "FAIL",
+            "dns_txt_on_ip_rejected": cip == 400,
             "same_project_reused": a.get("projectId") == b.get("projectId"),
-            "tokens_differ_or_same_project": (
-                cha.get("token") != chb.get("token") or a.get("projectId") == b.get("projectId")
-            ),
+            "tokens_differ_or_same_project": tokens_ok,
         },
     )
 

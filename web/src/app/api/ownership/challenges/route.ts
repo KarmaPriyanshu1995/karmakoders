@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
+import { isIP } from "net";
 import {
   CHALLENGE_TTL_MS,
   hostFromUrl,
+  hostIsCname,
   instructionsFor,
   newChallengeToken,
   normalizeHost,
+  verificationHostnameFor,
   type OwnershipMethod,
 } from "@/lib/ownership";
 
@@ -48,12 +51,17 @@ export async function POST(request: Request) {
     const project = projects[0];
     if (!project) return noStore({ error: "Project not found." }, 404);
 
+    // Claimed host = exactly the project's host. www is never folded into the apex.
     let domain: string;
     try {
       domain = hostFromUrl(String(project.primary_url));
     } catch {
       return noStore({ error: "Project URL is invalid." }, 400);
     }
+    if (method === "dns_txt" && (isIP(domain) || !domain.includes("."))) {
+      return noStore({ error: "DNS TXT verification needs a domain name. Use file verification for this host." }, 400);
+    }
+    const verificationHostname = method === "dns_txt" ? verificationHostnameFor(domain) : null;
 
     const challenge = newChallengeToken();
     const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString();
@@ -62,7 +70,8 @@ export async function POST(request: Request) {
     const rows = await sql`
       INSERT INTO verified_domains (
         project_id, domain, verification_token, method, status, token_hash,
-        challenge_expires_at, verified_at, verified_expires_at, failure_reason, created_at
+        challenge_expires_at, verified_at, verified_expires_at, failure_reason, created_at,
+        verification_hostname
       )
       VALUES (
         ${body.projectId},
@@ -75,7 +84,8 @@ export async function POST(request: Request) {
         NULL,
         NULL,
         NULL,
-        now()
+        now(),
+        ${verificationHostname}
       )
       ON CONFLICT (project_id, domain) DO UPDATE SET
         verification_token = EXCLUDED.verification_token,
@@ -86,17 +96,31 @@ export async function POST(request: Request) {
         verified_at = NULL,
         verified_expires_at = NULL,
         failure_reason = NULL,
-        last_checked_at = NULL
-      RETURNING id, domain, method, status, challenge_expires_at
+        last_checked_at = NULL,
+        verification_hostname = EXCLUDED.verification_hostname
+      RETURNING id, domain, method, status, challenge_expires_at, verification_hostname
     `;
 
     const row = rows[0];
-    const instructions = instructionsFor(method, domain, challenge.token, challenge.txtRecord);
+    const claimedHostIsCname = method === "dns_txt" ? await hostIsCname(domain) : false;
+    const instructions = instructionsFor({
+      method,
+      claimedHost: domain,
+      token: challenge.token,
+      verificationHostname: row.verification_hostname ? String(row.verification_hostname) : null,
+      claimedHostIsCname,
+    });
 
+    // Backend is authoritative for every DNS value; the UI never derives them.
     return noStore({
       id: row.id,
       projectId: body.projectId,
       domain: normalizeHost(String(row.domain)),
+      claimedHost: instructions.claimedHost,
+      verificationHostname: instructions.verificationHostname,
+      dnsRecordName: instructions.dnsRecordName,
+      txtValue: instructions.txtValue,
+      claimedHostIsCname,
       method: row.method,
       status: row.status,
       challengeExpiresAt: row.challenge_expires_at,

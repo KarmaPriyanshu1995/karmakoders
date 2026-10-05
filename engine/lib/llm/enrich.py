@@ -13,7 +13,7 @@ from lib.queue import add_event
 
 from .generate import generate
 from .provider import LLMProvider
-from .settings import LLMSettings, get_llm_settings
+from .settings import LLMSettings, get_llm_settings, load_llm_overrides
 
 log = logging.getLogger("scanner.llm.enrich")
 
@@ -45,7 +45,7 @@ async def enrich_scan_findings(
     Must be called AFTER grade persistence (and preferably after scan=done).
     """
     stats = {"considered": 0, "generated": 0, "failed": 0, "skipped": 0, "cached": 0}
-    cfg = settings or get_llm_settings()
+    cfg = settings or get_llm_settings(await load_llm_overrides(conn))
 
     try:
         cur = await conn.execute(

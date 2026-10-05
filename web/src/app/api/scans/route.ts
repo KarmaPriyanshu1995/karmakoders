@@ -45,9 +45,8 @@ async function createUrlScan(body: Body) {
 
   const primaryUrl = parsed.toString();
   const name = parsed.hostname;
+  // Exact host: a verified apex must not unlock www (or vice versa).
   const host = normalizeHost(parsed.hostname);
-  const apex = host.startsWith("www.") ? host.slice(4) : host;
-  const www = host.startsWith("www.") ? host : `www.${host}`;
 
   const sql = getSql();
 
@@ -56,7 +55,7 @@ async function createUrlScan(body: Body) {
     FROM projects p
     JOIN verified_domains vd ON vd.project_id = p.id
     WHERE p.user_id IS NULL
-      AND lower(vd.domain) IN (${host}, ${apex}, ${www})
+      AND lower(vd.domain) = ${host}
       AND (
         vd.status = 'verified'
         OR (vd.verified_at IS NOT NULL AND (vd.status IS NULL OR vd.status = 'verified'))

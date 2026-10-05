@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import {
   HTTP_PATH,
-  TXT_PREFIX,
-  hostsEquivalent,
   instructionsFor,
   normalizeHost,
   type OwnershipMethod,
@@ -47,15 +45,16 @@ export async function GET(request: Request) {
     const rows = await sql`
       SELECT
         id, domain, method, status, verification_token, verified_at,
-        challenge_expires_at, verified_expires_at, last_checked_at, failure_reason
+        challenge_expires_at, verified_expires_at, last_checked_at, failure_reason,
+        verification_hostname
       FROM verified_domains
       WHERE project_id = ${projectId}
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 5
+        AND lower(domain) = ${host}
+      LIMIT 1
     `;
 
-    const match =
-      rows.find((r) => hostsEquivalent(String(r.domain), host)) ?? rows[0] ?? null;
+    // Exact claimed host only — an apex claim never reports status for www (or vice versa).
+    const match = rows[0] ?? null;
 
     if (!match) {
       return noStore({
@@ -94,12 +93,20 @@ export async function GET(request: Request) {
     const token = String(match.verification_token || "");
     const instructions =
       status === "pending" || status === "failed" || status === "expired"
-        ? instructionsFor(method, host, token, `${TXT_PREFIX}${token}`)
+        ? instructionsFor({
+            method,
+            claimedHost: host,
+            token,
+            verificationHostname: match.verification_hostname ? String(match.verification_hostname) : null,
+          })
         : null;
 
     return noStore({
       projectId,
       domain: normalizeHost(String(match.domain)),
+      claimedHost: host,
+      verificationHostname: instructions?.verificationHostname ?? null,
+      dnsRecordName: instructions?.dnsRecordName ?? null,
       status,
       method: match.method,
       verifiedAt: match.verified_at,

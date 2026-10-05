@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db";
 import {
   VERIFIED_TTL_MS,
   hostFromUrl,
-  hostsEquivalent,
+  instructionsFor,
   normalizeHost,
   verifyDnsTxt,
   verifyHttpFile,
@@ -50,16 +50,26 @@ async function handleVerify(request: Request) {
       return noStore({ error: "Invalid project URL." }, 400);
     }
 
+    // Binding: this project + this exact claimed host. www and apex are distinct claims.
     const rows = await sql`
-      SELECT id, domain, method, status, verification_token, challenge_expires_at
+      SELECT id, domain, method, status, verification_token, challenge_expires_at,
+             verification_hostname
       FROM verified_domains
       WHERE project_id = ${body.projectId}
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 5
+        AND lower(domain) = ${host}
+      LIMIT 1
     `;
-    const row = rows.find((r) => hostsEquivalent(String(r.domain), host)) ?? rows[0];
+    const row = rows[0];
     if (!row) {
-      return noStore({ error: "No ownership challenge found. Create one first." }, 404);
+      return noStore(
+        {
+          error: "No ownership challenge found. Create one first.",
+          status: "failed",
+          failureReason: "challenge_not_found",
+          claimedHost: host,
+        },
+        404
+      );
     }
 
     if (
@@ -76,15 +86,30 @@ async function handleVerify(request: Request) {
         status: "expired",
         failureReason: "challenge_expired",
         domain: normalizeHost(String(row.domain)),
+        claimedHost: host,
+        message: "Your verification challenge expired. Generate a new challenge.",
       });
     }
 
     const token = String(row.verification_token || "");
     const method = String(row.method || "http_file");
-    const result =
-      method === "dns_txt"
-        ? await verifyDnsTxt(host, token)
-        : await verifyHttpFile(String(project.primary_url), token);
+    let verificationHostname: string | null = null;
+    let failureMessage: string | null = null;
+    let hint: string | null = null;
+    let result: { ok: boolean; reason?: string };
+    if (method === "dns_txt") {
+      const dnsResult = await verifyDnsTxt({
+        claimedHost: host,
+        token,
+        storedVerificationHostname: row.verification_hostname ? String(row.verification_hostname) : null,
+      });
+      verificationHostname = dnsResult.verificationHostname;
+      failureMessage = dnsResult.message ?? null;
+      hint = dnsResult.hint ?? null;
+      result = dnsResult;
+    } else {
+      result = await verifyHttpFile(String(project.primary_url), token);
+    }
 
     if (result.ok) {
       const verifiedExpires = new Date(Date.now() + VERIFIED_TTL_MS).toISOString();
@@ -100,6 +125,8 @@ async function handleVerify(request: Request) {
       return noStore({
         status: "verified",
         domain: normalizeHost(String(row.domain)),
+        claimedHost: host,
+        verificationHostname,
         method,
         verifiedExpiresAt: verifiedExpires,
         message:
@@ -118,9 +145,24 @@ async function handleVerify(request: Request) {
     return noStore({
       status: "failed",
       domain: normalizeHost(String(row.domain)),
+      claimedHost: host,
+      // The exact name we queried (same value the challenge API returned).
+      checkedHostname: verificationHostname,
+      verificationHostname,
       method,
       failureReason: reason,
-      message: "Ownership could not be verified yet. Check the instructions and try again.",
+      message: failureMessage ?? "Ownership could not be verified yet. Check the instructions and try again.",
+      hint,
+      // Re-show the exact record to add (same values as the challenge response).
+      instructions:
+        method === "dns_txt"
+          ? instructionsFor({
+              method: "dns_txt",
+              claimedHost: host,
+              token,
+              verificationHostname,
+            })
+          : null,
     });
   } catch (error) {
     console.error("ownership verify failed", error);

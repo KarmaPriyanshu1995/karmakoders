@@ -1,2 +1,4 @@
 psycopg[binary]>=3.2,<4
 playwright>=1.49,<2
+anthropic>=1,<2
+dnspython>=2.6,<3

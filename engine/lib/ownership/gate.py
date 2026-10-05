@@ -8,7 +8,7 @@ from uuid import UUID
 
 import psycopg
 
-from .ssrf import hosts_equivalent, normalize_host
+from .ssrf import normalize_host
 
 
 def _now() -> datetime:
@@ -26,7 +26,8 @@ def _as_aware(dt: Any) -> datetime | None:
 def _row_is_verified(row: dict[str, Any] | None, *, host: str) -> bool:
     if not row:
         return False
-    if not hosts_equivalent(str(row.get("domain") or ""), host):
+    # Exact host: verifying the apex never authorizes www (or vice versa).
+    if normalize_host(str(row.get("domain") or "")) != normalize_host(host):
         return False
     status = (row.get("status") or "").lower()
     if status in {"revoked", "expired", "failed", "pending"}:
@@ -53,8 +54,6 @@ async def get_ownership_row(
     host: str,
 ) -> dict[str, Any] | None:
     h = normalize_host(host)
-    apex = h[4:] if h.startswith("www.") else h
-    www = h if h.startswith("www.") else f"www.{h}"
     cur = await conn.execute(
         """
         SELECT id, project_id, domain, method, status, verification_token, token_hash,
@@ -62,11 +61,10 @@ async def get_ownership_row(
                last_checked_at, failure_reason
         FROM verified_domains
         WHERE project_id = %s
-          AND lower(domain) IN (%s, %s, %s)
-        ORDER BY verified_at DESC NULLS LAST, created_at DESC NULLS LAST
+          AND lower(domain) = %s
         LIMIT 1
         """,
-        (project_id, h, apex, www),
+        (project_id, h),
     )
     return await cur.fetchone()
 

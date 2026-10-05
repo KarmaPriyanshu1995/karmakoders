@@ -196,15 +196,8 @@ export async function GET(_request: Request, { params }: Params) {
         ORDER BY created_at DESC NULLS LAST
         LIMIT 5
       `;
-      const match =
-        ownershipRows.find((r) => {
-          const d = String(r.domain || "").toLowerCase();
-          return (
-            d === host ||
-            (host.startsWith("www.") && d === host.slice(4)) ||
-            (!host.startsWith("www.") && d === `www.${host}`)
-          );
-        }) ?? ownershipRows[0];
+      // Exact claimed host only (www and apex are separate ownership claims).
+      const match = ownershipRows.find((r) => String(r.domain || "").toLowerCase() === host);
       if (match) {
         ownershipMethod = match.method ?? null;
         ownershipFailureReason = match.failure_reason ?? null;
