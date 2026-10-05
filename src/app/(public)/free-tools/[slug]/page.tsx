@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ domain?: string }>;
+  searchParams: Promise<{ domain?: string; url?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
