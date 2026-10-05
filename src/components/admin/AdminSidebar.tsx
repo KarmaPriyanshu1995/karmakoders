@@ -31,6 +31,7 @@ import {
   Tags,
   Handshake,
   Quote,
+  Bot,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -96,11 +97,10 @@ const navItems: NavItem[] = [
   { href: "/admin/settings", label: "Settings", icon: Settings, section: "SETTINGS" },
 ];
 
-const platformNavItem: NavItem = {
-  href: "/admin/platform/tenants",
-  label: "Platform · Tenants",
-  icon: Shield,
-};
+const platformNavItems: NavItem[] = [
+  { href: "/admin/platform/tenants", label: "Platform · Tenants", icon: Shield },
+  { href: "/admin/platform/ai-provider", label: "Platform · AI Provider", icon: Bot },
+];
 
 interface AdminSidebarProps {
   isSuperAdmin?: boolean;
@@ -113,7 +113,7 @@ export function AdminSidebar({ isSuperAdmin = false, role = null, permissionOver
   const visibleItems = isSuperAdmin
     ? navItems
     : navItems.filter((item) => !item.section || (role && canViewSection(role, item.section, permissionOverrides)));
-  const items = isSuperAdmin ? [...visibleItems, platformNavItem] : visibleItems;
+  const items = isSuperAdmin ? [...visibleItems, ...platformNavItems] : visibleItems;
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 

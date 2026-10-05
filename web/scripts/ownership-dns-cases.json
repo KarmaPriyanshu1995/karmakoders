@@ -1,0 +1,11 @@
+[
+  { "claimedHost": "www.example.com", "verificationHostname": "_karmakoders-verify.www.example.com", "dnsRecordName": "_karmakoders-verify.www" },
+  { "claimedHost": "example.com", "verificationHostname": "_karmakoders-verify.example.com", "dnsRecordName": "_karmakoders-verify" },
+  { "claimedHost": "app.example.com", "verificationHostname": "_karmakoders-verify.app.example.com", "dnsRecordName": "_karmakoders-verify.app" },
+  { "claimedHost": "www.karmakoders.com", "verificationHostname": "_karmakoders-verify.www.karmakoders.com", "dnsRecordName": "_karmakoders-verify.www" },
+  { "claimedHost": "karmakoders.com", "verificationHostname": "_karmakoders-verify.karmakoders.com", "dnsRecordName": "_karmakoders-verify" },
+  { "claimedHost": "WWW.Example.COM.", "verificationHostname": "_karmakoders-verify.www.example.com", "dnsRecordName": "_karmakoders-verify.www" },
+  { "claimedHost": "a.b.example.com", "verificationHostname": "_karmakoders-verify.a.b.example.com", "dnsRecordName": "_karmakoders-verify.a.b" },
+  { "claimedHost": "shop.example.co.uk", "verificationHostname": "_karmakoders-verify.shop.example.co.uk", "dnsRecordName": "_karmakoders-verify.shop" },
+  { "claimedHost": "example.co.in", "verificationHostname": "_karmakoders-verify.example.co.in", "dnsRecordName": "_karmakoders-verify" }
+]

@@ -40,6 +40,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# security scanner (/web)
+/web/node_modules/
+/web/.next/
+
+# security scanner (/engine)
+/engine/.venv/
+/engine/venv/
+/engine/__pycache__/
+/engine/**/__pycache__/
+/engine/.env
+/engine/bin/
+/engine/.scan-work/
+
 /src/generated/prisma
 
 # SQLite local databases

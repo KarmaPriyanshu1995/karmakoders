@@ -6,6 +6,7 @@ import { Footer } from "@/components/sections/Footer";
 import { DomainCompareTool } from "@/components/tools/DomainCompareTool";
 import { CompressImageTool } from "@/components/tools/CompressImageTool";
 import { MvpCostCalculator } from "@/components/tools/MvpCostCalculator";
+import { SecurityScannerTool } from "@/components/tools/SecurityScannerTool";
 import { ToolSeoContent } from "@/components/tools/ToolSeoContent";
 import { getPublishedToolBySlug } from "@/lib/tools/queries";
 import { getFreeToolsSettings } from "@/lib/tools/settings-db";
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ domain?: string }>;
+  searchParams: Promise<{ domain?: string; url?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -100,7 +101,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
       ))}
       <Navbar />
       <div className="pt-32 pb-24 px-6 md:px-12 max-w-5xl mx-auto w-full">
-        <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">
+        <p className="text-[#FFC300] text-sm font-bold uppercase tracking-widest mb-4">
           <Link href="/free-tools" className="hover:text-white">Free Tools</Link>
           {tool.category ? ` · ${tool.category.name}` : ""}
         </p>
@@ -125,6 +126,15 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
           <CompressImageTool />
         ) : tool.slug === "mvp-cost-calculator" ? (
           <MvpCostCalculator />
+        ) : tool.slug === "security-scanner" ? (
+          <SecurityScannerTool
+            scannerBaseUrl={
+              process.env.NEXT_PUBLIC_SCANNER_URL ||
+              process.env.SCANNER_APP_URL ||
+              "http://localhost:3001"
+            }
+            initialUrl={query.url || ""}
+          />
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-slate-300">
             This tool is published and ready for an interactive implementation.
