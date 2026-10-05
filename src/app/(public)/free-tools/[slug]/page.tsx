@@ -127,14 +127,7 @@ export default async function FreeToolPage({ params, searchParams }: PageProps) 
         ) : tool.slug === "mvp-cost-calculator" ? (
           <MvpCostCalculator />
         ) : tool.slug === "security-scanner" ? (
-          <SecurityScannerTool
-            scannerBaseUrl={
-              process.env.NEXT_PUBLIC_SCANNER_URL ||
-              process.env.SCANNER_APP_URL ||
-              "http://localhost:3001"
-            }
-            initialUrl={query.url || ""}
-          />
+          <SecurityScannerTool initialUrl={query.url || ""} />
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-slate-300">
             This tool is published and ready for an interactive implementation.

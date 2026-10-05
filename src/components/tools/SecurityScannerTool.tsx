@@ -1,23 +1,23 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
-  scannerBaseUrl: string;
   initialUrl?: string;
 };
 
-export function SecurityScannerTool({ scannerBaseUrl, initialUrl = "" }: Props) {
+// The scanner now lives on this site at /security-scanner.
+const SCANNER_PATH = "/security-scanner";
+
+export function SecurityScannerTool({ initialUrl = "" }: Props) {
+  const router = useRouter();
   const [url, setUrl] = useState(initialUrl);
-  const base = scannerBaseUrl.replace(/\/$/, "");
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     const trimmed = url.trim();
-    const target = trimmed
-      ? `${base}/?url=${encodeURIComponent(trimmed)}`
-      : `${base}/`;
-    window.location.href = target;
+    router.push(trimmed ? `${SCANNER_PATH}?url=${encodeURIComponent(trimmed)}` : SCANNER_PATH);
   }
 
   return (
@@ -46,19 +46,7 @@ export function SecurityScannerTool({ scannerBaseUrl, initialUrl = "" }: Props) 
           Open security scanner
         </button>
       </form>
-      <p className="mt-4 text-sm text-slate-500">
-        Opens the KarmaKoders scanner app
-        {base ? (
-          <>
-            {" "}
-            (<a className="text-[#FFC300] hover:text-white underline" href={base}>
-              {base}
-            </a>
-            )
-          </>
-        ) : null}
-        . A scan is not a guarantee of security.
-      </p>
+      <p className="mt-4 text-sm text-slate-500">A scan is not a guarantee of security.</p>
     </div>
   );
 }
