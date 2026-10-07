@@ -177,7 +177,7 @@ describe("seedDatabase", () => {
     const result = await actions.seedDatabase("sections");
     expect(result.success).toBe(true);
 
-    const homePage = await prisma.page.findFirst({ where: { tenantId: tenantA.id, slug: "/" } });
+    const homePage = await prisma.page.findFirst({ where: { tenantId: tenantA.id, slug: "home" } });
     expect(homePage).not.toBeNull();
     const sections = await prisma.section.findMany({ where: { pageId: homePage!.id } });
     expect(sections.length).toBeGreaterThan(0);
@@ -185,7 +185,7 @@ describe("seedDatabase", () => {
     // Running it again for Tenant B must not collide with Tenant A's section ids.
     mockSessionFor(adminB);
     await actions.seedDatabase("sections");
-    const homePageB = await prisma.page.findFirst({ where: { tenantId: tenantB.id, slug: "/" } });
+    const homePageB = await prisma.page.findFirst({ where: { tenantId: tenantB.id, slug: "home" } });
     expect(homePageB!.id).not.toBe(homePage!.id);
   });
 });
