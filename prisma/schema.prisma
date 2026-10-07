@@ -1,1582 +1,1597 @@
-generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-// ===========================
-// PLATFORM / MULTI-TENANCY
-// ===========================
-
-enum TenantStatus {
-  ACTIVE
-  SUSPENDED
-}
-
-enum MembershipRole {
-  TENANT_ADMIN
-  MANAGER
-  EDITOR
-  AUTHOR
-  HR
-  EMPLOYEE
-  VIEWER
-}
-
-enum MembershipStatus {
-  ACTIVE
-  INVITED
-  SUSPENDED
-}
-
-model Tenant {
-  id        String       @id @default(cuid())
-  name      String
-  slug      String       @unique
-  status    TenantStatus @default(ACTIVE)
-  isPrimary Boolean      @default(false)
-  logo      String?
-  email     String?
-  phone     String?
-  website   String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  memberships           Membership[]
-  pages                 Page[]
-  projects              Project[]
-  posts                 Post[]
-  contactSubmissions    ContactSubmission[]
-  newsletterSubscribers NewsletterSubscriber[]
-  jobOpenings           JobOpening[]
-  jobApplications       JobApplication[]
-  siteConfigs           SiteConfig[]
-  media                 Media[]
-  auditLogs             AuditLog[]
-
-  seoPages                SeoPage[]
-  seoEntities             SeoEntity[]
-  seoClusters             SeoCluster[]
-  seoAudits               SeoAudit[]
-  seoInternalLinks        SeoInternalLink[]
-  seoSchemas              SeoSchema[]
-  seoReports              SeoReport[]
-  seoIssues               SeoIssue[]
-  seoKeywordOpportunities SeoKeywordOpportunity[]
-  seoCtrReports           SeoCtrReport[]
-  seoContentGaps          SeoContentGap[]
-  seoBrand                SeoBrand[]
-  seoSearchConsole        SeoSearchConsole[]
-  seoAutomationLogs       SeoAutomationLog[]
-
-  freeTools               FreeTool[]
-  toolCategories          ToolCategory[]
-  domainProviders         DomainProvider[]
-  affiliatePrograms       AffiliateProgram[]
-  affiliateClicks         AffiliateClick[]
-  domainSearchCache       DomainSearchCache[]
-  domainPrices            DomainPrice[]
-  domainExtensions        DomainExtension[]
-  registrarComparisons    RegistrarComparison[]
-  seoLandingPages         SeoLandingPage[]
-  toolAnalyticsEvents     ToolAnalyticsEvent[]
-  usageEvents             UsageEvent[]
-
-  @@index([status])
-}
-
-model Membership {
-  id                  String            @id @default(cuid())
-  userId              String
-  tenantId            String
-  role                MembershipRole    @default(TENANT_ADMIN)
-  status              MembershipStatus  @default(ACTIVE)
-  permissionOverrides Json?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, tenantId])
-  @@index([userId])
-  @@index([tenantId])
-}
-
-// ===========================
-// AUTH
-// ===========================
-
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  isSuperAdmin  Boolean   @default(false)
-  role          String    @default("USER")
-  accounts      Account[]
-  sessions      Session[]
-  memberships   Membership[]
-  auditLogs     AuditLog[]
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ===========================
-// TENANT-OWNED CONTENT
-// ===========================
-
-model SiteConfig {
-  id        String   @id @default(cuid())
-  tenantId  String
-  key       String   // e.g. "theme", "seoMeta"
-  value     String   // JSON stringified
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, key])
-  @@index([tenantId])
-}
-
-model Page {
-  id          String    @id @default(cuid())
-  tenantId    String
-  slug        String
-  title       String
-  sections    Section[]
-  isPublished Boolean   @default(false)
-  seoMeta     String?   // JSON stringified
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-}
-
-model Section {
-  id      String @id @default(cuid())
-  pageId  String
-  page    Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  type    String
-  content String // JSON stringified
-  order   Int
-
-  @@index([pageId])
-}
-
-model Project {
-  id          String   @id @default(cuid())
-  tenantId    String
-  title       String
-  slug        String
-  description String
-  imageUrl    String
-  content     String
-  link        String?
-  tags        String   // CSV string (e.g. "react,nextjs")
-  detailsJson String?  // optional case-study fields: industry, country, timeline, metrics, etc.
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-}
-
-model Post {
-  id              String   @id @default(cuid())
-  tenantId        String
-  title           String
-  slug            String
-  excerpt         String?
-  content         String
-  blocks          Json?
-  formatMeta      Json?
-  readTimeMinutes Int?
-  image           String?
-  category        String?
-  author          String?
-  type            String   @default("blog") // blog | case-study | success-story | startup-idea | prompt
-  published       Boolean  @default(false)
-  viewCount       Int      @default(0)
-  seoMeta         String?  // JSON stringified
-  createdAt       DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-  @@index([tenantId, type])
-}
-
-model ContactSubmission {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  email     String
-  phone     String?
-  message   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model NewsletterSubscriber {
-  id        String   @id @default(cuid())
-  tenantId  String
-  email     String
-  createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, email])
-  @@index([tenantId])
-}
-
-model JobOpening {
-  id           String   @id @default(cuid())
-  tenantId     String
-  title        String
-  slug         String
-  department   String?
-  location     String?
-  type         String   @default("Full-time")
-  description  String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  applications JobApplication[]
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-}
-
-model JobApplication {
-  id          String   @id @default(cuid())
-  tenantId    String
-  jobId       String
-  job         JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  name        String
-  email       String
-  phone       String?
-  portfolio   String?
-  cvUrl       String
-  coverLetter String?
-  status      String   @default("Pending") // Pending, Reviewed, Interview, Rejected, Hired
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([jobId])
-}
-
-model Media {
-  id           String   @id @default(cuid())
-  tenantId     String
-  url          String
-  key          String?
-  name         String
-  size         Int?
-  mimeType     String?
-  uploadedById String?
-  createdAt    DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-// ===========================
-// AUDIT LOG
-// ===========================
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  tenantId   String?
-  userId     String?
-  action     String
-  resource   String?
-  resourceId String?
-  metadata   String?  // JSON stringified
-  createdAt  DateTime @default(now())
-
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-}
-
-// ===========================
-// SEO INTELLIGENCE CENTER
-// ===========================
-
-model SeoPage {
-  id                  String   @id @default(cuid())
-  tenantId            String
-  pageType            String   // "page" | "post" | "project"
-  pageId              String   // references Page.id, Post.id, or Project.id
-  url                 String
-  title               String?
-  metaTitle           String?
-  metaDescription     String?
-  h1                  String?
-  headingsJson        String?  // JSON array of headings
-  wordCount           Int      @default(0)
-  readabilityScore    Float    @default(0)
-  keywordDensityJson  String?  // JSON object
-  internalLinksCount  Int      @default(0)
-  externalLinksCount  Int      @default(0)
-  imagesCount         Int      @default(0)
-  imagesWithAlt       Int      @default(0)
-  hasFaq              Boolean  @default(false)
-  hasSchema           Boolean  @default(false)
-  schemaTypes         String?  // CSV of schema types
-  contentScore        Float    @default(0)
-  technicalScore      Float    @default(0)
-  entityScore         Float    @default(0)
-  internalLinkScore   Float    @default(0)
-  schemaScore         Float    @default(0)
-  ctrScore            Float    @default(0)
-  overallScore        Float    @default(0)
-  issuesJson          String?  // JSON array of issues
-  recommendationsJson String?  // JSON array of recommendations
-  isIndexed           Boolean  @default(true)
-  isOrphan            Boolean  @default(false)
-  lastAnalyzed        DateTime @default(now())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, pageType, pageId])
-  @@index([tenantId])
-  @@map("seo_pages")
-}
-
-model SeoEntity {
-  id          String   @id @default(cuid())
-  tenantId    String
-  type        String   // "brand" | "person" | "service" | "product" | "location" | "topic" | "keyword"
-  name        String
-  description String?
-  aliases     String?  // CSV of alternate names
-  sitewide    Boolean  @default(false)
-  pagesJson   String?  // JSON array of page IDs where this entity appears
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_entities")
-}
-
-model SeoCluster {
-  id               String   @id @default(cuid())
-  tenantId         String
-  name             String
-  slug             String
-  pillarPageId     String?
-  childPagesJson   String?  // JSON array of SeoPage.ids
-  keywords         String?  // CSV
-  topicsJson       String?  // JSON array
-  healthScore      Float    @default(0)
-  authorityScore   Float    @default(0)
-  missingTopics    String?  // JSON array
-  suggestedContent String?  // JSON array
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-  @@map("seo_clusters")
-}
-
-model SeoAudit {
-  id                    String   @id @default(cuid())
-  tenantId              String
-  runAt                 DateTime @default(now())
-  totalPages            Int      @default(0)
-  indexedPages          Int      @default(0)
-  nonIndexedPages       Int      @default(0)
-  brokenPages           Int      @default(0)
-  brokenLinks           Int      @default(0)
-  missingTitles         Int      @default(0)
-  duplicateTitles       Int      @default(0)
-  missingDescriptions   Int      @default(0)
-  duplicateDescriptions Int      @default(0)
-  missingH1             Int      @default(0)
-  multipleH1            Int      @default(0)
-  missingAlt            Int      @default(0)
-  orphanPages           Int      @default(0)
-  missingSchema         Int      @default(0)
-  overallScore          Float    @default(0)
-  technicalScore        Float    @default(0)
-  contentScore          Float    @default(0)
-  issuesSummaryJson     String?
-  status                String   @default("complete")
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_audits")
-}
-
-model SeoInternalLink {
-  id          String   @id @default(cuid())
-  tenantId    String
-  fromPageId  String
-  toPageId    String
-  anchorText  String?
-  url         String
-  isBroken    Boolean  @default(false)
-  isSuggested Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([fromPageId])
-  @@index([toPageId])
-  @@map("seo_internal_links")
-}
-
-model SeoSchema {
-  id         String   @id @default(cuid())
-  tenantId   String
-  pageType   String
-  pageId     String
-  schemaType String
-  schemaJson String
-  isValid    Boolean  @default(true)
-  errorsJson String?
-  isApplied  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_schema")
-}
-
-model SeoReport {
-  id          String   @id @default(cuid())
-  tenantId    String
-  type        String   @default("weekly")
-  title       String
-  summaryJson String
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_reports")
-}
-
-model SeoIssue {
-  id          String    @id @default(cuid())
-  tenantId    String
-  pageType    String?
-  pageId      String?
-  url         String?
-  type        String
-  severity    String    // "critical" | "important" | "recommended"
-  description String
-  suggestion  String?
-  isFixed     Boolean   @default(false)
-  fixedAt     DateTime?
-  createdAt   DateTime  @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([pageId])
-  @@index([severity])
-  @@index([isFixed])
-  @@map("seo_issues")
-}
-
-model SeoKeywordOpportunity {
-  id                  String   @id @default(cuid())
-  tenantId            String
-  keyword             String
-  pageId              String?
-  url                 String?
-  currentPosition     Float?
-  impressions         Int      @default(0)
-  clicks              Int      @default(0)
-  ctr                 Float    @default(0)
-  positionBucket      String?  // "4-10" | "11-20" | "21-50"
-  opportunityScore    Float    @default(0)
-  trafficOpportunity  Int      @default(0)
-  recommendationsJson String?
-  dataSource          String   @default("search_console")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_keyword_opportunities")
-}
-
-model SeoCtrReport {
-  id                  String   @id @default(cuid())
-  tenantId            String
-  pageId              String?
-  url                 String
-  currentTitle        String?
-  currentDescription  String?
-  avgPosition         Float    @default(0)
-  impressions         Int      @default(0)
-  clicks              Int      @default(0)
-  ctr                 Float    @default(0)
-  expectedCtr         Float    @default(0)
-  suggestedTitlesJson String?
-  suggestedDescsJson  String?
-  ctrImprovementScore Float    @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_ctr_reports")
-}
-
-model SeoContentGap {
-  id          String   @id @default(cuid())
-  tenantId    String
-  type        String   // "topic" | "keyword" | "faq" | "entity" | "service" | "subtopic"
-  gap         String
-  description String?
-  priority    String   @default("medium")
-  clusterId   String?
-  sourceUrl   String?
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_content_gaps")
-}
-
-model SeoBrand {
-  id                 String   @id @default(cuid())
-  tenantId           String
-  brandName          String
-  businessName       String?
-  tagline            String?
-  logoUrl            String?
-  websiteUrl         String?
-  founderName        String?
-  founderTitle       String?
-  founderBio         String?
-  founderImage       String?
-  servicesJson       String?
-  locationsJson      String?
-  socialProfilesJson String?
-  awardsJson         String?
-  certificationsJson String?
-  reviewsJson        String?
-  industryKeywords   String?
-  brandScore         Float    @default(0)
-  consistencyScore   Float    @default(0)
-  schemaJson         String?
-  updatedAt          DateTime @updatedAt
-  createdAt          DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_brand")
-}
-
-model SeoSearchConsole {
-  id                  String   @id @default(cuid())
-  tenantId            String
-  fetchedAt           DateTime @default(now())
-  dateRange           String
-  totalClicks         Int      @default(0)
-  totalImpressions    Int      @default(0)
-  avgCtr              Float    @default(0)
-  avgPosition         Float    @default(0)
-  topPagesJson        String?
-  topQueriesJson      String?
-  rankingDropsJson    String?
-  cannibalizationJson String?
-  lowCtrPagesJson     String?
-  connected           Boolean  @default(false)
-  siteUrl             String?
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_search_console")
-}
-
-model SeoAutomationLog {
-  id          String   @id @default(cuid())
-  tenantId    String
-  action      String
-  pageId      String?
-  pageType    String?
-  url         String?
-  before      String?
-  after       String?
-  status      String   @default("success")
-  triggeredBy String   @default("auto")
-  createdAt   DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("seo_automation_logs")
-}
-
-// ===========================
-// FREE TOOLS
-// ===========================
-
-model ToolCategory {
-  id        String     @id @default(cuid())
-  tenantId  String
-  name      String
-  slug      String
-  sortOrder Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tools  FreeTool[]
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-  @@map("tool_categories")
-}
-
-model FreeTool {
-  id               String   @id @default(cuid())
-  tenantId         String
-  name             String
-  slug             String
-  shortDescription String
-  longDescription  String   @default("")
-  icon             String?
-  categoryId       String?
-  status           String   @default("draft") // draft | published | archived
-  isFeatured       Boolean  @default(false)
-  isPublic         Boolean  @default(true)
-  sortOrder        Int      @default(0)
-  toolUrl          String?
-  seoTitle         String?
-  seoDescription   String?
-  seoKeywords      String?
-  canonicalUrl     String?
-  ogTitle          String?
-  ogDescription    String?
-  ogImage          String?
-  twitterTitle       String?
-  twitterDescription String?
-  twitterImage       String?
-  schemaType         String   @default("WebApplication")
-  robots           String?
-  contentJson      String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  category        ToolCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  analyticsEvents ToolAnalyticsEvent[]
-  affiliateClicks AffiliateClick[]
-  usageEvents     UsageEvent[]
-
-  @@unique([tenantId, slug])
-  @@index([tenantId, status, isPublic])
-  @@index([categoryId])
-  @@map("tools")
-}
-
-model DomainProvider {
-  id               String    @id @default(cuid())
-  tenantId         String
-  name             String
-  slug             String
-  logoUrl          String?
-  websiteUrl       String?
-  apiEnabled       Boolean   @default(false)
-  affiliateEnabled Boolean   @default(false)
-  status           String    @default("active") // active | disabled
-  priority         Int       @default(100)
-  adapterKey       String
-  lastSuccessAt    DateTime?
-  lastErrorAt      DateTime?
-  lastError        String?
-  lastResponseMs   Int?
-  rateLimitedUntil DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  tenant              Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  affiliatePrograms   AffiliateProgram[]
-  cache               DomainSearchCache[]
-  prices              DomainPrice[]
-  clicks              AffiliateClick[]
-  comparisonsA        RegistrarComparison[]  @relation("ComparisonProviderA")
-  comparisonsB        RegistrarComparison[]  @relation("ComparisonProviderB")
-  analyticsEvents     ToolAnalyticsEvent[]
-
-  @@unique([tenantId, slug])
-  @@index([tenantId, status, priority])
-  @@map("domain_providers")
-}
-
-model AffiliateProgram {
-  id               String   @id @default(cuid())
-  tenantId         String
-  providerId       String
-  programName      String
-  affiliateNetwork String?
-  trackingUrl      String
-  status           String   @default("active") // active | disabled
-  commissionType   String?
-  commissionValue  Float?
-  cookieDuration   Int?
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([providerId])
-  @@map("affiliate_programs")
-}
-
-model AffiliateClick {
-  id         String   @id @default(cuid())
-  tenantId   String
-  toolId     String?
-  providerId String
-  domain     String?
-  sessionId  String?
-  referrer   String?
-  createdAt  DateTime @default(now())
-
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tool     FreeTool?      @relation(fields: [toolId], references: [id], onDelete: SetNull)
-  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, createdAt])
-  @@index([providerId])
-  @@index([toolId])
-  @@map("affiliate_clicks")
-}
-
-model DomainSearchCache {
-  id                String   @id @default(cuid())
-  tenantId          String
-  domain            String
-  providerId        String
-  available         Boolean?
-  registrationPrice Float?
-  renewalPrice      Float?
-  transferPrice     Float?
-  currency          String   @default("USD")
-  responseData      String?
-  checkedAt         DateTime @default(now())
-  expiresAt         DateTime
-
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, domain, providerId])
-  @@index([expiresAt])
-  @@index([providerId])
-  @@map("domain_search_cache")
-}
-
-model DomainPrice {
-  id                String   @id @default(cuid())
-  tenantId          String
-  providerId        String
-  tld               String
-  registrationPrice Float?
-  renewalPrice      Float?
-  transferPrice     Float?
-  currency          String   @default("USD")
-  capturedAt        DateTime @default(now())
-
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, tld, capturedAt])
-  @@index([providerId])
-  @@map("domain_prices")
-}
-
-model DomainExtension {
-  id             String   @id @default(cuid())
-  tenantId       String
-  tld            String
-  name           String
-  description    String?
-  seoTitle       String?
-  seoDescription String?
-  content        String?
-  faqJson        String?
-  status         String   @default("draft")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, tld])
-  @@index([tenantId, status])
-  @@map("domain_extensions")
-}
-
-model RegistrarComparison {
-  id             String   @id @default(cuid())
-  tenantId       String
-  providerAId    String
-  providerBId    String
-  slug           String
-  title          String
-  content        String?
-  seoTitle       String?
-  seoDescription String?
-  status         String   @default("draft")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  providerA DomainProvider @relation("ComparisonProviderA", fields: [providerAId], references: [id], onDelete: Cascade)
-  providerB DomainProvider @relation("ComparisonProviderB", fields: [providerBId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId, status])
-  @@map("registrar_comparisons")
-}
-
-model SeoLandingPage {
-  id             String   @id @default(cuid())
-  tenantId       String
-  slug           String
-  pageType       String
-  title          String
-  content        String
-  seoTitle       String?
-  seoDescription String?
-  canonicalUrl   String?
-  ogImage        String?
-  status         String   @default("draft")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId, status])
-  @@map("seo_landing_pages")
-}
-
-model ToolAnalyticsEvent {
-  id         String   @id @default(cuid())
-  tenantId   String
-  toolId     String?
-  eventType  String
-  providerId String?
-  domain     String?
-  tld        String?
-  metadata   String?
-  createdAt  DateTime @default(now())
-
-  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tool     FreeTool?       @relation(fields: [toolId], references: [id], onDelete: SetNull)
-  provider DomainProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId, eventType, createdAt])
-  @@index([tenantId, toolId, createdAt])
-  @@index([providerId])
-  @@map("tool_analytics_events")
-}
-
-// First-party usage analytics. Stores a salted visitor hash only — never an IP,
-// raw user agent, cookie, or the visitor token the browser generated.
-model UsageEvent {
-  id           String   @id @default(cuid())
-  tenantId     String
-  toolId       String?
-  toolSlug     String
-  eventType    String
-  visitorKey   String
-  returning    Boolean  @default(false)
-  country      String   @default("")
-  city         String   @default("")
-  device       String   @default("")
-  browser      String   @default("")
-  channel      String   @default("direct")
-  referrerHost String   @default("")
-  durationMs   Int?
-  createdAt    DateTime @default(now())
-
-  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tool   FreeTool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId, createdAt])
-  @@index([tenantId, toolSlug, createdAt])
-  @@index([tenantId, eventType, createdAt])
-  @@index([tenantId, visitorKey])
-  @@index([toolId])
-  @@map("usage_events")
-}
-
-// =============================================================================
-// PLATFORM (shared paid-tools platform: customers, auth, billing, credits)
-// Bounded context: no relations to CMS models (User, Membership, Tenant, AuditLog).
-// Conventions: UUID v7 ids, snake_case tables/columns, money = Int cents + currency,
-// emails stored lowercase + trimmed (normalized by src/platform/auth/schemas.ts).
-// DB-level CHECKs and append-only triggers: migration *_platform_sign_db_protections.
-// See docs/DATABASE.md and docs/adr/010-append-only-ledger-and-audit.md.
-// =============================================================================
-
-enum PlatformCustomerStatus {
-  ACTIVE
-  SUSPENDED
-
-  @@map("platform_customer_status")
-}
-
-enum PlatformOtpPurpose {
-  LOGIN
-  SIGNER
-
-  @@map("platform_otp_purpose")
-}
-
-enum PlatformSubscriptionProduct {
-  SIGN_PRO
-  ALL_ACCESS
-
-  @@map("platform_subscription_product")
-}
-
-enum PlatformBillingInterval {
-  MONTH
-  YEAR
-
-  @@map("platform_billing_interval")
-}
-
-enum PlatformSubscriptionStatus {
-  ACTIVE
-  TRIALING
-  PAST_DUE
-  PAUSED
-  CANCELED
-
-  @@map("platform_subscription_status")
-}
-
-enum PlatformLedgerReason {
-  PURCHASE
-  USAGE
-  REFUND
-  CHARGEBACK
-  ADMIN_GRANT
-  ADMIN_REVOKE
-
-  @@map("platform_ledger_reason")
-}
-
-enum PlatformPaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  PAST_DUE
-  REFUNDED
-  PARTIALLY_REFUNDED
-  CHARGEBACK
-
-  @@map("platform_payment_status")
-}
-
-enum PlatformWebhookStatus {
-  RECEIVED
-  PROCESSED
-  FAILED
-  IGNORED
-
-  @@map("platform_webhook_status")
-}
-
-/// Paid tools that consume credits / free quota. Mirrors ToolSlug in src/platform/billing/plans.ts.
-enum PlatformTool {
-  SIGN
-
-  @@map("platform_tool")
-}
-
-/// Product customer (sender). Independent of CMS User. Soft-deleted via deletedAt.
-model PlatformCustomer {
-  id               String                 @id @default(uuid(7)) @db.Uuid
-  /// Lowercase + trimmed.
-  email            String                 @unique
-  name             String?
-  paddleCustomerId String?                @unique @map("paddle_customer_id")
-  /// Cached balance; source of truth is the append-only ledger. CHECK >= 0.
-  creditsBalance   Int                    @default(0) @map("credits_balance")
-  status           PlatformCustomerStatus @default(ACTIVE)
-  lastLoginAt      DateTime?              @map("last_login_at")
-  deletedAt        DateTime?              @map("deleted_at")
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
-
-  sessions      PlatformSession[]
-  subscriptions PlatformSubscription[]
-  ledger        PlatformCreditLedger[]
-  usage         PlatformUsage[]
-  payments      PlatformPayment[]
-  brand         PlatformBrand?
-  documents     SignDocument[]
-  files         SignFile[]
-
-  @@map("platform_customers")
-}
-
-/// httpOnly kk_session rows. Only the HMAC of the cookie value is stored.
-model PlatformSession {
-  id         String    @id @default(uuid(7)) @db.Uuid
-  customerId String    @map("customer_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  expiresAt  DateTime  @map("expires_at")
-  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
-  ip         String?
-  userAgent  String?   @map("user_agent")
-  revokedAt  DateTime? @map("revoked_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@index([customerId])
-  @@map("platform_sessions")
-}
-
-/// Email OTP challenge (sender login or signer verification). Only the code HMAC is stored.
-model PlatformOtp {
-  id         String             @id @default(uuid(7)) @db.Uuid
-  /// Lowercase + trimmed.
-  email      String
-  purpose    PlatformOtpPurpose
-  codeHash   String             @map("code_hash")
-  attempts   Int                @default(0)
-  expiresAt  DateTime           @map("expires_at")
-  consumedAt DateTime?          @map("consumed_at")
-  /// SignSigner id for purpose SIGNER. Plain id: Platform must not depend on Sign.
-  signerId   String?            @map("signer_id") @db.Uuid
-  ip         String?
-  createdAt  DateTime           @default(now()) @map("created_at")
-  updatedAt  DateTime           @updatedAt @map("updated_at")
-
-  @@index([email, purpose, expiresAt])
-  @@map("platform_otps")
-}
-
-/// Paddle subscription (Sign Pro / All Access). Mirrors Paddle state from verified webhooks.
-model PlatformSubscription {
-  id                   String                      @id @default(uuid(7)) @db.Uuid
-  customerId           String                      @map("customer_id") @db.Uuid
-  paddleSubscriptionId String                      @unique @map("paddle_subscription_id")
-  product              PlatformSubscriptionProduct
-  interval             PlatformBillingInterval
-  paddlePriceId        String                      @map("paddle_price_id")
-  status               PlatformSubscriptionStatus
-  currentPeriodStart   DateTime?                   @map("current_period_start")
-  currentPeriodEnd     DateTime?                   @map("current_period_end")
-  /// Paddle scheduled_change (pause / cancel at period end).
-  scheduledChange      Json?                       @map("scheduled_change")
-  canceledAt           DateTime?                   @map("canceled_at")
-  createdAt            DateTime                    @default(now()) @map("created_at")
-  updatedAt            DateTime                    @updatedAt @map("updated_at")
-
-  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@index([customerId, status])
-  @@map("platform_subscriptions")
-}
-
-/// Append-only credit ledger (UPDATE/DELETE/TRUNCATE blocked by trigger). CHECK delta <> 0, balance_after >= 0.
-model PlatformCreditLedger {
-  id                  String               @id @default(uuid(7)) @db.Uuid
-  customerId          String               @map("customer_id") @db.Uuid
-  /// Positive = grant, negative = spend. Never zero.
-  delta               Int
-  /// Customer balance after this entry.
-  balanceAfter        Int                  @map("balance_after")
-  reason              PlatformLedgerReason
-  tool                PlatformTool?
-  referenceType       String?              @map("reference_type")
-  referenceId         String?              @map("reference_id")
-  paddleTransactionId String?              @map("paddle_transaction_id")
-  /// Makes every credit change idempotent (webhook event id, document send id, …).
-  idempotencyKey      String               @unique @map("idempotency_key")
-  /// NextAuth (CMS) user id for admin grants/revokes. Plain string, no relation.
-  createdByStaffId    String?              @map("created_by_staff_id")
-  note                String?
-  createdAt           DateTime             @default(now()) @map("created_at")
-
-  customer     PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  signDocument SignDocument?
-
-  @@index([customerId, createdAt(sort: Desc)])
-  @@map("platform_credit_ledger")
-}
-
-/// Free-tier usage per tool per calendar month (UTC). CHECK free_used >= 0.
-model PlatformUsage {
-  id         String       @id @default(uuid(7)) @db.Uuid
-  customerId String       @map("customer_id") @db.Uuid
-  tool       PlatformTool
-  /// "YYYY-MM" in UTC.
-  period     String
-  freeUsed   Int          @default(0) @map("free_used")
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @updatedAt @map("updated_at")
-
-  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@unique([customerId, tool, period])
-  @@map("platform_usage")
-}
-
-/// Paddle transaction (packs and subscription charges). CHECK amount_total_cents >= 0.
-model PlatformPayment {
-  id                  String                @id @default(uuid(7)) @db.Uuid
-  paddleTransactionId String                @unique @map("paddle_transaction_id")
-  customerId          String?               @map("customer_id") @db.Uuid
-  status              PlatformPaymentStatus
-  /// Paddle transaction origin (web, subscription_recurring, …).
-  origin              String?
-  priceIds            String[]              @map("price_ids")
-  amountTotalCents    Int                   @map("amount_total_cents")
-  currency            String                @db.Char(3)
-  creditsGranted      Int                   @default(0) @map("credits_granted")
-  /// Paddle subscription id (sub_…). Plain string: the transaction webhook can arrive before the subscription row.
-  subscriptionId      String?               @map("subscription_id")
-  occurredAt          DateTime              @map("occurred_at")
-  createdAt           DateTime              @default(now()) @map("created_at")
-  updatedAt           DateTime              @updatedAt @map("updated_at")
-
-  customer PlatformCustomer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
-
-  @@index([customerId, occurredAt(sort: Desc)])
-  @@map("platform_payments")
-}
-
-/// Idempotent Paddle webhook inbox (unique Paddle event id). Failed rows are retried from /admin/sign.
-model PlatformWebhookEvent {
-  id            String                @id @default(uuid(7)) @db.Uuid
-  paddleEventId String                @unique @map("paddle_event_id")
-  eventType     String                @map("event_type")
-  occurredAt    DateTime              @map("occurred_at")
-  payload       Json
-  status        PlatformWebhookStatus @default(RECEIVED)
-  attempts      Int                   @default(0)
-  lastError     String?               @map("last_error")
-  processedAt   DateTime?             @map("processed_at")
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
-
-  @@index([status, createdAt])
-  @@map("platform_webhook_events")
-}
-
-/// Sender branding defaults (company name, logo, color).
-model PlatformBrand {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  customerId   String   @unique @map("customer_id") @db.Uuid
-  companyName  String?  @map("company_name")
-  /// SignFile id (kind LOGO). Plain id: Platform must not depend on Sign.
-  logoFileId   String?  @map("logo_file_id") @db.Uuid
-  primaryColor String?  @map("primary_color")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@map("platform_brands")
-}
-
-/// Append-only log of staff support actions (UPDATE/DELETE/TRUNCATE blocked by trigger).
-model PlatformAdminAction {
-  id          String   @id @default(uuid(7)) @db.Uuid
-  /// NextAuth (CMS) user id as a plain string — no relation to CMS User.
-  staffUserId String   @map("staff_user_id")
-  action      String
-  targetType  String   @map("target_type")
-  targetId    String   @map("target_id")
-  before      Json?
-  after       Json?
-  ip          String?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([targetType, targetId])
-  @@index([staffUserId, createdAt])
-  @@map("platform_admin_actions")
-}
-
-// =============================================================================
-// SIGN (KarmaKoders Sign: templates, documents, signers, fields, files, audit)
-// Sign → Platform relations are allowed; Platform never references Sign tables.
-// =============================================================================
-
-/// Mirrors TemplateCategory in src/modules/sign/templates/catalog.ts.
-enum SignTemplateCategory {
-  NDA
-  CONTRACTOR
-  HR
-  CONSENT
-  CERTIFICATE
-
-  @@map("sign_template_category")
-}
-
-enum SignDocumentSource {
-  TEMPLATE
-  UPLOAD
-
-  @@map("sign_document_source")
-}
-
-enum SignDocumentStatus {
-  DRAFT
-  SENT
-  PARTIALLY_SIGNED
-  COMPLETED
-  DECLINED
-  EXPIRED
-  VOIDED
-
-  @@map("sign_document_status")
-}
-
-enum SignSigningOrder {
-  PARALLEL
-  SEQUENTIAL
-
-  @@map("sign_signing_order")
-}
-
-enum SignChargedVia {
-  FREE
-  CREDIT
-  SUBSCRIPTION
-
-  @@map("sign_charged_via")
-}
-
-enum SignSignerStatus {
-  PENDING
-  VIEWED
-  SIGNED
-  DECLINED
-
-  @@map("sign_signer_status")
-}
-
-enum SignSignatureMethod {
-  DRAW
-  TYPE
-  UPLOAD
-
-  @@map("sign_signature_method")
-}
-
-enum SignFieldType {
-  SIGNATURE
-  INITIALS
-  DATE
-  TEXT
-  CHECKBOX
-
-  @@map("sign_field_type")
-}
-
-enum SignFileKind {
-  ORIGINAL
-  FINAL
-  LOGO
-  SIGNATURE_IMAGE
-  UPLOAD
-
-  @@map("sign_file_kind")
-}
-
-enum SignAuditEventType {
-  CREATED
-  UPDATED
-  SENT
-  EMAIL_DELIVERED
-  OPENED
-  OTP_SENT
-  OTP_VERIFIED
-  CONSENT_GIVEN
-  VIEWED
-  SIGNED
-  DECLINED
-  REMINDED
-  VOIDED
-  EXPIRED
-  COMPLETED
-  DOWNLOADED
-  VERIFIED
-
-  @@map("sign_audit_event_type")
-}
-
-enum SignActorType {
-  SENDER
-  SIGNER
-  SYSTEM
-  STAFF
-
-  @@map("sign_actor_type")
-}
-
-/// Versioned template body. Slugs are canonical in src/modules/sign/templates/catalog.ts.
-model SignTemplate {
-  id           String               @id @default(uuid(7)) @db.Uuid
-  slug         String
-  version      Int
-  name         String
-  category     SignTemplateCategory
-  html         String               @db.Text
-  fieldsSchema Json                 @map("fields_schema")
-  signerRoles  Json                 @map("signer_roles")
-  isPremium    Boolean              @default(false) @map("is_premium")
-  active       Boolean              @default(true)
-  createdAt    DateTime             @default(now()) @map("created_at")
-  updatedAt    DateTime             @updatedAt @map("updated_at")
-
-  documents SignDocument[]
-
-  @@unique([slug, version])
-  @@map("sign_templates")
-}
-
-/// A document sent for signature. Soft-deleted via deletedAt; retained 7 years unless the owner deletes.
-model SignDocument {
-  id               String             @id @default(uuid(7)) @db.Uuid
-  /// KKS-YYYY-XXXXXX, generated in src/modules/sign/documents/public-id.ts.
-  publicId         String             @unique @map("public_id")
-  ownerId          String             @map("owner_id") @db.Uuid
-  templateId       String?            @map("template_id") @db.Uuid
-  source           SignDocumentSource
-  title            String
-  status           SignDocumentStatus @default(DRAFT)
-  fieldValues      Json               @default("{}") @map("field_values")
-  /// Frozen HTML snapshot at send.
-  renderedHtml     String?            @map("rendered_html") @db.Text
-  /// SHA-256 of the frozen content snapshot.
-  contentHash      String?            @map("content_hash")
-  signingOrder     SignSigningOrder   @default(PARALLEL) @map("signing_order")
-  message          String?            @db.Text
-  expiresAt        DateTime?          @map("expires_at")
-  linkPasswordHash String?            @map("link_password_hash")
-  remindersEnabled Boolean            @default(true) @map("reminders_enabled")
-  brandingSnapshot Json?              @map("branding_snapshot")
-  chargedVia       SignChargedVia?    @map("charged_via")
-  /// Ledger entry that paid for this send (CREDIT). One entry pays for at most one document.
-  ledgerEntryId    String?            @unique @map("ledger_entry_id") @db.Uuid
-  sentAt           DateTime?          @map("sent_at")
-  completedAt      DateTime?          @map("completed_at")
-  voidedAt         DateTime?          @map("voided_at")
-  voidReason       String?            @map("void_reason")
-  finalFileId      String?            @unique @map("final_file_id") @db.Uuid
-  /// SHA-256 of the final PDF bytes (shown on certificate + verify page).
-  finalFileHash    String?            @map("final_file_hash")
-  /// Optimistic-concurrency version.
-  version          Int                @default(1)
-  deletedAt        DateTime?          @map("deleted_at")
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
-
-  owner       PlatformCustomer      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  template    SignTemplate?         @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  ledgerEntry PlatformCreditLedger? @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
-  finalFile   SignFile?             @relation("SignDocumentFinalFile", fields: [finalFileId], references: [id], onDelete: Restrict)
-  signers     SignSigner[]
-  fields      SignField[]
-  files       SignFile[]            @relation("SignDocumentFiles")
-  auditEvents SignAuditEvent[]
-
-  @@index([ownerId, status, createdAt(sort: Desc)])
-  @@index([status, expiresAt])
-  @@map("sign_documents")
-}
-
-/// A signer on a document. Raw link token is emailed once; only its HMAC (TOKEN_PEPPER) is stored.
-model SignSigner {
-  id              String               @id @default(uuid(7)) @db.Uuid
-  documentId      String               @map("document_id") @db.Uuid
-  name            String
-  /// Lowercase + trimmed.
-  email           String
-  /// Template signer role key (e.g. party_a).
-  role            String
-  order           Int
-  tokenHash       String               @unique @map("token_hash")
-  status          SignSignerStatus     @default(PENDING)
-  otpVerifiedAt   DateTime?            @map("otp_verified_at")
-  consentAt       DateTime?            @map("consent_at")
-  viewedAt        DateTime?            @map("viewed_at")
-  signedAt        DateTime?            @map("signed_at")
-  declinedAt      DateTime?            @map("declined_at")
-  declineReason   String?              @map("decline_reason")
-  signatureMethod SignSignatureMethod? @map("signature_method")
-  signatureFileId String?              @unique @map("signature_file_id") @db.Uuid
-  ip              String?
-  userAgent       String?              @map("user_agent")
-  lastRemindedAt  DateTime?            @map("last_reminded_at")
-  reminderCount   Int                  @default(0) @map("reminder_count")
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
-
-  document      SignDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  signatureFile SignFile?        @relation("SignSignerSignatureFile", fields: [signatureFileId], references: [id], onDelete: Restrict)
-  fields        SignField[]
-  auditEvents   SignAuditEvent[]
-
-  @@unique([documentId, email])
-  @@index([documentId, order])
-  @@map("sign_signers")
-}
-
-/// A placed field. Coordinates are 0–1 fractions of the page (CHECK enforced).
-model SignField {
-  id         String        @id @default(uuid(7)) @db.Uuid
-  documentId String        @map("document_id") @db.Uuid
-  signerId   String?       @map("signer_id") @db.Uuid
-  type       SignFieldType
-  page       Int
-  x          Float
-  y          Float
-  width      Float
-  height     Float
-  required   Boolean       @default(true)
-  value      String?
-  createdAt  DateTime      @default(now()) @map("created_at")
-  updatedAt  DateTime      @updatedAt @map("updated_at")
-
-  document SignDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  signer   SignSigner?  @relation(fields: [signerId], references: [id], onDelete: SetNull)
-
-  @@index([documentId])
-  @@index([signerId])
-  @@map("sign_fields")
-}
-
-/// Metadata for an encrypted object in private R2 (bytes never stored in Postgres).
-model SignFile {
-  id         String       @id @default(uuid(7)) @db.Uuid
-  ownerId    String?      @map("owner_id") @db.Uuid
-  documentId String?      @map("document_id") @db.Uuid
-  kind       SignFileKind
-  storageKey String       @unique @map("storage_key")
-  mimeType   String       @map("mime_type")
-  sizeBytes  Int          @map("size_bytes")
-  sha256     String
-  encrypted  Boolean      @default(true)
-  deletedAt  DateTime?    @map("deleted_at")
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @updatedAt @map("updated_at")
-
-  owner              PlatformCustomer? @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  document           SignDocument?     @relation("SignDocumentFiles", fields: [documentId], references: [id], onDelete: Restrict)
-  finalForDocument   SignDocument?     @relation("SignDocumentFinalFile")
-  signatureForSigner SignSigner?       @relation("SignSignerSignatureFile")
-
-  @@index([ownerId])
-  @@index([documentId, kind])
-  @@map("sign_files")
-}
-
-/// Append-only, hash-chained e-sign evidence (UPDATE/DELETE/TRUNCATE blocked by trigger).
-model SignAuditEvent {
-  id         String             @id @default(uuid(7)) @db.Uuid
-  documentId String             @map("document_id") @db.Uuid
-  signerId   String?            @map("signer_id") @db.Uuid
-  type       SignAuditEventType
-  actorType  SignActorType      @map("actor_type")
-  ip         String?
-  userAgent  String?            @map("user_agent")
-  metadata   Json?
-  occurredAt DateTime           @default(now()) @map("occurred_at")
-  /// 1-based, gap-free per document.
-  sequence   Int
-  /// hash of the previous event in this document (null for sequence 1).
-  prevHash   String?            @map("prev_hash")
-  /// SHA-256 over this event's canonical fields + prevHash.
-  hash       String
-  createdAt  DateTime           @default(now()) @map("created_at")
-
-  document SignDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
-  signer   SignSigner?  @relation(fields: [signerId], references: [id], onDelete: Restrict)
-
-  @@unique([documentId, sequence])
-  @@index([documentId, occurredAt])
-  @@map("sign_audit_events")
-}
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===========================
+// PLATFORM / MULTI-TENANCY
+// ===========================
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MembershipRole {
+  TENANT_ADMIN
+  MANAGER
+  EDITOR
+  AUTHOR
+  HR
+  EMPLOYEE
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+model Tenant {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  status    TenantStatus @default(ACTIVE)
+  isPrimary Boolean      @default(false)
+  logo      String?
+  email     String?
+  phone     String?
+  website   String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  memberships           Membership[]
+  pages                 Page[]
+  projects              Project[]
+  posts                 Post[]
+  contactSubmissions    ContactSubmission[]
+  newsletterSubscribers NewsletterSubscriber[]
+  jobOpenings           JobOpening[]
+  jobApplications       JobApplication[]
+  siteConfigs           SiteConfig[]
+  media                 Media[]
+  auditLogs             AuditLog[]
+
+  seoPages                SeoPage[]
+  seoEntities             SeoEntity[]
+  seoClusters             SeoCluster[]
+  seoAudits               SeoAudit[]
+  seoInternalLinks        SeoInternalLink[]
+  seoSchemas              SeoSchema[]
+  seoReports              SeoReport[]
+  seoIssues               SeoIssue[]
+  seoKeywordOpportunities SeoKeywordOpportunity[]
+  seoCtrReports           SeoCtrReport[]
+  seoContentGaps          SeoContentGap[]
+  seoBrand                SeoBrand[]
+  seoSearchConsole        SeoSearchConsole[]
+  seoAutomationLogs       SeoAutomationLog[]
+
+  freeTools               FreeTool[]
+  toolCategories          ToolCategory[]
+  domainProviders         DomainProvider[]
+  affiliatePrograms       AffiliateProgram[]
+  affiliateClicks         AffiliateClick[]
+  domainSearchCache       DomainSearchCache[]
+  domainPrices            DomainPrice[]
+  domainExtensions        DomainExtension[]
+  registrarComparisons    RegistrarComparison[]
+  seoLandingPages         SeoLandingPage[]
+  toolAnalyticsEvents     ToolAnalyticsEvent[]
+  usageEvents             UsageEvent[]
+
+  @@index([status])
+}
+
+model Membership {
+  id                  String            @id @default(cuid())
+  userId              String
+  tenantId            String
+  role                MembershipRole    @default(TENANT_ADMIN)
+  status              MembershipStatus  @default(ACTIVE)
+  permissionOverrides Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+}
+
+// ===========================
+// AUTH
+// ===========================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  isSuperAdmin  Boolean   @default(false)
+  role          String    @default("USER")
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  auditLogs     AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ===========================
+// TENANT-OWNED CONTENT
+// ===========================
+
+model SiteConfig {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String   // e.g. "theme", "seoMeta"
+  value     String   // JSON stringified
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model Page {
+  id          String    @id @default(cuid())
+  tenantId    String
+  slug        String
+  title       String
+  sections    Section[]
+  isPublished Boolean   @default(false)
+  seoMeta     String?   // JSON stringified
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model Section {
+  id      String @id @default(cuid())
+  pageId  String
+  page    Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type    String
+  content String // JSON stringified
+  order   Int
+
+  @@index([pageId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  slug        String
+  description String
+  imageUrl    String
+  content     String
+  link        String?
+  tags        String   // CSV string (e.g. "react,nextjs")
+  detailsJson String?  // optional case-study fields: industry, country, timeline, metrics, etc.
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model Post {
+  id              String   @id @default(cuid())
+  tenantId        String
+  title           String
+  slug            String
+  excerpt         String?
+  content         String
+  blocks          Json?
+  formatMeta      Json?
+  readTimeMinutes Int?
+  image           String?
+  category        String?
+  author          String?
+  type            String   @default("blog") // blog | case-study | success-story | startup-idea | prompt
+  published       Boolean  @default(false)
+  viewCount       Int      @default(0)
+  seoMeta         String?  // JSON stringified
+  createdAt       DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([tenantId, type])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  email     String
+  phone     String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model JobOpening {
+  id           String   @id @default(cuid())
+  tenantId     String
+  title        String
+  slug         String
+  department   String?
+  location     String?
+  type         String   @default("Full-time")
+  description  String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  applications JobApplication[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  tenantId    String
+  jobId       String
+  job         JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  phone       String?
+  portfolio   String?
+  cvUrl       String
+  coverLetter String?
+  status      String   @default("Pending") // Pending, Reviewed, Interview, Rejected, Hired
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([jobId])
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  tenantId     String
+  url          String
+  key          String?
+  name         String
+  size         Int?
+  mimeType     String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ===========================
+// AUDIT LOG
+// ===========================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  userId     String?
+  action     String
+  resource   String?
+  resourceId String?
+  metadata   String?  // JSON stringified
+  createdAt  DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ===========================
+// SEO INTELLIGENCE CENTER
+// ===========================
+
+model SeoPage {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  pageType            String   // "page" | "post" | "project"
+  pageId              String   // references Page.id, Post.id, or Project.id
+  url                 String
+  title               String?
+  metaTitle           String?
+  metaDescription     String?
+  h1                  String?
+  headingsJson        String?  // JSON array of headings
+  wordCount           Int      @default(0)
+  readabilityScore    Float    @default(0)
+  keywordDensityJson  String?  // JSON object
+  internalLinksCount  Int      @default(0)
+  externalLinksCount  Int      @default(0)
+  imagesCount         Int      @default(0)
+  imagesWithAlt       Int      @default(0)
+  hasFaq              Boolean  @default(false)
+  hasSchema           Boolean  @default(false)
+  schemaTypes         String?  // CSV of schema types
+  contentScore        Float    @default(0)
+  technicalScore      Float    @default(0)
+  entityScore         Float    @default(0)
+  internalLinkScore   Float    @default(0)
+  schemaScore         Float    @default(0)
+  ctrScore            Float    @default(0)
+  overallScore        Float    @default(0)
+  issuesJson          String?  // JSON array of issues
+  recommendationsJson String?  // JSON array of recommendations
+  isIndexed           Boolean  @default(true)
+  isOrphan            Boolean  @default(false)
+  lastAnalyzed        DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, pageType, pageId])
+  @@index([tenantId])
+  @@map("seo_pages")
+}
+
+model SeoEntity {
+  id          String   @id @default(cuid())
+  tenantId    String
+  type        String   // "brand" | "person" | "service" | "product" | "location" | "topic" | "keyword"
+  name        String
+  description String?
+  aliases     String?  // CSV of alternate names
+  sitewide    Boolean  @default(false)
+  pagesJson   String?  // JSON array of page IDs where this entity appears
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_entities")
+}
+
+model SeoCluster {
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  slug             String
+  pillarPageId     String?
+  childPagesJson   String?  // JSON array of SeoPage.ids
+  keywords         String?  // CSV
+  topicsJson       String?  // JSON array
+  healthScore      Float    @default(0)
+  authorityScore   Float    @default(0)
+  missingTopics    String?  // JSON array
+  suggestedContent String?  // JSON array
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("seo_clusters")
+}
+
+model SeoAudit {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  runAt                 DateTime @default(now())
+  totalPages            Int      @default(0)
+  indexedPages          Int      @default(0)
+  nonIndexedPages       Int      @default(0)
+  brokenPages           Int      @default(0)
+  brokenLinks           Int      @default(0)
+  missingTitles         Int      @default(0)
+  duplicateTitles       Int      @default(0)
+  missingDescriptions   Int      @default(0)
+  duplicateDescriptions Int      @default(0)
+  missingH1             Int      @default(0)
+  multipleH1            Int      @default(0)
+  missingAlt            Int      @default(0)
+  orphanPages           Int      @default(0)
+  missingSchema         Int      @default(0)
+  overallScore          Float    @default(0)
+  technicalScore        Float    @default(0)
+  contentScore          Float    @default(0)
+  issuesSummaryJson     String?
+  status                String   @default("complete")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_audits")
+}
+
+model SeoInternalLink {
+  id          String   @id @default(cuid())
+  tenantId    String
+  fromPageId  String
+  toPageId    String
+  anchorText  String?
+  url         String
+  isBroken    Boolean  @default(false)
+  isSuggested Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([fromPageId])
+  @@index([toPageId])
+  @@map("seo_internal_links")
+}
+
+model SeoSchema {
+  id         String   @id @default(cuid())
+  tenantId   String
+  pageType   String
+  pageId     String
+  schemaType String
+  schemaJson String
+  isValid    Boolean  @default(true)
+  errorsJson String?
+  isApplied  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_schema")
+}
+
+model SeoReport {
+  id          String   @id @default(cuid())
+  tenantId    String
+  type        String   @default("weekly")
+  title       String
+  summaryJson String
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_reports")
+}
+
+model SeoIssue {
+  id          String    @id @default(cuid())
+  tenantId    String
+  pageType    String?
+  pageId      String?
+  url         String?
+  type        String
+  severity    String    // "critical" | "important" | "recommended"
+  description String
+  suggestion  String?
+  isFixed     Boolean   @default(false)
+  fixedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([pageId])
+  @@index([severity])
+  @@index([isFixed])
+  @@map("seo_issues")
+}
+
+model SeoKeywordOpportunity {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  keyword             String
+  pageId              String?
+  url                 String?
+  currentPosition     Float?
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  ctr                 Float    @default(0)
+  positionBucket      String?  // "4-10" | "11-20" | "21-50"
+  opportunityScore    Float    @default(0)
+  trafficOpportunity  Int      @default(0)
+  recommendationsJson String?
+  dataSource          String   @default("search_console")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_keyword_opportunities")
+}
+
+model SeoCtrReport {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  pageId              String?
+  url                 String
+  currentTitle        String?
+  currentDescription  String?
+  avgPosition         Float    @default(0)
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  ctr                 Float    @default(0)
+  expectedCtr         Float    @default(0)
+  suggestedTitlesJson String?
+  suggestedDescsJson  String?
+  ctrImprovementScore Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_ctr_reports")
+}
+
+model SeoContentGap {
+  id          String   @id @default(cuid())
+  tenantId    String
+  type        String   // "topic" | "keyword" | "faq" | "entity" | "service" | "subtopic"
+  gap         String
+  description String?
+  priority    String   @default("medium")
+  clusterId   String?
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_content_gaps")
+}
+
+model SeoBrand {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  brandName          String
+  businessName       String?
+  tagline            String?
+  logoUrl            String?
+  websiteUrl         String?
+  founderName        String?
+  founderTitle       String?
+  founderBio         String?
+  founderImage       String?
+  servicesJson       String?
+  locationsJson      String?
+  socialProfilesJson String?
+  awardsJson         String?
+  certificationsJson String?
+  reviewsJson        String?
+  industryKeywords   String?
+  brandScore         Float    @default(0)
+  consistencyScore   Float    @default(0)
+  schemaJson         String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_brand")
+}
+
+model SeoSearchConsole {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  fetchedAt           DateTime @default(now())
+  dateRange           String
+  totalClicks         Int      @default(0)
+  totalImpressions    Int      @default(0)
+  avgCtr              Float    @default(0)
+  avgPosition         Float    @default(0)
+  topPagesJson        String?
+  topQueriesJson      String?
+  rankingDropsJson    String?
+  cannibalizationJson String?
+  lowCtrPagesJson     String?
+  connected           Boolean  @default(false)
+  siteUrl             String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_search_console")
+}
+
+model SeoAutomationLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  action      String
+  pageId      String?
+  pageType    String?
+  url         String?
+  before      String?
+  after       String?
+  status      String   @default("success")
+  triggeredBy String   @default("auto")
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("seo_automation_logs")
+}
+
+// ===========================
+// FREE TOOLS
+// ===========================
+
+model ToolCategory {
+  id        String     @id @default(cuid())
+  tenantId  String
+  name      String
+  slug      String
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tools  FreeTool[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("tool_categories")
+}
+
+model FreeTool {
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  slug             String
+  shortDescription String
+  longDescription  String   @default("")
+  icon             String?
+  categoryId       String?
+  status           String   @default("draft") // draft | published | archived
+  isFeatured       Boolean  @default(false)
+  isPublic         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  toolUrl          String?
+  seoTitle         String?
+  seoDescription   String?
+  seoKeywords      String?
+  canonicalUrl     String?
+  ogTitle          String?
+  ogDescription    String?
+  ogImage          String?
+  twitterTitle       String?
+  twitterDescription String?
+  twitterImage       String?
+  schemaType         String   @default("WebApplication")
+  robots           String?
+  contentJson      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        ToolCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  analyticsEvents ToolAnalyticsEvent[]
+  affiliateClicks AffiliateClick[]
+  usageEvents     UsageEvent[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, isPublic])
+  @@index([categoryId])
+  @@map("tools")
+}
+
+model DomainProvider {
+  id               String    @id @default(cuid())
+  tenantId         String
+  name             String
+  slug             String
+  logoUrl          String?
+  websiteUrl       String?
+  apiEnabled       Boolean   @default(false)
+  affiliateEnabled Boolean   @default(false)
+  status           String    @default("active") // active | disabled
+  priority         Int       @default(100)
+  adapterKey       String
+  lastSuccessAt    DateTime?
+  lastErrorAt      DateTime?
+  lastError        String?
+  lastResponseMs   Int?
+  rateLimitedUntil DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant              Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  affiliatePrograms   AffiliateProgram[]
+  cache               DomainSearchCache[]
+  prices              DomainPrice[]
+  clicks              AffiliateClick[]
+  comparisonsA        RegistrarComparison[]  @relation("ComparisonProviderA")
+  comparisonsB        RegistrarComparison[]  @relation("ComparisonProviderB")
+  analyticsEvents     ToolAnalyticsEvent[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, priority])
+  @@map("domain_providers")
+}
+
+model AffiliateProgram {
+  id               String   @id @default(cuid())
+  tenantId         String
+  providerId       String
+  programName      String
+  affiliateNetwork String?
+  trackingUrl      String
+  status           String   @default("active") // active | disabled
+  commissionType   String?
+  commissionValue  Float?
+  cookieDuration   Int?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId])
+  @@map("affiliate_programs")
+}
+
+model AffiliateClick {
+  id         String   @id @default(cuid())
+  tenantId   String
+  toolId     String?
+  providerId String
+  domain     String?
+  sessionId  String?
+  referrer   String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool     FreeTool?      @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([providerId])
+  @@index([toolId])
+  @@map("affiliate_clicks")
+}
+
+model DomainSearchCache {
+  id                String   @id @default(cuid())
+  tenantId          String
+  domain            String
+  providerId        String
+  available         Boolean?
+  registrationPrice Float?
+  renewalPrice      Float?
+  transferPrice     Float?
+  currency          String   @default("USD")
+  responseData      String?
+  checkedAt         DateTime @default(now())
+  expiresAt         DateTime
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, domain, providerId])
+  @@index([expiresAt])
+  @@index([providerId])
+  @@map("domain_search_cache")
+}
+
+model DomainPrice {
+  id                String   @id @default(cuid())
+  tenantId          String
+  providerId        String
+  tld               String
+  registrationPrice Float?
+  renewalPrice      Float?
+  transferPrice     Float?
+  currency          String   @default("USD")
+  capturedAt        DateTime @default(now())
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider DomainProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, tld, capturedAt])
+  @@index([providerId])
+  @@map("domain_prices")
+}
+
+model DomainExtension {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tld            String
+  name           String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+  content        String?
+  faqJson        String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tld])
+  @@index([tenantId, status])
+  @@map("domain_extensions")
+}
+
+model RegistrarComparison {
+  id             String   @id @default(cuid())
+  tenantId       String
+  providerAId    String
+  providerBId    String
+  slug           String
+  title          String
+  content        String?
+  seoTitle       String?
+  seoDescription String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  providerA DomainProvider @relation("ComparisonProviderA", fields: [providerAId], references: [id], onDelete: Cascade)
+  providerB DomainProvider @relation("ComparisonProviderB", fields: [providerBId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("registrar_comparisons")
+}
+
+model SeoLandingPage {
+  id             String   @id @default(cuid())
+  tenantId       String
+  slug           String
+  pageType       String
+  title          String
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+  ogImage        String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("seo_landing_pages")
+}
+
+model ToolAnalyticsEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  toolId     String?
+  eventType  String
+  providerId String?
+  domain     String?
+  tld        String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool     FreeTool?       @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  provider DomainProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, eventType, createdAt])
+  @@index([tenantId, toolId, createdAt])
+  @@index([providerId])
+  @@map("tool_analytics_events")
+}
+
+// First-party usage analytics. Stores a salted visitor hash only — never an IP,
+// raw user agent, cookie, or the visitor token the browser generated.
+model UsageEvent {
+  id           String   @id @default(cuid())
+  tenantId     String
+  toolId       String?
+  toolSlug     String
+  eventType    String
+  visitorKey   String
+  returning    Boolean  @default(false)
+  country      String   @default("")
+  city         String   @default("")
+  device       String   @default("")
+  browser      String   @default("")
+  channel      String   @default("direct")
+  referrerHost String   @default("")
+  durationMs   Int?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tool   FreeTool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, toolSlug, createdAt])
+  @@index([tenantId, eventType, createdAt])
+  @@index([tenantId, visitorKey])
+  @@index([toolId])
+  @@map("usage_events")
+}
+
+// =============================================================================
+// PLATFORM (shared paid-tools platform: customers, auth, billing, credits)
+// Bounded context: no relations to CMS models (User, Membership, Tenant, AuditLog).
+// Conventions: UUID v7 ids, snake_case tables/columns, money = Int cents + currency,
+// emails stored lowercase + trimmed (normalized by src/platform/auth/schemas.ts).
+// DB-level CHECKs and append-only triggers: migration *_platform_sign_db_protections.
+// See docs/DATABASE.md and docs/adr/010-append-only-ledger-and-audit.md.
+// =============================================================================
+
+enum PlatformCustomerStatus {
+  ACTIVE
+  SUSPENDED
+
+  @@map("platform_customer_status")
+}
+
+enum PlatformOtpPurpose {
+  LOGIN
+  SIGNER
+
+  @@map("platform_otp_purpose")
+}
+
+enum PlatformSubscriptionProduct {
+  SIGN_PRO
+  ALL_ACCESS
+
+  @@map("platform_subscription_product")
+}
+
+enum PlatformBillingInterval {
+  MONTH
+  YEAR
+
+  @@map("platform_billing_interval")
+}
+
+enum PlatformSubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  PAUSED
+  CANCELED
+
+  @@map("platform_subscription_status")
+}
+
+enum PlatformLedgerReason {
+  PURCHASE
+  USAGE
+  REFUND
+  CHARGEBACK
+  ADMIN_GRANT
+  ADMIN_REVOKE
+
+  @@map("platform_ledger_reason")
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  PAST_DUE
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CHARGEBACK
+
+  @@map("platform_payment_status")
+}
+
+enum PlatformWebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+
+  @@map("platform_webhook_status")
+}
+
+/// Paid tools that consume credits / free quota. Mirrors ToolSlug in src/platform/billing/plans.ts.
+enum PlatformTool {
+  SIGN
+
+  @@map("platform_tool")
+}
+
+/// Product customer (sender). Independent of CMS User. Soft-deleted via deletedAt.
+model PlatformCustomer {
+  id               String                 @id @default(uuid(7)) @db.Uuid
+  /// Lowercase + trimmed.
+  email            String                 @unique
+  name             String?
+  paddleCustomerId String?                @unique @map("paddle_customer_id")
+  /// Cached balance; source of truth is the append-only ledger. CHECK >= 0.
+  creditsBalance   Int                    @default(0) @map("credits_balance")
+  status           PlatformCustomerStatus @default(ACTIVE)
+  lastLoginAt      DateTime?              @map("last_login_at")
+  deletedAt        DateTime?              @map("deleted_at")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  sessions      PlatformSession[]
+  subscriptions PlatformSubscription[]
+  ledger        PlatformCreditLedger[]
+  usage         PlatformUsage[]
+  payments      PlatformPayment[]
+  brand         PlatformBrand?
+  documents     SignDocument[]
+  files         SignFile[]
+
+  @@map("platform_customers")
+}
+
+/// httpOnly kk_session rows. Only the HMAC of the cookie value is stored.
+model PlatformSession {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  customerId String    @map("customer_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  ip         String?
+  userAgent  String?   @map("user_agent")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("platform_sessions")
+}
+
+/// Email OTP challenge (sender login or signer verification). Only the code HMAC is stored.
+model PlatformOtp {
+  id         String             @id @default(uuid(7)) @db.Uuid
+  /// Lowercase + trimmed.
+  email      String
+  purpose    PlatformOtpPurpose
+  codeHash   String             @map("code_hash")
+  attempts   Int                @default(0)
+  expiresAt  DateTime           @map("expires_at")
+  consumedAt DateTime?          @map("consumed_at")
+  /// SignSigner id for purpose SIGNER. Plain id: Platform must not depend on Sign.
+  signerId   String?            @map("signer_id") @db.Uuid
+  ip         String?
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  @@index([email, purpose, expiresAt])
+  @@map("platform_otps")
+}
+
+/// Paddle subscription (Sign Pro / All Access). Mirrors Paddle state from verified webhooks.
+model PlatformSubscription {
+  id                   String                      @id @default(uuid(7)) @db.Uuid
+  customerId           String                      @map("customer_id") @db.Uuid
+  paddleSubscriptionId String                      @unique @map("paddle_subscription_id")
+  product              PlatformSubscriptionProduct
+  interval             PlatformBillingInterval
+  paddlePriceId        String                      @map("paddle_price_id")
+  status               PlatformSubscriptionStatus
+  currentPeriodStart   DateTime?                   @map("current_period_start")
+  currentPeriodEnd     DateTime?                   @map("current_period_end")
+  /// Paddle scheduled_change (pause / cancel at period end).
+  scheduledChange      Json?                       @map("scheduled_change")
+  canceledAt           DateTime?                   @map("canceled_at")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+
+  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, status])
+  @@map("platform_subscriptions")
+}
+
+/// Append-only credit ledger (UPDATE/DELETE/TRUNCATE blocked by trigger). CHECK delta <> 0, balance_after >= 0.
+model PlatformCreditLedger {
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  customerId          String               @map("customer_id") @db.Uuid
+  /// Positive = grant, negative = spend. Never zero.
+  delta               Int
+  /// Customer balance after this entry.
+  balanceAfter        Int                  @map("balance_after")
+  reason              PlatformLedgerReason
+  tool                PlatformTool?
+  referenceType       String?              @map("reference_type")
+  referenceId         String?              @map("reference_id")
+  paddleTransactionId String?              @map("paddle_transaction_id")
+  /// Makes every credit change idempotent (webhook event id, document send id, …).
+  idempotencyKey      String               @unique @map("idempotency_key")
+  /// NextAuth (CMS) user id for admin grants/revokes. Plain string, no relation.
+  createdByStaffId    String?              @map("created_by_staff_id")
+  note                String?
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  customer     PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  signDocument SignDocument?
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@map("platform_credit_ledger")
+}
+
+/// Free-tier usage per tool per calendar month (UTC). CHECK free_used >= 0.
+model PlatformUsage {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  customerId String       @map("customer_id") @db.Uuid
+  tool       PlatformTool
+  /// "YYYY-MM" in UTC.
+  period     String
+  freeUsed   Int          @default(0) @map("free_used")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, tool, period])
+  @@map("platform_usage")
+}
+
+/// Paddle transaction (packs and subscription charges). CHECK amount_total_cents >= 0.
+model PlatformPayment {
+  id                  String                @id @default(uuid(7)) @db.Uuid
+  paddleTransactionId String                @unique @map("paddle_transaction_id")
+  customerId          String?               @map("customer_id") @db.Uuid
+  status              PlatformPaymentStatus
+  /// Paddle transaction origin (web, subscription_recurring, …).
+  origin              String?
+  priceIds            String[]              @map("price_ids")
+  amountTotalCents    Int                   @map("amount_total_cents")
+  currency            String                @db.Char(3)
+  creditsGranted      Int                   @default(0) @map("credits_granted")
+  /// Paddle subscription id (sub_…). Plain string: the transaction webhook can arrive before the subscription row.
+  subscriptionId      String?               @map("subscription_id")
+  occurredAt          DateTime              @map("occurred_at")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  customer PlatformCustomer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, occurredAt(sort: Desc)])
+  @@map("platform_payments")
+}
+
+/// Idempotent Paddle webhook inbox (unique Paddle event id). Failed rows are retried from /admin/sign.
+model PlatformWebhookEvent {
+  id            String                @id @default(uuid(7)) @db.Uuid
+  paddleEventId String                @unique @map("paddle_event_id")
+  eventType     String                @map("event_type")
+  occurredAt    DateTime              @map("occurred_at")
+  payload       Json
+  status        PlatformWebhookStatus @default(RECEIVED)
+  attempts      Int                   @default(0)
+  lastError     String?               @map("last_error")
+  processedAt   DateTime?             @map("processed_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@map("platform_webhook_events")
+}
+
+/// Sender branding defaults (company name, logo, color).
+model PlatformBrand {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  customerId   String   @unique @map("customer_id") @db.Uuid
+  companyName  String?  @map("company_name")
+  /// SignFile id (kind LOGO). Plain id: Platform must not depend on Sign.
+  logoFileId   String?  @map("logo_file_id") @db.Uuid
+  primaryColor String?  @map("primary_color")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer PlatformCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("platform_brands")
+}
+
+/// Append-only log of staff support actions (UPDATE/DELETE/TRUNCATE blocked by trigger).
+model PlatformAdminAction {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  /// NextAuth (CMS) user id as a plain string — no relation to CMS User.
+  staffUserId String   @map("staff_user_id")
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  before      Json?
+  after       Json?
+  ip          String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@index([staffUserId, createdAt])
+  @@map("platform_admin_actions")
+}
+
+// =============================================================================
+// SIGN (KarmaKoders Sign: templates, documents, signers, fields, files, audit)
+// Sign → Platform relations are allowed; Platform never references Sign tables.
+// =============================================================================
+
+/// Mirrors TemplateCategory in src/modules/sign/templates/catalog.ts.
+enum SignTemplateCategory {
+  NDA
+  CONTRACTOR
+  HR
+  CONSENT
+  CERTIFICATE
+
+  @@map("sign_template_category")
+}
+
+enum SignDocumentSource {
+  TEMPLATE
+  UPLOAD
+
+  @@map("sign_document_source")
+}
+
+enum SignDocumentStatus {
+  DRAFT
+  SENT
+  PARTIALLY_SIGNED
+  COMPLETED
+  DECLINED
+  EXPIRED
+  VOIDED
+
+  @@map("sign_document_status")
+}
+
+enum SignSigningOrder {
+  PARALLEL
+  SEQUENTIAL
+
+  @@map("sign_signing_order")
+}
+
+enum SignChargedVia {
+  FREE
+  CREDIT
+  SUBSCRIPTION
+
+  @@map("sign_charged_via")
+}
+
+enum SignSignerStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  DECLINED
+
+  @@map("sign_signer_status")
+}
+
+enum SignSignatureMethod {
+  DRAW
+  TYPE
+  UPLOAD
+
+  @@map("sign_signature_method")
+}
+
+enum SignFieldType {
+  SIGNATURE
+  INITIALS
+  DATE
+  TEXT
+  CHECKBOX
+
+  @@map("sign_field_type")
+}
+
+enum SignFileKind {
+  ORIGINAL
+  FINAL
+  LOGO
+  SIGNATURE_IMAGE
+  UPLOAD
+
+  @@map("sign_file_kind")
+}
+
+enum SignAuditEventType {
+  CREATED
+  UPDATED
+  SENT
+  EMAIL_DELIVERED
+  OPENED
+  OTP_SENT
+  OTP_VERIFIED
+  CONSENT_GIVEN
+  VIEWED
+  SIGNED
+  DECLINED
+  REMINDED
+  VOIDED
+  EXPIRED
+  COMPLETED
+  DOWNLOADED
+  VERIFIED
+
+  @@map("sign_audit_event_type")
+}
+
+enum SignActorType {
+  SENDER
+  SIGNER
+  SYSTEM
+  STAFF
+
+  @@map("sign_actor_type")
+}
+
+/// Versioned template body. Slugs are canonical in src/modules/sign/templates/catalog.ts.
+model SignTemplate {
+  id           String               @id @default(uuid(7)) @db.Uuid
+  slug         String
+  version      Int
+  name         String
+  category     SignTemplateCategory
+  html         String               @db.Text
+  fieldsSchema Json                 @map("fields_schema")
+  signerRoles  Json                 @map("signer_roles")
+  isPremium    Boolean              @default(false) @map("is_premium")
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  documents SignDocument[]
+
+  @@unique([slug, version])
+  @@map("sign_templates")
+}
+
+/// A document sent for signature. Soft-deleted via deletedAt; retained 7 years unless the owner deletes.
+model SignDocument {
+  id               String             @id @default(uuid(7)) @db.Uuid
+  /// KKS-YYYY-XXXXXX, generated in src/modules/sign/documents/public-id.ts.
+  publicId         String             @unique @map("public_id")
+  ownerId          String             @map("owner_id") @db.Uuid
+  templateId       String?            @map("template_id") @db.Uuid
+  source           SignDocumentSource
+  title            String
+  status           SignDocumentStatus @default(DRAFT)
+  fieldValues      Json               @default("{}") @map("field_values")
+  /// Frozen HTML snapshot at send.
+  renderedHtml     String?            @map("rendered_html") @db.Text
+  /// SHA-256 of the frozen content snapshot.
+  contentHash      String?            @map("content_hash")
+  signingOrder     SignSigningOrder   @default(PARALLEL) @map("signing_order")
+  message          String?            @db.Text
+  expiresAt        DateTime?          @map("expires_at")
+  linkPasswordHash String?            @map("link_password_hash")
+  remindersEnabled Boolean            @default(true) @map("reminders_enabled")
+  brandingSnapshot Json?              @map("branding_snapshot")
+  chargedVia       SignChargedVia?    @map("charged_via")
+  /// Ledger entry that paid for this send (CREDIT). One entry pays for at most one document.
+  ledgerEntryId    String?            @unique @map("ledger_entry_id") @db.Uuid
+  sentAt           DateTime?          @map("sent_at")
+  completedAt      DateTime?          @map("completed_at")
+  voidedAt         DateTime?          @map("voided_at")
+  voidReason       String?            @map("void_reason")
+  finalFileId      String?            @unique @map("final_file_id") @db.Uuid
+  /// SHA-256 of the final PDF bytes (shown on certificate + verify page).
+  finalFileHash    String?            @map("final_file_hash")
+  /// Optimistic-concurrency version.
+  version          Int                @default(1)
+  deletedAt        DateTime?          @map("deleted_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  owner       PlatformCustomer      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  template    SignTemplate?         @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  ledgerEntry PlatformCreditLedger? @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+  finalFile   SignFile?             @relation("SignDocumentFinalFile", fields: [finalFileId], references: [id], onDelete: Restrict)
+  signers     SignSigner[]
+  fields      SignField[]
+  files       SignFile[]            @relation("SignDocumentFiles")
+  auditEvents SignAuditEvent[]
+
+  @@index([ownerId, status, createdAt(sort: Desc)])
+  @@index([status, expiresAt])
+  @@map("sign_documents")
+}
+
+/// A signer on a document. Raw link token is emailed once; only its HMAC (TOKEN_PEPPER) is stored.
+model SignSigner {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  documentId      String               @map("document_id") @db.Uuid
+  name            String
+  /// Lowercase + trimmed.
+  email           String
+  /// Template signer role key (e.g. party_a).
+  role            String
+  order           Int
+  tokenHash       String               @unique @map("token_hash")
+  status          SignSignerStatus     @default(PENDING)
+  otpVerifiedAt   DateTime?            @map("otp_verified_at")
+  consentAt       DateTime?            @map("consent_at")
+  viewedAt        DateTime?            @map("viewed_at")
+  signedAt        DateTime?            @map("signed_at")
+  declinedAt      DateTime?            @map("declined_at")
+  declineReason   String?              @map("decline_reason")
+  signatureMethod SignSignatureMethod? @map("signature_method")
+  signatureFileId String?              @unique @map("signature_file_id") @db.Uuid
+  ip              String?
+  userAgent       String?              @map("user_agent")
+  lastRemindedAt  DateTime?            @map("last_reminded_at")
+  reminderCount   Int                  @default(0) @map("reminder_count")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  document      SignDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signatureFile SignFile?        @relation("SignSignerSignatureFile", fields: [signatureFileId], references: [id], onDelete: Restrict)
+  fields        SignField[]
+  auditEvents   SignAuditEvent[]
+
+  @@unique([documentId, email])
+  @@index([documentId, order])
+  @@map("sign_signers")
+}
+
+/// A placed field. Coordinates are 0–1 fractions of the page (CHECK enforced).
+model SignField {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  documentId String        @map("document_id") @db.Uuid
+  signerId   String?       @map("signer_id") @db.Uuid
+  type       SignFieldType
+  page       Int
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  required   Boolean       @default(true)
+  value      String?
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  document SignDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signer   SignSigner?  @relation(fields: [signerId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([signerId])
+  @@map("sign_fields")
+}
+
+/// Metadata for an encrypted object in private R2 (bytes never stored in Postgres).
+model SignFile {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  ownerId    String?      @map("owner_id") @db.Uuid
+  documentId String?      @map("document_id") @db.Uuid
+  kind       SignFileKind
+  storageKey String       @unique @map("storage_key")
+  mimeType   String       @map("mime_type")
+  sizeBytes  Int          @map("size_bytes")
+  sha256     String
+  encrypted  Boolean      @default(true)
+  deletedAt  DateTime?    @map("deleted_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  owner              PlatformCustomer? @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  document           SignDocument?     @relation("SignDocumentFiles", fields: [documentId], references: [id], onDelete: Restrict)
+  finalForDocument   SignDocument?     @relation("SignDocumentFinalFile")
+  signatureForSigner SignSigner?       @relation("SignSignerSignatureFile")
+
+  @@index([ownerId])
+  @@index([documentId, kind])
+  @@map("sign_files")
+}
+
+/// Append-only, hash-chained e-sign evidence (UPDATE/DELETE/TRUNCATE blocked by trigger).
+model SignAuditEvent {
+  id         String             @id @default(uuid(7)) @db.Uuid
+  documentId String             @map("document_id") @db.Uuid
+  signerId   String?            @map("signer_id") @db.Uuid
+  type       SignAuditEventType
+  actorType  SignActorType      @map("actor_type")
+  ip         String?
+  userAgent  String?            @map("user_agent")
+  metadata   Json?
+  occurredAt DateTime           @default(now()) @map("occurred_at")
+  /// 1-based, gap-free per document.
+  sequence   Int
+  /// hash of the previous event in this document (null for sequence 1).
+  prevHash   String?            @map("prev_hash")
+  /// SHA-256 over this event's canonical fields + prevHash.
+  hash       String
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  document SignDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  signer   SignSigner?  @relation(fields: [signerId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, sequence])
+  @@index([documentId, occurredAt])
+  @@map("sign_audit_events")
+}
+
+/// Early-access signups from the /tools/sign landing page. Not reset by integration tests
+/// (src/platform/db/test-support/integration-db.ts PRESERVED_TABLES): may hold real signups.
+model SignEarlyAccess {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  /// Lowercase + trimmed (emailSchema). Unique: a repeat signup is a no-op.
+  email     String   @unique
+  company   String?
+  role      String?
+  /// Where the signup came from (e.g. "landing", "template:mutual-nda").
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sign_early_access")
+}
