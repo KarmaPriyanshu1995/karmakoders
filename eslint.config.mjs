@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // One-off local/debug scripts, not shipped (also excluded in tsconfig.json).
+    "scratch/**",
+    "scripts/**",
+    "scratch-*",
   ]),
 ]);
 

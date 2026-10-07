@@ -1,0 +1,195 @@
+{
+  "src/app/(admin)/admin/(dashboard)/careers/applications/page.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 2
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/error.tsx": {
+    "@next/next/no-html-link-for-pages": {
+      "count": 1
+    },
+    "react/no-unescaped-entities": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/authority/page.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/brand/page.tsx": {
+    "react-hooks/static-components": {
+      "count": 8
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/entities/page.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/keywords/page.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/reports/page.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/schema/page.tsx": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  "src/app/(admin)/admin/(dashboard)/seo/settings/page.tsx": {
+    "react-hooks/static-components": {
+      "count": 9
+    }
+  },
+  "src/app/api/seo/pages/[id]/optimize/route.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "src/components/Navbar.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "src/components/admin/AdminSidebar.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/admin/BlockEditor.tsx": {
+    "react-hooks/refs": {
+      "count": 1
+    }
+  },
+  "src/components/admin/EditorClient.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "src/components/admin/PostEditorForm.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/admin/RichTextEditor.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "src/components/content/ListingCardGrid.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/sections/AboutSection.tsx": {
+    "@next/next/no-html-link-for-pages": {
+      "count": 2
+    }
+  },
+  "src/components/sections/CareersSection.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "src/components/sections/ContactSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/sections/Footer.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 1
+    }
+  },
+  "src/components/sections/ProjectEstimatorSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/sections/ProjectsSectionClient.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/sections/ServicesSection.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "src/components/sections/WhyChooseKarmaKoders.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/tools/CompressImageTool.tsx": {
+    "react-hooks/purity": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/ui/container-scroll-animation.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "src/hooks/useBlogAutosave.ts": {
+    "react-hooks/refs": {
+      "count": 3
+    }
+  },
+  "src/hooks/useInternalLinkRecommendations.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/hooks/useSeoPages.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/lib/prisma.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "src/lib/seo/analyzer.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "src/lib/seo/auditEngine.ts": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  "src/lib/seo/automationEngine.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  "src/lib/seo/pipeline.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  }
+}
