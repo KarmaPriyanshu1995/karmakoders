@@ -8,6 +8,7 @@ import { PADDLE_MOR_STATEMENT, PRICES_IN_USD_NOTE } from "@/modules/sign/content
 import { TEMPLATE_DISCLAIMER } from "@/modules/sign/content/templates";
 import { LEGAL_DRAFT_COMMENT, LEGAL_PAGES } from "@/modules/sign/content/legal";
 import { PLANS, formatUsd } from "@/platform/billing/plans";
+import { SUPPORT_EMAIL } from "@/platform/config/contact";
 
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -79,6 +80,9 @@ describe("pricing /tools/sign/pricing", () => {
     expect(body).toContain(PRICES_IN_USD_NOTE);
     expect(body).toContain(PADDLE_MOR_STATEMENT);
     expect(body).toContain("Compare plans");
+    expect(body).toContain("Signers per document");
+    expect(body).toContain("Up to 10");
+    expect((body.match(/Each credit sends one document with Pro features\./g) ?? []).length).toBe(2); // card + FAQ
     expect(body).toContain("Billing FAQ");
     expect(html).toContain('href="/legal/refund-policy"');
   });
@@ -165,7 +169,7 @@ describe("legal pages", () => {
     expect(body).toContain("Karmakoders Technologies");
     expect(body).toContain("Jaipur, Rajasthan, India");
     expect(body).toContain("[REGISTERED ADDRESS - TO BE FILLED]");
-    expect(body).toContain("support@karmakoders.com");
+    expect(body).toContain(SUPPORT_EMAIL);
     expect(html).toContain('href="/contact"');
     expect(mod.metadata.alternates?.canonical).toBe(`https://www.karmakoders.com${href}`);
   });
@@ -232,6 +236,17 @@ describe("site-wide rules", () => {
       /^\s*["']use client["']/.test(fs.readFileSync(path.join(ROOT, f), "utf8"))
     );
     expect(clientFiles.map((f) => path.normalize(f)).filter((f) => !allowed.has(f))).toEqual([]);
+  });
+
+  it("Client Components never import zod or schema modules (keeps the client bundle small)", () => {
+    const clientFiles = PUBLIC_DIRS.flatMap(files).filter((f) =>
+      /^\s*["']use client["']/.test(fs.readFileSync(path.join(ROOT, f), "utf8"))
+    );
+    for (const f of clientFiles) {
+      const source = fs.readFileSync(path.join(ROOT, f), "utf8");
+      expect(source, f).not.toMatch(/from\s+["']zod["']/);
+      expect(source, f).not.toMatch(/from\s+["'][^"']*\/schemas?["']/);
+    }
   });
 
   it("no certification claims (SOC 2, HIPAA, ISO) in public Sign copy", async () => {

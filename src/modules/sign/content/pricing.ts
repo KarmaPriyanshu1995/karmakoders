@@ -1,5 +1,7 @@
 /** Copy for /tools/sign/pricing (spec §2). Prices themselves come only from plans.ts. */
 
+import { CREDIT_PRO_FEATURES_LINE } from "@/platform/billing/plans";
+
 export const PRICES_IN_USD_NOTE = "Prices in USD. Taxes may apply depending on your location.";
 
 export const PADDLE_MOR_STATEMENT =
@@ -8,7 +10,7 @@ export const PADDLE_MOR_STATEMENT =
 export const BILLING_FAQ = [
   {
     question: "What is a credit?",
-    answer: "One credit sends one document for signature. Preparing drafts is free; the credit is used only when you send.",
+    answer: `One credit sends one document for signature. ${CREDIT_PRO_FEATURES_LINE} Preparing drafts is free; the credit is used only when you send.`,
   },
   {
     question: "Do credits expire?",

@@ -77,6 +77,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "one_time",
     creditsGranted: 10,
     unlocksTools: [],
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_CREDITS_10",
   },
   credits_30: {
@@ -93,6 +95,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "one_time",
     creditsGranted: 30,
     unlocksTools: [],
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_CREDITS_30",
   },
   sign_pro_monthly: {
@@ -110,6 +114,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "month",
     creditsGranted: 0,
     unlocksTools: ["sign"],
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_SIGN_PRO_MONTHLY",
   },
   sign_pro_yearly: {
@@ -128,6 +134,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "year",
     creditsGranted: 0,
     unlocksTools: ["sign"],
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_SIGN_PRO_YEARLY",
   },
   all_access_monthly: {
@@ -145,6 +153,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "month",
     creditsGranted: 0,
     unlocksTools: "all",
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_ALL_ACCESS_MONTHLY",
   },
   all_access_yearly: {
@@ -163,6 +173,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     interval: "year",
     creditsGranted: 0,
     unlocksTools: "all",
+    maxSigners: 10,
+    showKarmaKodersFooter: false,
     paddlePriceEnvKey: "PADDLE_PRICE_ALL_ACCESS_YEARLY",
   },
 };
@@ -201,6 +213,9 @@ export function getPlanByPriceId(priceId: string): PlanDefinition | null {
 export function getPlan(planId: PlanId): PlanDefinition {
   return PLANS[planId];
 }
+
+/** Shown on the credits plan card and in the billing FAQ. */
+export const CREDIT_PRO_FEATURES_LINE = "Each credit sends one document with Pro features.";
 
 /** Plans shown on /tools/sign/pricing, in display order. */
 export const PRICING_PLAN_IDS = [
@@ -258,6 +273,24 @@ export const PLAN_COMPARISON: { feature: string; values: Record<ComparisonColumn
     },
   },
   {
+    feature: "Signers per document",
+    values: {
+      free: `Up to ${PLANS.free.maxSigners}`,
+      credits: `Up to ${PLANS.credits_10.maxSigners}`,
+      sign_pro: `Up to ${PLANS.sign_pro_monthly.maxSigners}`,
+      all_access: `Up to ${PLANS.all_access_monthly.maxSigners}`,
+    },
+  },
+  {
+    feature: "No KarmaKoders footer on documents",
+    values: {
+      free: !PLANS.free.showKarmaKodersFooter,
+      credits: !PLANS.credits_10.showKarmaKodersFooter,
+      sign_pro: !PLANS.sign_pro_monthly.showKarmaKodersFooter,
+      all_access: !PLANS.all_access_monthly.showKarmaKodersFooter,
+    },
+  },
+  {
     feature: "Audit trail, certificate and verification page",
     values: { free: true, credits: true, sign_pro: true, all_access: true },
   },
@@ -278,12 +311,3 @@ export const PLAN_COMPARISON: { feature: string; values: Record<ComparisonColumn
     values: { free: true, credits: true, sign_pro: true, all_access: true },
   },
 ];
-
-/**
- * Comparison facts the product owner has not confirmed yet. Not shown on the pricing page
- * until provided (docs/specs/task-3b-public-pages.md, "Decisions").
- */
-export const PENDING_COMPARISON_FACTS = [
-  "Signers per document on Credits, Sign Pro and All Access (Free: up to 2)",
-  "Whether documents sent with credits carry the KarmaKoders footer",
-] as const;

@@ -1,6 +1,13 @@
 import { generateFaqSchema } from "@/lib/seo/schemaGenerator";
 import { isSignAppEnabled } from "@/platform/env/flags";
-import { PLANS, SUBSCRIPTION_PAIRS, formatUsd, yearlySavingsMonths, type PlanId } from "@/platform/billing/plans";
+import {
+  CREDIT_PRO_FEATURES_LINE,
+  PLANS,
+  SUBSCRIPTION_PAIRS,
+  formatUsd,
+  yearlySavingsMonths,
+  type PlanId,
+} from "@/platform/billing/plans";
 import { getPlanCta } from "@/modules/sign/launch";
 import { BILLING_FAQ, PADDLE_MOR_STATEMENT, PRICES_IN_USD_NOTE } from "@/modules/sign/content/pricing";
 import { JsonLd, signPageMetadata, softwareApplicationJsonLd } from "@/modules/sign/seo";
@@ -75,7 +82,11 @@ export default function SignPricingPage() {
                     ))}
                   </div>
                 }
-                features={["1 credit = 1 sent Sign document", ...PLANS.credits_10.features.slice(1)]}
+                features={[
+                  "1 credit = 1 sent Sign document",
+                  CREDIT_PRO_FEATURES_LINE,
+                  ...PLANS.credits_10.features.slice(1),
+                ]}
                 cta={
                   <div className="space-y-2">
                     {credits.map((pack) => (

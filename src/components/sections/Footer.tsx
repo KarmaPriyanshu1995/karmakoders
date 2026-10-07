@@ -106,7 +106,7 @@ export function Footer() {
   };
 
   return (
-    <footer role="footer" className="relative bg-slate-950/95 border-t border-white/5 overflow-hidden">
+    <footer className="relative bg-slate-950/95 border-t border-white/5 overflow-hidden">
       {/* Background Glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500 opacity-[0.03] blur-[150px] rounded-full pointer-events-none" />
 
@@ -190,7 +190,7 @@ export function Footer() {
             </p>
             <TrustBadgeStrip className="mb-8 justify-start" />
 
-            <div className="flex gap-3 mb-10" role="list" aria-label="Social media links">
+            <div className="flex gap-3 mb-10" role="group" aria-label="Social media links">
               {[
                 { href: "https://twitter.com/karmakoders", label: "Twitter", svg: <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/> },
                 { href: "https://linkedin.com/company/karmakoders", label: "LinkedIn", svg: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></> },
@@ -234,7 +234,7 @@ export function Footer() {
           {/* Link Columns */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title} className="lg:col-span-1">
-              <h4 className="text-white font-black text-sm uppercase tracking-widest mb-8">{title}</h4>
+              <h3 className="text-white font-black text-sm uppercase tracking-widest mb-8">{title}</h3>
               <ul className="space-y-4">
                 {links.map((link) => (
                   <li key={link.name}>
@@ -253,7 +253,7 @@ export function Footer() {
 
           {/* Contact Column */}
           <div className="lg:col-span-2">
-            <h4 className="text-white font-black text-sm uppercase tracking-widest mb-8">Contact</h4>
+            <h3 className="text-white font-black text-sm uppercase tracking-widest mb-8">Contact</h3>
             <ul className="space-y-6">
               <li>
                 <p className="text-indigo-500 text-xs font-bold uppercase tracking-wider mb-1">Email</p>

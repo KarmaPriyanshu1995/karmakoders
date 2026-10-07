@@ -76,7 +76,7 @@ Credits **never expire** and are **shared across all current and future KarmaKod
 | Starter | $10 | 10 |
 | Value | $25 | 30 |
 
-**1 credit = 1 sent document** (the send event consumes the credit, not the signature).
+**1 credit = 1 sent document** (the send event consumes the credit, not the signature). Each credit sends one document with Pro features: up to **10 signers** per document and **no KarmaKoders footer**.
 
 ### Subscriptions
 
@@ -85,7 +85,7 @@ Credits **never expire** and are **shared across all current and future KarmaKod
 | **Sign Pro** | $15 | $150 |
 | **All Access** | $29 | $290 |
 
-All Access covers Sign and every current and future KarmaKoders tool. No per-seat fees.
+All Access covers Sign and every current and future KarmaKoders tool. No per-seat fees. Both subscriptions allow up to **10 signers** per document and remove the KarmaKoders footer.
 
 **Pay only at send** when the user is over free quota and has no included entitlement: checkout or spend credits before the document is submitted to signers.
 

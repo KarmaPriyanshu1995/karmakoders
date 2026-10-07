@@ -49,7 +49,7 @@ WCAG 2.1 AA (contrast, keyboard navigation, visible focus). Marketing pages use 
 /legal/acceptable-use. If /legal already exists, reuse its layout and list any
 existing pages before changing them.
 - Operator: Karmakoders Technologies, a partnership firm in India, Jaipur, Rajasthan.
-  Contact support@karmakoders.com. Clearly marked placeholder for the full registered
+  Contact info@karmakoders.com (SUPPORT_EMAIL in src/platform/config/contact.ts). Clearly marked placeholder for the full registered
   address: [REGISTERED ADDRESS - TO BE FILLED].
 - Terms include the Paddle merchant-of-record statement above.
 - Refund policy: full refund within 14 days of purchase for unused credit packs and
@@ -96,7 +96,7 @@ legal section if one exists.
 |---|---|
 | Existing CMS legal pages | The site already publishes CMS pages at `/privacy`, `/terms`, `/refund-policy`, `/cookie-policy` (agency site). They stay unchanged. The `/legal/*` pages are **KarmaKoders Sign-specific** policies. The site footer's Legal column gains labelled links to them ("Sign Terms", "Sign Privacy", …). |
 | Template preview | Spec §General wins over PRD S1 criterion 2: the template preview is a **static, server-rendered** sample (fixed sample names), not a live client preview. |
-| Pricing comparison table | Only rows sourced from `plans.ts` / PRD are shown. **Pending from the product owner:** signers per document on paid plans; whether credit sends carry the KarmaKoders footer. Tracked as `PENDING_COMPARISON_FACTS` in `plans.ts`. |
+| Pricing comparison table | Rows come only from `plans.ts`. Confirmed by the product owner: signers per document are Free 2, Credits 10, Sign Pro 10, All Access 10; documents sent with credits do **not** carry the KarmaKoders footer; the credits card and billing FAQ say "Each credit sends one document with Pro features." |
 | Contact (§5) | **Reuse the existing CMS `/contact` page**; no `/tools/sign/contact`. Support email, business name, address placeholder and the 1–2 business day response time must be added to that CMS page by the product owner; the legal pages also carry them. |
 | FAQ accordions | Built with native `<details>`/`<summary>` (server-rendered, keyboard accessible, zero client JS), so answers are in the HTML and match the FAQPage JSON-LD. Only the pricing toggle and the early-access form are Client Components on public pages. |
 | CTAs | Every CTA follows `SIGN_APP_ENABLED` (early access when false, "Get started" → login when true) via `src/modules/sign/launch`. |

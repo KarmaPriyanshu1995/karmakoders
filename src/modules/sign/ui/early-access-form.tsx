@@ -3,10 +3,8 @@
 import { useActionState, useEffect, useId, useRef } from "react";
 import { Button, Input, Label } from "@/components/product-ui";
 import { joinEarlyAccess } from "@/modules/sign/early-access/actions";
-import {
-  EARLY_ACCESS_HONEYPOT_FIELD,
-  EARLY_ACCESS_INITIAL_STATE,
-} from "@/modules/sign/early-access/schema";
+// constants (not schema): keeps zod out of the client bundle.
+import { EARLY_ACCESS_HONEYPOT_FIELD, EARLY_ACCESS_INITIAL_STATE } from "@/modules/sign/early-access/constants";
 
 type EarlyAccessFormProps = {
   /** Recorded with the signup, e.g. "landing" or "template:mutual-nda". */

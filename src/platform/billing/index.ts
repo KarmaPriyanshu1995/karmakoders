@@ -11,7 +11,7 @@ export {
   formatUsd,
   COMPARISON_COLUMNS,
   PLAN_COMPARISON,
-  PENDING_COMPARISON_FACTS,
+  CREDIT_PRO_FEATURES_LINE,
   type ComparisonColumn,
   type ToolSlug,
   type PlanId,

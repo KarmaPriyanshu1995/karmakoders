@@ -1,5 +1,7 @@
 /** Shared facts for the /legal pages (spec §4). Drafts: require lawyer review. */
 
+import { SUPPORT_EMAIL } from "@/platform/config/contact";
+
 export const LEGAL_OPERATOR = {
   name: "Karmakoders Technologies",
   description: "a partnership firm registered in India",
@@ -8,7 +10,7 @@ export const LEGAL_OPERATOR = {
   country: "India",
   /** Placeholder until the registered address is provided. */
   address: "[REGISTERED ADDRESS - TO BE FILLED]",
-  email: "support@karmakoders.com",
+  email: SUPPORT_EMAIL,
   responseTime: "1-2 business days",
 } as const;
 
