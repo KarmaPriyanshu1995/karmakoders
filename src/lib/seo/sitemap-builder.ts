@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { buildPageUrl, SITE_PAGES, SITEMAP_EXCLUDED_PAGE_SLUGS } from "@/lib/sitePages";
 import { getFreeToolsSitemapEntries } from "@/lib/tools/sitemap-entries";
+import { getSignSitemapPaths } from "@/modules/sign/templates/sitemap";
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.karmakoders.com";
 
@@ -58,6 +59,10 @@ export async function collectSitemapEntries(tenantId: string): Promise<SitemapUr
 
   for (const toolPath of STATIC_TOOL_PATHS) {
     entries.push(entry(toolPath, "static", { changeFrequency: "weekly", priority: 0.85 }));
+  }
+
+  for (const signPath of getSignSitemapPaths()) {
+    entries.push(entry(signPath, "sign", { changeFrequency: "weekly", priority: 0.85 }));
   }
 
   for (const page of pages) {

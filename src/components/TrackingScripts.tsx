@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { isSensitivePath } from "@/platform/privacy/sensitive-paths";
 
 const GA_ID = "G-NG3CPDVF6F";
 
@@ -24,8 +26,12 @@ function injectInline(id: string, content: string) {
 export function TrackingScripts() {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID?.trim();
+  const pathname = usePathname();
+  const sensitive = isSensitivePath(pathname);
 
   useEffect(() => {
+    // Never load GA/GTM/Clarity on token-bearing URLs (signer links): they record the full URL.
+    if (sensitive) return;
     injectSrc("ga-src", `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`);
     injectInline(
       "ga-init",
@@ -45,7 +51,7 @@ export function TrackingScripts() {
         `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`,
       );
     }
-  }, [gtmId, clarityId]);
+  }, [gtmId, clarityId, sensitive]);
 
   return null;
 }

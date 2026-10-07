@@ -69,6 +69,15 @@ const nextConfig: NextConfig = {
         source: "/k.js",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
+      // Signer links carry a bearer token in the URL. Must stay after "/:path*" so it
+      // overrides the global Referrer-Policy (last matching header wins).
+      {
+        source: "/tools/sign/s/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };

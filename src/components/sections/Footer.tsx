@@ -44,6 +44,12 @@ const footerLinks = {
     { name: "Terms of Service", href: "/terms" },
     { name: "Cookie Policy", href: "/cookie-policy" },
     { name: "Refund Policy", href: "/refund-policy" },
+    // KarmaKoders Sign policies (docs/specs/task-3b-public-pages.md, Decisions)
+    { name: "Sign Terms", href: "/legal/terms" },
+    { name: "Sign Privacy", href: "/legal/privacy" },
+    { name: "Sign Refund Policy", href: "/legal/refund-policy" },
+    { name: "E-Sign Disclosure", href: "/legal/esign-disclosure" },
+    { name: "Acceptable Use", href: "/legal/acceptable-use" },
   ],
 };
 
