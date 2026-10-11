@@ -179,10 +179,15 @@ class MassAssignmentTests(unittest.TestCase):
                             allow_state_changing=False, enabled=["API_MASS_ASSIGNMENT"])
         self.assertEqual(statuses(res, "API_MASS_ASSIGNMENT"), ["not_tested"])
 
-    def test_reflected_field_confirmed_with_opt_in(self) -> None:
+    def test_reflected_field_without_readback_is_potential(self) -> None:
+        # PATCHU has only a PATCH endpoint — no GET for read-back.
+        # The new persistence-verification logic cannot confirm persistence, so the
+        # reflected probe is reported as POTENTIAL (reflected_persistence_unverified),
+        # not VULNERABLE.  An explicit opt-in is required (allow_state_changing=True).
         res, t = run_active(vuln, PATCHU, objects=[TestObject("alice", "PATCH shop.example/api/users/{param}", {"id": "1"})],
                             allow_state_changing=True, enabled=["API_MASS_ASSIGNMENT"])
-        self.assertIn("API_MASS_ASSIGNMENT.unexpected_property_accepted", rules(res, "API_MASS_ASSIGNMENT"))
+        self.assertIn("potential", statuses(res, "API_MASS_ASSIGNMENT"))
+        self.assertNotIn("vulnerable", statuses(res, "API_MASS_ASSIGNMENT"))
         self.assertIn(("PATCH", "/api/users/1", "alice"), t.sent)
 
     def test_ignored_field_passes(self) -> None:
@@ -190,8 +195,8 @@ class MassAssignmentTests(unittest.TestCase):
                             allow_state_changing=True, enabled=["API_MASS_ASSIGNMENT"])
         self.assertIn("pass", statuses(res, "API_MASS_ASSIGNMENT"))
 
-    @unittest.expectedFailure  # DEFECT P2-MASS-ECHO: a server that merely ECHOES the probe (without storing it)
     def test_echo_without_store_should_not_be_confirmed_vulnerable(self) -> None:
+        # FIXED (P2-MASS-ECHO): a server that merely echoes the probe must not be VULNERABLE.
         def echo(m, p, role, body):  # noqa: ANN001, ANN202
             extra = json.loads(body) if body else {}
             return 200, {"id": obj_id(p), "echo": extra}  # echoes input under 'echo', does NOT store it

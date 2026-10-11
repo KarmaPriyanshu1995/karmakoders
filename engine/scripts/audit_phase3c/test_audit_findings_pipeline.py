@@ -57,8 +57,8 @@ class FindingNormalizationTests(unittest.TestCase):
             self.assertEqual(c.scanner_source, "api_security")
             self.assertTrue(c.fingerprint)
 
-    @unittest.expectedFailure  # DEFECT P2-CATEGORY: active finding types are unmapped in lib/categories → "other".
     def test_active_finding_types_have_a_meaningful_category(self) -> None:
+        # FIXED (P2-CATEGORY): active finding types now map to authentication / authorization, never "other".
         from lib.categories import category_for_finding_type
 
         for ft in ("api_bola", "api_bfla", "api_bopla", "api_mass_assignment", "api_authentication"):
@@ -138,8 +138,10 @@ class DeterminismTests(unittest.TestCase):
         b = run_active(vuln, USERS, objects=OBJS, enabled=["API_BOLA", "API_BFLA", "API_AUTHENTICATION", "API_BOPLA"])[0]
         self.assertEqual(strip(a.to_dict(include_duration=False)), strip(b.to_dict(include_duration=False)))
 
-    @unittest.expectedFailure  # DEFECT P3-MASS-NONDET: the random probe value is echoed into the stored evidence.
     def test_mass_assignment_evidence_should_be_deterministic(self) -> None:
+        # FIXED (P3-MASS-NONDET): probe value is now deterministic (sha1 of endpoint identity).
+        # An echo-only app (no GET read-back endpoint) produces POTENTIAL evidence; two runs
+        # must produce identical evidence dicts since the probe value is stable.
         def echo_store(m, p, role, body):  # noqa: ANN001, ANN202
             extra = json.loads(body) if body else {}
             return 200, {"id": obj_id(p), **extra}
@@ -147,8 +149,10 @@ class DeterminismTests(unittest.TestCase):
         obj = [TestObject("alice", "PATCH shop.example/api/users/{param}", {"id": "1"})]
         a = run_active(echo_store, patch, objects=obj, allow_state_changing=True, enabled=["API_MASS_ASSIGNMENT"])[0]
         b = run_active(echo_store, patch, objects=obj, allow_state_changing=True, enabled=["API_MASS_ASSIGNMENT"])[0]
-        ea = [r.evidence for r in a.check_results if r.check_id == "API_MASS_ASSIGNMENT" and r.status.value == "vulnerable"]
-        eb = [r.evidence for r in b.check_results if r.check_id == "API_MASS_ASSIGNMENT" and r.status.value == "vulnerable"]
+        # No GET endpoint → reflected_persistence_unverified (POTENTIAL), not VULNERABLE.
+        ea = [r.evidence for r in a.check_results if r.check_id == "API_MASS_ASSIGNMENT" and r.status.value == "potential"]
+        eb = [r.evidence for r in b.check_results if r.check_id == "API_MASS_ASSIGNMENT" and r.status.value == "potential"]
+        self.assertTrue(ea, "expected at least one potential result from echo app")
         self.assertEqual(json.dumps(ea, sort_keys=True), json.dumps(eb, sort_keys=True))
 
 
