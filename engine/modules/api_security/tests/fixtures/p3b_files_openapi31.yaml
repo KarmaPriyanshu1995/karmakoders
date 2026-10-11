@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: Files API
+  version: 2026-01
+servers:
+  - url: https://files.example/api
+  - url: http://localhost:8080/api
+x-amazon-apigateway-cors:
+  allowOrigins: ["*"]
+  allowCredentials: true
+  allowMethods: [GET, POST]
+components:
+  securitySchemes:
+    cookieSession:
+      type: apiKey
+      in: cookie
+      name: sid
+  headers:
+    AllowAll:
+      schema:
+        type: string
+        example: "*"
+security:
+  - cookieSession: []
+paths:
+  /files/{fileId}:
+    get:
+      operationId: downloadFile
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: ok
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: "#/components/headers/AllowAll"
+            Access-Control-Allow-Credentials:
+              schema: {type: string, enum: ["true"]}
+          content:
+            application/json:
+              schema:
+                $ref: "https://schemas.files.example/file.json"
+  /files:
+    get:
+      operationId: listFiles
+      responses:
+        "200":
+          description: ok
+          headers:
+            Access-Control-Allow-Origin:
+              schema: {type: string, example: "https://app.files.example"}
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: {type: string}
+                    size: {type: integer}

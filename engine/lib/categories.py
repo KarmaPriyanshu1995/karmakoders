@@ -79,6 +79,21 @@ FINDING_TYPE_CATEGORY: Final[dict[str, str]] = {
     "missing_security_md": "other",
     "insecure_cors_in_config": "cors",
     "debug_flag_in_config": "configuration",
+    # Phase 3B API Security passive checks (modules/api_security).
+    "api_spec_security": "authentication",
+    "api_jwt": "authentication",
+    "api_data_exposure": "api_security",
+    "api_cors_config": "cors",
+    "api_configuration": "configuration",
+    "api_inventory": "api_security",
+    "api_graphql_schema": "api_security",
+    "api_business_flows": "api_security",
+    # Phase 3C active authentication/authorization checks (modules/api_security/active).
+    "api_authentication": "authentication",
+    "api_bola": "authorization",
+    "api_bfla": "authorization",
+    "api_bopla": "authorization",
+    "api_mass_assignment": "authorization",
 }
 
 

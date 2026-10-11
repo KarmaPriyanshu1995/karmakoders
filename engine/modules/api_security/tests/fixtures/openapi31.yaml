@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Billing API
+  version: 3.1.0
+servers:
+  - url: https://billing.example
+webhooks:
+  invoicePaid:
+    post:
+      responses:
+        "200":
+          description: ok
+components:
+  schemas:
+    Invoice:
+      type: object
+      properties:
+        id: {type: string}
+        amount: {type: [number, "null"]}
+        external:
+          $ref: "https://schemas.example.com/money.yaml"
+paths:
+  /invoices/{invoiceId}:
+    get:
+      operationId: getInvoice
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+  /refunds:
+    post:
+      operationId: createRefund
+      requestBody:
+        $ref: "https://schemas.example.com/refund-body.yaml"
+      responses:
+        "202":
+          description: accepted

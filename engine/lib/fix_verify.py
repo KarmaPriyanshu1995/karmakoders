@@ -84,6 +84,27 @@ async def verify_fix_for_finding(
             evidence_redacted="Active findings need ownership-gated re-scan.",
             note="Start a new scan with verified ownership to re-check active findings.",
         )
+    if ftype.startswith("api_"):
+        # Phase 3C API findings. Passive (spec/inventory) findings re-verify by re-running
+        # the API scan with the same spec. Active (behavioural) findings re-verify only by
+        # re-supplying the authorized test identities and objects, which are never stored.
+        active = ftype in {"api_authentication", "api_bola", "api_bfla", "api_bopla",
+                           "api_mass_assignment", "api_jwt"}
+        if active:
+            return FixVerifyOutcome(
+                result="verification_inconclusive",
+                procedure="api_active_recheck_requires_identities",
+                evidence_redacted="Active API findings re-verify by re-running the authorized test with the "
+                                  "same test identities and objects (credentials are never stored).",
+                note="Re-run an ownership-gated API Security scan with the test identities to confirm the fix.",
+            )
+        return FixVerifyOutcome(
+            result="verification_inconclusive",
+            procedure="api_spec_recheck",
+            evidence_redacted="Specification/inventory API findings re-verify by re-running the API scan "
+                              "with the corrected specification.",
+            note="Re-run the API Security scan with the updated specification to confirm the fix.",
+        )
 
     _ = metadata
     return FixVerifyOutcome(

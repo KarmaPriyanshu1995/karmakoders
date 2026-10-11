@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Users API", "version": "2.0.0"},
+  "servers": [{"url": "https://{env}.users.example/api", "variables": {"env": {"default": "prod"}}}],
+  "tags": [{"name": "users"}, {"name": "admin"}],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+      "cookieAuth": {"type": "apiKey", "in": "cookie", "name": "sid"},
+      "oidc": {"type": "openIdConnect", "openIdConnectUrl": "https://users.example/.well-known/openid-configuration"}
+    },
+    "parameters": {"UserId": {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}},
+    "schemas": {"User": {"type": "object", "properties": {"id": {"type": "string"}, "email": {"type": "string"}, "role": {"type": "string"}}}},
+    "requestBodies": {"UserBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}}
+  },
+  "security": [{"bearerAuth": []}],
+  "paths": {
+    "/users": {
+      "get": {"operationId": "listUsers", "tags": ["users"], "parameters": [{"name": "page", "in": "query", "schema": {"type": "integer"}}, {"name": "X-Request-Id", "in": "header", "schema": {"type": "string"}}], "responses": {"200": {"description": "ok", "content": {"application/json": {}}}}},
+      "post": {"operationId": "createUser", "tags": ["users"], "requestBody": {"$ref": "#/components/requestBodies/UserBody"}, "responses": {"201": {"description": "created"}}}
+    },
+    "/users/{id}": {
+      "parameters": [{"$ref": "#/components/parameters/UserId"}],
+      "get": {"operationId": "getUser", "tags": ["users"], "responses": {"200": {"description": "ok"}}},
+      "patch": {"operationId": "updateUser", "tags": ["users"], "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}, "responses": {"200": {"description": "ok"}}}
+    },
+    "/admin/users/{id}/role": {"put": {"operationId": "setRole", "tags": ["admin"], "security": [{"bearerAuth": [], "cookieAuth": []}], "responses": {"204": {"description": "ok"}}}},
+    "/status": {"get": {"operationId": "status", "security": [{}], "responses": {"200": {"description": "ok"}}}}
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Accounts API", "version": "4.2.0"},
+  "servers": [{"url": "https://accounts.example"}],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    },
+    "schemas": {
+      "Owner": {"type": "object", "properties": {"id": {"type": "string"}, "password_hash": {"type": "string"}, "password_updated_at": {"type": "string"}}},
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "email": {"type": "string"},
+          "password": {"type": "string", "writeOnly": true},
+          "has_password": {"type": "boolean"},
+          "owner": {"$ref": "#/components/schemas/Owner"},
+          "friends": {"type": "array", "items": {"$ref": "#/components/schemas/User"}}
+        }
+      },
+      "TokenResponse": {"type": "object", "properties": {"access_token": {"type": "string"}, "refresh_token": {"type": "string"}, "token_type": {"type": "string"}, "expires_in": {"type": "integer"}}}
+    }
+  },
+  "security": [{"bearerAuth": []}],
+  "paths": {
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "getUserV1", "tags": ["users"], "security": [],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "ok", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}}
+      }
+    },
+    "/v2/users/{id}": {
+      "get": {
+        "operationId": "getUserV2", "tags": ["users"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "ok", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}}
+      }
+    },
+    "/v2/auth/token": {
+      "post": {
+        "operationId": "issueToken", "security": [],
+        "requestBody": {"content": {"application/x-www-form-urlencoded": {"schema": {"type": "object", "properties": {"username": {"type": "string"}, "password": {"type": "string"}}}}}},
+        "responses": {"200": {"description": "ok", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TokenResponse"}}}}}
+      }
+    },
+    "/v2/admin/export": {
+      "post": {"operationId": "exportAllData", "tags": ["admin"], "security": [{}], "responses": {"202": {"description": "accepted"}}}
+    },
+    "/v2/password/reset": {
+      "post": {"operationId": "resetPassword", "security": [], "responses": {"204": {"description": "sent"}}}
+    },
+    "/v2/legacy/report": {
+      "get": {"operationId": "legacyReport", "deprecated": true, "responses": {"200": {"description": "ok"}}}
+    },
+    "/v2/billing/invoices": {
+      "get": {"operationId": "listInvoices", "security": [{"partnerKey": []}], "responses": {"200": {"description": "ok"}}}
+    }
+  }
+}

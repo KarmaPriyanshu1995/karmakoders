@@ -60,3 +60,39 @@ python worker.py
 ```
 
 Captured bundles are deleted when the stage finishes. Never store raw secrets — only redacted forms and SHA-256 hashes.
+
+## API Security (optional)
+
+`modules/api_security/` is an independent API Security engine (Phase 3A foundation +
+Phase 3B passive analysis + Phase 3C active testing). It is **off by default**. Enable
+passive analysis in `engine/.env` and restart the worker:
+
+```bash
+API_SECURITY_ENABLED=true
+```
+
+Passive mode runs only inside ownership-verified URL scans, after attack-surface discovery.
+It analyses the discovered API inventory with deterministic passive checks, saves
+`potential` findings through the existing findings pipeline, records one `api_security.*`
+scan event, and sends **no** API requests.
+
+Active behavioural testing (authentication, BOLA, BFLA, BOPLA, JWT validation; mass
+assignment only with explicit opt-in) is a **separate** flag:
+
+```bash
+API_SECURITY_ACTIVE_ENABLED=true
+```
+
+It runs only when a scan supplies authorized test identities/objects AND ownership is
+verified. Requests are bounded, scope-enforced, redirect-blocked and redacted; test
+credentials are held in memory only and never persisted. With the flag off, no active API
+request is ever sent. The project dashboard is served at
+`/security-scanner/dashboard/{projectId}`. Details: `../docs/api-security.md`.
+
+Tests (offline, no database):
+
+```bash
+cd engine
+python scripts/test_api_security.py          # API Security suite (3A + 3B + 3C)
+python scripts/audit_phase3b/run_audit.py    # Phase 3B audit suite
+```

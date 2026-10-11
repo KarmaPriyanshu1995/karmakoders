@@ -47,6 +47,50 @@ def validate_confidence(value: object) -> float:
     return clamp_confidence(float(value))
 
 
+# API Security (Phase 3B): rule_id is "<CHECK>.<rule>@<evidence_basis>". The basis, not the
+# rule, decides confidence: documentation and inventory comparisons stay candidates.
+_API_BASIS_SCORES: Final[dict[str, tuple[float, str, str]]] = {
+    "specification": (
+        0.60,
+        "candidate",
+        "derived from the API specification only; live API behaviour was not tested",
+    ),
+    "inventory": (
+        0.55,
+        "candidate",
+        "derived from comparing documented and discovered endpoints; not a demonstrated weakness",
+    ),
+    "token_structure": (
+        0.80,
+        "unverified",
+        "decoded from the structure of a supplied token; server-side acceptance was not tested",
+    ),
+    "live_observation": (
+        0.85,
+        "not_applicable",
+        "observed in a response recorded by an existing authorized scanner component",
+    ),
+}
+
+
+def _score_api_security(rule: str, verified: bool) -> ConfidenceResult:
+    rule_name, _, basis = rule.partition("@")
+    if verified and basis == "confirmed":
+        return ConfidenceResult(
+            confidence=0.95,
+            confidence_reason=f"API security failure demonstrated by adequate evidence (rule: {rule_name})",
+            verification_status="verified",
+        )
+    confidence, status, why = _API_BASIS_SCORES.get(
+        basis, (0.50, "candidate", "API security heuristic without a recorded evidence basis")
+    )
+    return ConfidenceResult(
+        confidence=confidence,
+        confidence_reason=f"{why} (rule: {rule_name or 'unknown'})",
+        verification_status=status,
+    )
+
+
 def score_finding(
     *,
     finding_type: str,
@@ -64,6 +108,9 @@ def score_finding(
     ftype = (finding_type or "").strip().lower()
     source = (scanner_source or "").strip().lower()
     rule = (rule_id or "").strip().lower()
+
+    if source == "api_security" and ftype.startswith("api_"):
+        return _score_api_security(rule, verified)
 
     if ftype == "secret_in_bundle":
         if source == "trufflehog" and verified:

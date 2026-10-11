@@ -1,0 +1,29 @@
+{
+  "swagger": "2.0",
+  "info": {"title": "Shop API", "version": "1.2.0"},
+  "host": "api.shop.example",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "basicAuth": {"type": "basic"},
+    "apiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"},
+    "oauth": {"type": "oauth2", "flow": "accessCode", "authorizationUrl": "https://auth.shop.example/a", "tokenUrl": "https://auth.shop.example/t"}
+  },
+  "security": [{"apiKey": []}],
+  "paths": {
+    "/orders": {
+      "get": {"operationId": "listOrders", "tags": ["orders"], "parameters": [{"name": "limit", "in": "query", "type": "integer"}], "responses": {"200": {"description": "ok"}}},
+      "post": {"operationId": "createOrder", "tags": ["orders"], "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/Order"}}], "responses": {"201": {"description": "created"}}}
+    },
+    "/orders/{id}": {
+      "parameters": [{"name": "id", "in": "path", "required": true, "type": "string"}],
+      "get": {"operationId": "getOrder", "responses": {"200": {"description": "ok"}, "404": {"description": "missing"}}},
+      "delete": {"operationId": "deleteOrder", "deprecated": true, "responses": {"204": {"description": "gone"}}}
+    },
+    "/health": {"get": {"operationId": "health", "security": [], "responses": {"200": {"description": "ok"}}}},
+    "/login": {"post": {"operationId": "login", "security": [], "consumes": ["application/x-www-form-urlencoded"], "parameters": [{"name": "username", "in": "formData", "type": "string"}, {"name": "password", "in": "formData", "type": "string"}], "responses": {"200": {"description": "ok"}}}}
+  },
+  "definitions": {"Order": {"type": "object", "properties": {"productId": {"type": "string"}, "quantity": {"type": "integer"}}}}
+}

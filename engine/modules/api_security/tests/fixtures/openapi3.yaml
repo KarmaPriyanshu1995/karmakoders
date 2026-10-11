@@ -1,0 +1,50 @@
+openapi: 3.0.1
+info:
+  title: Notes API
+  version: "1.0"
+servers:
+  - url: /v2
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - apiKeyAuth: []
+paths:
+  /notes:
+    get:
+      operationId: listNotes
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: ok
+    post:
+      operationId: createNote
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string}
+                body: {type: string}
+      responses:
+        "201":
+          description: created
+  /notes/{noteId}:
+    get:
+      operationId: getNote
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: ok

@@ -176,6 +176,24 @@ async def _run_ownership_gated_active(
                 f"Attack-surface persistence warning: {exc!r} (in-memory discovery retained for fuzzing)",
             )
 
+        # Phase 3A/3B: optional API Security (API_SECURITY_ENABLED, default off).
+        # Passive analysis only — sends no API requests; any failure is contained here.
+        # Saved API findings count toward `saved` so the existing grade recalculation runs.
+        try:
+            from modules.api_security.adapters.karmakoders import run_api_security_stage
+
+            api_outcome = await run_api_security_stage(
+                conn,
+                scan_id=scan_id,
+                project_id=project_id,
+                primary_url=primary_url,
+                surface_items=list(inventory.items.values()),
+            )
+            if api_outcome is not None:
+                saved += api_outcome.findings_saved
+        except Exception:  # noqa: BLE001
+            log.exception("api security stage hook failed scan=%s", scan_id)
+
         # Phase F: safe fuzzing
         fuzz_drafts = await run_safe_fuzzing(
             conn,
