@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { Ratelimit } from "@upstash/ratelimit";
+import { NextResponse } from "next/server";
 import { logEvent } from "@/platform/logger";
 
 export type RateLimitResult = {
@@ -141,7 +142,15 @@ export async function consumePlatformRateLimit(options: {
   }
 }
 
-/** Client IP from request headers (Server Actions get headers(), not a Request). */
+/**
+ * Client IP from request headers (Server Actions get headers(), not a Request).
+ *
+ * Why this is trusted on Vercel: every request reaches the app through Vercel's edge network,
+ * which sets `x-forwarded-for` to the real client IP (and `x-real-ip` to the same value),
+ * overwriting anything the client sent. The first entry is therefore the client as seen by
+ * Vercel and cannot be spoofed to evade per-IP limits. Outside Vercel (e.g. local `next start`)
+ * these headers are client-controlled; that only matters for development/test.
+ */
 export function clientIpFromHeaders(headers: Pick<Headers, "get">): string {
   const forwarded = headers.get("x-forwarded-for");
   return forwarded?.split(",")[0]?.trim() || headers.get("x-real-ip") || "unknown";
@@ -149,4 +158,21 @@ export function clientIpFromHeaders(headers: Pick<Headers, "get">): string {
 
 export function clientIpFromRequest(req: Request): string {
   return clientIpFromHeaders(req.headers);
+}
+
+/**
+ * 429 response for any exhausted limit: friendly message, `Retry-After` set to the longest wait
+ * among the limits that were hit, and code "rate_limited". Returns null when all limits allow.
+ */
+export function rateLimitedResponse(
+  results: readonly RateLimitResult[],
+  message = "Too many attempts. Please wait a few minutes and try again."
+): NextResponse<{ error: string; code: string }> | null {
+  const blocked = results.filter((r) => !r.allowed);
+  if (blocked.length === 0) return null;
+  const retryAfterSec = Math.max(...blocked.map((r) => r.retryAfterSec));
+  return NextResponse.json(
+    { error: message, code: "rate_limited" },
+    { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+  );
 }

@@ -15,7 +15,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/platform/auth", () => ({
-  getCustomerSession: vi.fn(async () => null),
+  getCurrentCustomer: vi.fn(async () => null),
+  requireCustomer: vi.fn(async () => ({ sessionId: "s1", customer: { id: "c1", email: "jane@example.com", name: null, status: "ACTIVE" } })),
+  getCustomerProfile: vi.fn(async () => ({ id: "c1", email: "jane@example.com", name: null, creditsBalance: 0, subscriptions: [] })),
+  safeNextPath: (next?: string) => next ?? "/tools/sign/dashboard",
   revokeCustomerSession: vi.fn(),
 }));
 
@@ -48,21 +51,21 @@ afterEach(() => {
 
 describe("gated Sign pages", () => {
   const gated = [
-    ["login page", () => import("./(marketing)/login/page")],
+    ["login page", () => import("./(app)/login/page")],
     ["app layout (dashboard, new/*, documents, billing, settings)", () => import("./(app)/layout")],
     ["signer layout (/s/*)", () => import("./(signer)/layout")],
   ] as const;
 
   it.each(gated)("%s → notFound() when SIGN_APP_ENABLED=false", async (_name, load) => {
     vi.stubEnv("SIGN_APP_ENABLED", "false");
-    const Page = (await load()).default as (props: { children: ReactNode }) => unknown;
-    await expect(async () => Page({ children: null })).rejects.toThrow("NEXT_NOT_FOUND");
+    const Page = (await load()).default as (props: { children: ReactNode; searchParams: Promise<Record<string, string>> }) => unknown;
+    await expect(async () => Page({ children: null, searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
   it.each(gated)("%s renders when SIGN_APP_ENABLED=true", async (_name, load) => {
     vi.stubEnv("SIGN_APP_ENABLED", "true");
-    const Page = (await load()).default as (props: { children: ReactNode }) => unknown;
-    const result = await Page({ children: null });
+    const Page = (await load()).default as (props: { children: ReactNode; searchParams: Promise<Record<string, string>> }) => unknown;
+    const result = await Page({ children: null, searchParams: Promise.resolve({}) });
     expect(isValidElement(result)).toBe(true);
     expect(notFound).not.toHaveBeenCalled();
   });

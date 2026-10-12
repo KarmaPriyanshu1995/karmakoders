@@ -12,6 +12,8 @@ export {
   COMPARISON_COLUMNS,
   PLAN_COMPARISON,
   CREDIT_PRO_FEATURES_LINE,
+  planIdForSubscription,
+  activePlanName,
   type ComparisonColumn,
   type ToolSlug,
   type PlanId,

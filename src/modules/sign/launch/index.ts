@@ -20,6 +20,24 @@ export const SIGN_APP_PAGE_PREFIXES = [
 
 export const SIGN_APP_API_PREFIXES = ["/api/platform/auth"] as const;
 
+/**
+ * Pages that need a signed-in customer. src/proxy.ts only checks that the session cookie is
+ * present (cheap, no DB) and redirects to login otherwise; every page/handler still calls
+ * requireCustomer() for the real check.
+ */
+export const SIGN_PROTECTED_PREFIXES = [
+  "/tools/sign/dashboard",
+  "/tools/sign/new",
+  "/tools/sign/documents",
+  "/tools/sign/billing",
+  "/tools/sign/settings",
+] as const;
+
+export function requiresCustomerSession(pathname: string): boolean {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return SIGN_PROTECTED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }

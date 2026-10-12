@@ -1,36 +1,50 @@
-import { redirect } from "next/navigation";
-import { getCustomerSession, revokeCustomerSession } from "@/platform/auth";
+import type { Metadata } from "next";
 import { Button } from "@/components/product-ui";
+import { getCustomerProfile, requireCustomer } from "@/platform/auth";
+import { activePlanName } from "@/platform/billing/plans";
+import { logoutAction, logoutAllAction } from "./actions";
 
+export const metadata: Metadata = {
+  title: "Dashboard | KarmaKoders Sign",
+  robots: { index: false, follow: false },
+};
+
+/** Placeholder dashboard (the real one comes later). Launch switch + noindex from the (app) layout. */
 export default async function SignDashboardPage() {
-  const session = await getCustomerSession();
-  if (!session) {
-    redirect("/tools/sign/login");
-  }
-
-  async function signOut() {
-    "use server";
-    await revokeCustomerSession();
-    redirect("/tools/sign/login");
-  }
+  const { customer } = await requireCustomer({ redirectToLoginFrom: "/tools/sign/dashboard" });
+  const profile = await getCustomerProfile(customer.id);
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-black tracking-tight">Dashboard</h1>
-        <p className="text-[#A39F97]">
-          Signed in as <span className="text-white">{session.customer.email}</span>
-        </p>
+      <h1 className="text-3xl font-black tracking-tight text-white">Dashboard</h1>
+
+      <dl className="grid max-w-xl gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-white/10 bg-[#1C1B1A] p-4">
+          <dt className="text-xs uppercase tracking-wide text-[#A39F97]">Email</dt>
+          <dd className="mt-1 break-all text-white">{profile.email}</dd>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-[#1C1B1A] p-4">
+          <dt className="text-xs uppercase tracking-wide text-[#A39F97]">Credits</dt>
+          <dd className="mt-1 text-2xl font-bold text-white">{profile.creditsBalance}</dd>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-[#1C1B1A] p-4">
+          <dt className="text-xs uppercase tracking-wide text-[#A39F97]">Plan</dt>
+          <dd className="mt-1 text-white">{activePlanName(profile.subscriptions)}</dd>
+        </div>
+      </dl>
+
+      <div className="flex flex-wrap gap-3">
+        <form action={logoutAction}>
+          <Button type="submit" variant="outline">
+            Log out
+          </Button>
+        </form>
+        <form action={logoutAllAction}>
+          <Button type="submit" variant="ghost">
+            Log out of all devices
+          </Button>
+        </form>
       </div>
-      <p className="text-sm text-[#A39F97] max-w-xl leading-relaxed">
-        Document compose and sends ship next. You&apos;re authenticated with a{" "}
-        <code className="text-[#FFC300]">kk_session</code> cookie — not NextAuth.
-      </p>
-      <form action={signOut}>
-        <Button type="submit" variant="outline">
-          Sign out
-        </Button>
-      </form>
     </div>
   );
 }

@@ -103,7 +103,7 @@ describe.skipIf(Boolean(SKIP_REASON))("DB protections (DATABASE_URL)", () => {
         prisma.$transaction(async (tx) => {
           await tx.$executeRawUnsafe(`TRUNCATE "${table}" CASCADE`);
           throw new Error("ROLLBACK_SENTINEL: truncate was NOT blocked");
-        })
+        }, { maxWait: 15_000, timeout: 30_000 }) // Neon pool can be slow to hand out a connection
       ).rejects.toThrow(APPEND_ONLY);
     });
   }

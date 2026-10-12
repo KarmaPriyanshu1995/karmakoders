@@ -187,7 +187,7 @@ export async function verifyCustomerOtp(input: {
     throw verifyFailed(outcome.reason, email, purpose, challenge.id);
   }
 
-  await setSessionCookie(outcome.rawToken, outcome.expiresAt);
+  await setSessionCookie(outcome.rawToken);
   logEvent("info", "otp_verified", { purpose, to: maskEmail(email), customerId: outcome.customer.id });
 
   return { customer: outcome.customer };

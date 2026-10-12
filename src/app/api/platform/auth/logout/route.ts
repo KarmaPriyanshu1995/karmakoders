@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { revokeCustomerSession } from "@/platform/auth";
-import { toHttpError } from "@/platform/errors";
-import { requireSignAppEnabledApi } from "@/modules/sign/launch/server";
+import { revokeSession } from "@/platform/auth";
+import { signApiRoute } from "@/modules/sign/launch/route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
-  try {
-    requireSignAppEnabledApi();
-    await revokeCustomerSession();
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    return toHttpError(error);
-  }
-}
+/** Revokes the current session and clears the cookie. Idempotent. */
+export const POST = signApiRoute(async () => {
+  await revokeSession();
+  return NextResponse.json({ ok: true });
+});

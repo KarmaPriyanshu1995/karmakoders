@@ -2,7 +2,9 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isSignAppEnabled } from "@/platform/env/flags";
-import { signGatedRoute } from "@/modules/sign/launch";
+import { sessionCookieName } from "@/platform/auth/constants";
+import { buildLoginHref } from "@/platform/auth/redirect";
+import { requiresCustomerSession, signGatedRoute } from "@/modules/sign/launch";
 
 /** Sign launch switch: while SIGN_APP_ENABLED is not "true", app routes and auth APIs 404. */
 function signLaunchGate(pathname: string): NextResponse | null {
@@ -22,7 +24,14 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/tools/sign") || pathname.startsWith("/api/platform")) {
-    return signLaunchGate(pathname) ?? NextResponse.next();
+    const gated = signLaunchGate(pathname);
+    if (gated) return gated;
+    // Signed-out visitors to app pages go to login with a safe `next`. Cookie presence only:
+    // the real session check is requireCustomer() in each page and handler.
+    if (requiresCustomerSession(pathname) && !req.cookies.get(sessionCookieName())?.value) {
+      return NextResponse.redirect(new URL(buildLoginHref(`${pathname}${req.nextUrl.search}`), req.url));
+    }
+    return NextResponse.next();
   }
 
   const isLoginPage = pathname === "/admin/login" || pathname === "/login";

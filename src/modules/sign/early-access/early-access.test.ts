@@ -96,6 +96,7 @@ describe("joinEarlyAccess server action", () => {
   beforeEach(() => {
     createMany.mockReset();
     consumePlatformRateLimit.mockReset().mockResolvedValue({ allowed: true, remaining: 4, retryAfterSec: 3600 });
+    vi.stubEnv("APP_URL", "https://www.karmakoders.com");
     requestHeaders = new Headers({
       origin: "https://www.karmakoders.com",
       host: "www.karmakoders.com",
@@ -106,6 +107,8 @@ describe("joinEarlyAccess server action", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
   afterEach(() => vi.restoreAllMocks());
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it("returns the same success message for new, duplicate and honeypot submissions", async () => {
     createMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });

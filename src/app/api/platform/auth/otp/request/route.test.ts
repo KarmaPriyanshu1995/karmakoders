@@ -10,7 +10,8 @@ vi.mock("@/platform/auth/otp", () => ({
 vi.mock("@/platform/db", () => ({ prisma: {}, withDbRetry: vi.fn() }));
 
 const consumePlatformRateLimit = vi.fn();
-vi.mock("@/platform/rate-limit", () => ({
+vi.mock("@/platform/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/platform/rate-limit")>()),
   consumePlatformRateLimit: (...a: unknown[]) => consumePlatformRateLimit(...a),
   clientIpFromRequest: () => "203.0.113.7",
 }));
@@ -18,9 +19,9 @@ vi.mock("@/platform/rate-limit", () => ({
 const { POST } = await import("@/app/api/platform/auth/otp/request/route");
 
 function post(body: unknown, raw = false) {
-  return new Request("http://localhost/api/platform/auth/otp/request", {
+  return new Request("https://www.karmakoders.com/api/platform/auth/otp/request", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", origin: "https://www.karmakoders.com" },
     body: raw ? String(body) : JSON.stringify(body),
   });
 }
@@ -30,6 +31,7 @@ const ALLOW = { allowed: true, remaining: 4, retryAfterSec: 600 };
 describe("POST /api/platform/auth/otp/request", () => {
   beforeEach(() => {
     vi.stubEnv("SIGN_APP_ENABLED", "true");
+    vi.stubEnv("APP_URL", "https://www.karmakoders.com");
     requestCustomerOtp.mockReset().mockResolvedValue({ ok: true });
     consumePlatformRateLimit.mockReset().mockResolvedValue(ALLOW);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -79,13 +81,22 @@ describe("POST /api/platform/auth/otp/request", () => {
     expect((await res.json()).code).toBe("bad_request");
   });
 
+  it("uses the spec limits: 3 per 10 minutes per email, 10 per hour per IP", async () => {
+    await POST(post({ email: "jane@example.com" }));
+    expect(consumePlatformRateLimit.mock.calls.map((c) => [c[0].limit, c[0].windowMs])).toEqual([
+      [3, 10 * 60 * 1000],
+      [10, 60 * 60 * 1000],
+    ]);
+  });
+
   it("rate-limited → 429 with Retry-After and no code sent", async () => {
     consumePlatformRateLimit
       .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterSec: 120 })
       .mockResolvedValueOnce(ALLOW);
     const res = await POST(post({ email: "jane@example.com" }));
     expect(res.status).toBe(429);
-    expect(res.headers.get("Retry-After")).toBe("600");
+    // Longest wait among the limits that were actually hit (not the allowed ones).
+    expect(res.headers.get("Retry-After")).toBe("120");
     expect((await res.json()).code).toBe("rate_limited");
     expect(requestCustomerOtp).not.toHaveBeenCalled();
   });

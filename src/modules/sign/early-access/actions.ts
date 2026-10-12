@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { isPlatformError } from "@/platform/errors";
 import { logEvent } from "@/platform/logger";
 import { clientIpFromHeaders, consumePlatformRateLimit } from "@/platform/rate-limit";
-import { assertSameOrigin } from "@/platform/security/same-origin";
+import { assertSameOrigin } from "@/platform/security/origin";
 import {
   EARLY_ACCESS_ERROR_MESSAGE,
   EARLY_ACCESS_HONEYPOT_FIELD,

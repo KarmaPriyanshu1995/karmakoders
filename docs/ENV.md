@@ -12,6 +12,7 @@ Legacy CMS vars are documented in [REPO_AUDIT.md](./REPO_AUDIT.md). They are not
 |---|---|---|
 | `APP_URL` | Canonical origin for emails and HMAC callbacks (no trailing slash) | `https://www.karmakoders.com` |
 | `NEXT_PUBLIC_APP_URL` | Browser-facing origin (Paddle, PostHog, links) | `https://www.karmakoders.com` |
+| `ALLOWED_ORIGINS_EXTRA` | Optional. Extra origins allowed by the CSRF origin check (`src/platform/security/origin.ts`), comma-separated, e.g. a staging server. Each entry must be a full **https** origin (scheme + host, optional port, no path); `http` only for localhost in development. Empty entries are ignored; an invalid entry throws a clear error at first use. `APP_URL`, this deployment's Vercel preview URLs and `http://localhost:3000` (development) are always allowed and need not be listed. | `https://staging.example.com,https://qa.example.com` |
 
 Prefer these for Sign even if `NEXT_PUBLIC_SITE_URL` already exists, so product URLs are explicit.
 
@@ -104,7 +105,7 @@ Optional if needed by the SDK: `R2_ENDPOINT` = `https://<ACCOUNT_ID>.r2.cloudfla
 | Name | Purpose | Example format |
 |---|---|---|
 | `RESEND_API_KEY` | Resend API key | `re_xxxxxxxx` |
-| `EMAIL_FROM` | From header | `KarmaKoders Sign <sign@karmakoders.com>` |
+| `EMAIL_FROM` | From header | `KarmaKoders Sign <no-reply@mail.karmakoders.com>` |
 
 ## Paddle
 

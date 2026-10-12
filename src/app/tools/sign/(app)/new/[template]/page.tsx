@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCustomerSession } from "@/platform/auth";
+import { notFound } from "next/navigation";
+import { requireCustomer } from "@/platform/auth";
 import { getTemplateBySlug } from "@/modules/sign/templates";
 import { LegalDisclaimer } from "@/modules/sign/ui";
 
@@ -18,8 +18,7 @@ export default async function SignComposePage({ params }: PageProps) {
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
 
-  const session = await getCustomerSession();
-  if (!session) redirect("/tools/sign/login");
+  await requireCustomer({ redirectToLoginFrom: `/tools/sign/new/${template.slug}` });
 
   return (
     <div className="space-y-6">

@@ -59,12 +59,49 @@ describe("proxy: Sign launch switch", () => {
   });
 
   describe("SIGN_APP_ENABLED=true", () => {
-    it.each([...GATED_PAGES, ...PUBLIC_PAGES, "/api/platform/auth/me"])("%s passes through", async (path) => {
+    const PROTECTED = [
+      "/tools/sign/dashboard",
+      "/tools/sign/new/mutual-nda",
+      "/tools/sign/documents/abc",
+      "/tools/sign/billing",
+      "/tools/sign/settings",
+    ];
+
+    it.each(PROTECTED)("%s without a session cookie → 307 to login with next", async (path) => {
       vi.stubEnv("SIGN_APP_ENABLED", "true");
-      const res = await proxy(req(path));
+      const res = await proxy(req(`${path}?tab=1`));
+      expect(res.status).toBe(307);
+      const location = new URL(res.headers.get("location")!);
+      expect(location.pathname).toBe("/tools/sign/login");
+      expect(location.searchParams.get("next")).toBe(`${path}?tab=1`);
+    });
+
+    it.each(PROTECTED)("%s with a session cookie passes through (pages still call requireCustomer)", async (path) => {
+      vi.stubEnv("SIGN_APP_ENABLED", "true");
+      const withCookie = new NextRequest(`https://www.karmakoders.com${path}`, { headers: { cookie: "kk_session=abc" } });
+      const res = await proxy(withCookie);
       expect(res.status).toBe(200);
       expect(res.headers.get("x-middleware-next")).toBe("1");
     });
+
+    it("checks the __Host- cookie name in production", async () => {
+      vi.stubEnv("SIGN_APP_ENABLED", "true");
+      vi.stubEnv("NODE_ENV", "production");
+      const plain = new NextRequest("https://www.karmakoders.com/tools/sign/dashboard", { headers: { cookie: "kk_session=abc" } });
+      expect((await proxy(plain)).status).toBe(307);
+      const host = new NextRequest("https://www.karmakoders.com/tools/sign/dashboard", { headers: { cookie: "__Host-kk_session=abc" } });
+      expect((await proxy(host)).status).toBe(200);
+    });
+
+    it.each(["/tools/sign/login", "/tools/sign/s/token123", "/tools/sign/sign/token123", ...PUBLIC_PAGES, "/api/platform/auth/me"])(
+      "%s passes through without a cookie",
+      async (path) => {
+        vi.stubEnv("SIGN_APP_ENABLED", "true");
+        const res = await proxy(req(path));
+        expect(res.status).toBe(200);
+        expect(res.headers.get("x-middleware-next")).toBe("1");
+      }
+    );
   });
 
   it("never consults NextAuth for Sign paths, and still guards /admin", async () => {

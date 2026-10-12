@@ -229,7 +229,7 @@ describe("site-wide rules", () => {
         "src/modules/sign/ui/pricing/billing-interval-toggle.tsx",
         "src/modules/sign/ui/early-access-form.tsx",
         // App route (not a public page): the OTP login form.
-        "src/app/tools/sign/(marketing)/login/login-form.tsx",
+        "src/app/tools/sign/(app)/login/login-form.tsx",
       ].map((p) => path.normalize(p))
     );
     const clientFiles = PUBLIC_DIRS.flatMap(files).filter((f) =>

@@ -145,7 +145,7 @@ src/proxy.ts                  # Next.js 16 request interception (/admin/*, /logi
 
 | Actor | Mechanism |
 |---|---|
-| Sender (customer) | Email OTP via `/api/platform/auth/*` → httpOnly cookie **`kk_session`**. Helpers live in **`src/platform/auth`**. **Never** call `getServerSession` for customers. |
+| Sender (customer) | Email OTP via `/api/platform/auth/*` → httpOnly cookie **`kk_session`** (named **`__Host-kk_session`** in production). Helpers live in **`src/platform/auth`** (`getCurrentCustomer`, `requireCustomer`). **Never** call `getServerSession` for customers. Details and threat model: [AUTH.md](./AUTH.md). |
 | Signer | Unpredictable `token` in URL + email OTP + consent checkbox |
 | Staff | Existing NextAuth credentials + permission **`sign:admin`**. Pages at `/admin/sign`. Gated by `src/proxy.ts` like other admin routes. |
 

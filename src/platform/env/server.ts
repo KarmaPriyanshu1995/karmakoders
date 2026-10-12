@@ -138,6 +138,7 @@ export function getEmailEnv() {
       {
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         EMAIL_FROM: process.env.EMAIL_FROM,
+        EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO?.trim(),
       },
       "getEmailEnv"
     )
@@ -224,4 +225,60 @@ export function getObservabilityServerEnv() {
       "getObservabilityServerEnv"
     )
   );
+}
+
+/** Hosts for which a plain-http origin is acceptable (development only). */
+const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * One ALLOWED_ORIGINS_EXTRA entry: a full origin (scheme + host[:port]), no path, query,
+ * fragment or credentials. https only; http only for localhost when NODE_ENV=development.
+ */
+function originEntrySchema(nodeEnv: string | undefined) {
+  return z.string().transform((raw, ctx) => {
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      ctx.addIssue({ code: "custom", message: `"${raw}" is not a valid URL` });
+      return z.NEVER;
+    }
+    const isLocalHttp = url.protocol === "http:" && LOCALHOST_HOSTS.has(url.hostname) && nodeEnv === "development";
+    if (url.protocol !== "https:" && !isLocalHttp) {
+      ctx.addIssue({
+        code: "custom",
+        message: `"${raw}" must use https (http is only allowed for localhost in development)`,
+      });
+      return z.NEVER;
+    }
+    const hasExtras =
+      (url.pathname !== "/" && url.pathname !== "") || url.search || url.hash || url.username || url.password || raw.endsWith("/");
+    if (hasExtras) {
+      ctx.addIssue({ code: "custom", message: `"${raw}" must be an origin only (scheme + host), without a path` });
+      return z.NEVER;
+    }
+    return url.origin.toLowerCase();
+  });
+}
+
+/**
+ * Parses ALLOWED_ORIGINS_EXTRA (comma-separated full origins, e.g.
+ * "https://staging.example.com,https://qa.example.com"). Empty entries are ignored.
+ * Throws a clear error naming the variable and every invalid entry. Called at first use
+ * (from the origin check), never at import/build time.
+ */
+export function parseAllowedOriginsExtra(value: string | undefined, nodeEnv: string | undefined): string[] {
+  const entries = (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const result = z.array(originEntrySchema(nodeEnv)).safeParse(entries);
+  if (!result.success) {
+    throw new Error(
+      `ALLOWED_ORIGINS_EXTRA: invalid entr${result.error.issues.length === 1 ? "y" : "ies"}: ${result.error.issues
+        .map((i) => i.message)
+        .join("; ")}`
+    );
+  }
+  return [...new Set(result.data)];
 }

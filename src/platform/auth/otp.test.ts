@@ -135,7 +135,7 @@ describe("OTP flow (mocked DB)", () => {
         ip: "203.0.113.7",
         userAgent: "Vitest",
       });
-      expect(setSessionCookie).toHaveBeenCalledWith("raw", expect.any(Date));
+      expect(setSessionCookie).toHaveBeenCalledWith("raw");
     });
 
     it("wrong code: increments attempts (committed) and returns the generic error", async () => {

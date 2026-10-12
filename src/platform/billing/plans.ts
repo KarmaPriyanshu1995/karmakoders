@@ -311,3 +311,21 @@ export const PLAN_COMPARISON: { feature: string; values: Record<ComparisonColumn
     values: { free: true, credits: true, sign_pro: true, all_access: true },
   },
 ];
+
+/** Maps a Paddle subscription (product + interval) to its plan in this file. */
+export function planIdForSubscription(
+  product: "SIGN_PRO" | "ALL_ACCESS",
+  interval: "MONTH" | "YEAR"
+): Extract<PlanId, `sign_pro_${string}` | `all_access_${string}`> {
+  const base = product === "SIGN_PRO" ? "sign_pro" : "all_access";
+  return `${base}_${interval === "MONTH" ? "monthly" : "yearly"}` as const;
+}
+
+/**
+ * Display name of the customer's current plan: All Access beats Sign Pro; no active
+ * subscription → "Free" (credits are a wallet balance, not a plan).
+ */
+export function activePlanName(subscriptions: readonly { product: "SIGN_PRO" | "ALL_ACCESS"; interval: "MONTH" | "YEAR" }[]): string {
+  const best = subscriptions.find((s) => s.product === "ALL_ACCESS") ?? subscriptions[0];
+  return best ? PLANS[planIdForSubscription(best.product, best.interval)].displayName : PLANS.free.displayName;
+}

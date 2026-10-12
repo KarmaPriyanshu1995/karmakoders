@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCustomerSession } from "@/platform/auth";
+import { requireCustomer } from "@/platform/auth";
 import { LegalDisclaimer } from "@/modules/sign/ui";
 
 export const metadata: Metadata = {
@@ -14,8 +13,7 @@ export const metadata: Metadata = {
  * Stub — sign-in gated; the real upload + field placement flow replaces this later.
  */
 export default async function SignUploadPage() {
-  const session = await getCustomerSession();
-  if (!session) redirect("/tools/sign/login");
+  await requireCustomer({ redirectToLoginFrom: "/tools/sign/new/upload" });
 
   return (
     <div className="space-y-6">
