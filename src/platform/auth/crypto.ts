@@ -21,6 +21,15 @@ export function hashSessionToken(rawToken: string): string {
   return hmacHex(parseSecretMaterial(SESSION_SECRET), `session:${rawToken}`);
 }
 
+/**
+ * HMAC-SHA256 hex digest of a signer session cookie value (kk_signer). Separate domain prefix
+ * from customer sessions, so a value from one cookie can never match a row of the other kind.
+ */
+export function hashSignerSessionToken(rawToken: string): string {
+  const { SESSION_SECRET } = getAuthEnv();
+  return hmacHex(parseSecretMaterial(SESSION_SECRET), `signer-session:${rawToken}`);
+}
+
 /** HMAC-SHA256 of OTP code bound to email + purpose. */
 export function hashOtpCode(input: {
   email: string;

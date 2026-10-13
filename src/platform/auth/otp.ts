@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PlatformCustomer, PlatformOtpPurpose } from "@prisma/client";
+import type { PlatformCustomer, PlatformOtpPurpose, Prisma } from "@prisma/client";
 import { prisma, withDbRetry } from "@/platform/db";
 import { PlatformError } from "@/platform/errors";
 import { sendOtpEmail } from "@/platform/email";
@@ -54,17 +54,23 @@ function verifyFailed(
   return new PlatformError("unauthorized", OTP_INVALID_MESSAGE);
 }
 
-/**
- * Issues a new OTP. Previous unconsumed codes for the same email + purpose are
- * invalidated in the same transaction that creates the new challenge.
- */
-export async function requestCustomerOtp(input: {
+/** Who a challenge is for. `signerId` scopes SIGNER challenges to one signer row (null for LOGIN). */
+export type OtpSubject = {
   email: string;
-  purpose?: PlatformOtpPurpose;
-  ip?: string | null;
-}): Promise<{ ok: true }> {
+  purpose: PlatformOtpPurpose;
+  signerId?: string | null;
+};
+
+/**
+ * Issues a new OTP and emails it. Previous unconsumed codes for the same email + purpose
+ * (+ signer) are invalidated in the same transaction that creates the new challenge.
+ */
+export async function issueOtpChallenge(
+  input: OtpSubject & { ip?: string | null; actionLabel: string }
+): Promise<{ ok: true }> {
   const email = parseEmail(input.email);
-  const purpose: PlatformOtpPurpose = input.purpose ?? "LOGIN";
+  const { purpose } = input;
+  const signerId = input.signerId ?? null;
   const code = generateOtpCode();
   const codeHash = hashOtpCode({ email, purpose, code });
   const now = new Date();
@@ -73,45 +79,40 @@ export async function requestCustomerOtp(input: {
   await withDbRetry(() =>
     prisma.$transaction([
       prisma.platformOtp.updateMany({
-        where: { email, purpose, consumedAt: null },
+        where: { email, purpose, signerId, consumedAt: null },
         data: { consumedAt: now },
       }),
       prisma.platformOtp.create({
-        data: { email, purpose, codeHash, expiresAt, ip: input.ip ?? null },
+        data: { email, purpose, signerId, codeHash, expiresAt, ip: input.ip ?? null },
       }),
     ])
   );
 
-  await sendOtpEmail({
-    to: email,
-    code,
-    actionLabel: purpose === "LOGIN" ? "sign in to KarmaKoders Sign" : "verify your identity",
-  });
+  await sendOtpEmail({ to: email, code, actionLabel: input.actionLabel });
   logEvent("info", "otp_requested", { purpose, to: maskEmail(email) });
 
   return { ok: true };
 }
 
 /**
- * Verifies an OTP and opens a `kk_session`.
+ * Verifies an OTP and, on success, runs `onVerified` inside the same transaction.
  *
  * One interactive transaction:
  *  1. conditional attempt increment (unconsumed, unexpired, attempts < max)
  *  2. constant-time hash compare (wrong code commits the increment)
  *  3. conditional consume — 0 rows → abort (concurrent verify already won)
- *  4. customer upsert (credits live on the customer row) + session create
+ *  4. `onVerified(tx, now)` — the caller's state change (session, signer flag, audit event)
  * Concurrent correct verifies serialize on the row lock from step 1; the loser sees
- * `consumedAt` set and fails, so exactly one session is created.
+ * `consumedAt` set and fails, so `onVerified` runs exactly once per code.
+ * Every failure throws the same generic 401.
  */
-export async function verifyCustomerOtp(input: {
-  email: string;
-  code: string;
-  purpose?: PlatformOtpPurpose;
-  /** Recorded on the new session row. */
-  client?: { ip?: string | null; userAgent?: string | null };
-}): Promise<{ customer: VerifiedCustomer }> {
+export async function verifyOtpChallenge<T>(
+  input: OtpSubject & { code: string },
+  onVerified: (tx: Prisma.TransactionClient, now: Date) => Promise<T>
+): Promise<T> {
   const email = parseEmail(input.email);
-  const purpose: PlatformOtpPurpose = input.purpose ?? "LOGIN";
+  const { purpose } = input;
+  const signerId = input.signerId ?? null;
 
   const parsedCode = otpCodeSchema.safeParse(input.code);
   if (!parsedCode.success) {
@@ -121,7 +122,7 @@ export async function verifyCustomerOtp(input: {
 
   const challenge = await withDbRetry(() =>
     prisma.platformOtp.findFirst({
-      where: { email, purpose, consumedAt: null },
+      where: { email, purpose, signerId, consumedAt: null },
       orderBy: { createdAt: "desc" },
       select: { id: true, codeHash: true },
     })
@@ -132,9 +133,7 @@ export async function verifyCustomerOtp(input: {
 
   const expectedHash = hashOtpCode({ email, purpose, code });
 
-  let outcome:
-    | { ok: false; reason: "expired_or_locked" | "wrong_code" }
-    | { ok: true; customer: VerifiedCustomer; rawToken: string; expiresAt: Date };
+  let outcome: { ok: false; reason: "expired_or_locked" | "wrong_code" } | { ok: true; value: T };
 
   try {
     outcome = await prisma.$transaction(async (tx) => {
@@ -166,15 +165,7 @@ export async function verifyCustomerOtp(input: {
         throw new ConsumeConflictError();
       }
 
-      const customer = await tx.platformCustomer.upsert({
-        where: { email },
-        create: { email, lastLoginAt: now },
-        update: { lastLoginAt: now },
-        select: { id: true, email: true, name: true, status: true },
-      });
-
-      const session = await createCustomerSession(customer.id, { tx, ...input.client });
-      return { ok: true as const, customer, ...session };
+      return { ok: true as const, value: await onVerified(tx, now) };
     }, VERIFY_TX_OPTIONS);
   } catch (error) {
     if (error instanceof ConsumeConflictError) {
@@ -186,9 +177,51 @@ export async function verifyCustomerOtp(input: {
   if (!outcome.ok) {
     throw verifyFailed(outcome.reason, email, purpose, challenge.id);
   }
+  return outcome.value;
+}
 
-  await setSessionCookie(outcome.rawToken);
-  logEvent("info", "otp_verified", { purpose, to: maskEmail(email), customerId: outcome.customer.id });
+/** Sender sign-in code. See issueOtpChallenge. */
+export async function requestCustomerOtp(input: {
+  email: string;
+  purpose?: PlatformOtpPurpose;
+  ip?: string | null;
+}): Promise<{ ok: true }> {
+  const purpose: PlatformOtpPurpose = input.purpose ?? "LOGIN";
+  return issueOtpChallenge({
+    email: input.email,
+    purpose,
+    ip: input.ip,
+    actionLabel: purpose === "LOGIN" ? "sign in to KarmaKoders Sign" : "verify your identity",
+  });
+}
 
-  return { customer: outcome.customer };
+/**
+ * Verifies a sender code and opens a `kk_session`: customer upsert + brand-new session inside
+ * the verify transaction, so concurrent correct verifies produce exactly one session.
+ */
+export async function verifyCustomerOtp(input: {
+  email: string;
+  code: string;
+  purpose?: PlatformOtpPurpose;
+  /** Recorded on the new session row. */
+  client?: { ip?: string | null; userAgent?: string | null };
+}): Promise<{ customer: VerifiedCustomer }> {
+  const email = parseEmail(input.email);
+  const purpose: PlatformOtpPurpose = input.purpose ?? "LOGIN";
+
+  const result = await verifyOtpChallenge({ email, purpose, code: input.code }, async (tx, now) => {
+    const customer = await tx.platformCustomer.upsert({
+      where: { email },
+      create: { email, lastLoginAt: now },
+      update: { lastLoginAt: now },
+      select: { id: true, email: true, name: true, status: true },
+    });
+    const session = await createCustomerSession(customer.id, { tx, ...input.client });
+    return { customer, ...session };
+  });
+
+  await setSessionCookie(result.rawToken);
+  logEvent("info", "otp_verified", { purpose, to: maskEmail(email), customerId: result.customer.id });
+
+  return { customer: result.customer };
 }

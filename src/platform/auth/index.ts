@@ -25,6 +25,7 @@ export {
   hashSessionToken,
   hashOtpCode,
   hashSignerToken,
+  hashSignerSessionToken,
   generateSessionToken,
   generateSignerToken,
   generateOtpCode,
@@ -51,7 +52,14 @@ export { safeNextPath, buildLoginHref } from "./redirect";
 
 export { getCustomerProfile, customerProfileSchema, ACTIVE_SUBSCRIPTION_STATUSES, type CustomerProfile } from "./profile";
 
-export { requestCustomerOtp, verifyCustomerOtp, OTP_INVALID_MESSAGE } from "./otp";
+export {
+  requestCustomerOtp,
+  verifyCustomerOtp,
+  issueOtpChallenge,
+  verifyOtpChallenge,
+  OTP_INVALID_MESSAGE,
+  type OtpSubject,
+} from "./otp";
 
 export {
   emailSchema,

@@ -53,3 +53,14 @@ export function toHttpError(error: unknown): NextResponse<{ error: string; code:
   });
   return NextResponse.json({ error: "Internal server error", code: "internal" }, { status: 500 });
 }
+
+/**
+ * A resource that doesn't exist *or that the caller may not see*. Always 404, never 403, so
+ * other people's resources are never revealed to exist.
+ */
+export class NotFoundError extends PlatformError {
+  constructor(message = "Not found") {
+    super("not_found", message);
+    this.name = "NotFoundError";
+  }
+}

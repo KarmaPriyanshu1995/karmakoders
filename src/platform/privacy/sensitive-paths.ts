@@ -1,9 +1,9 @@
 /**
- * Paths whose URL carries a bearer secret (signer link tokens).
+ * Paths whose URL carries a bearer secret (signer link tokens) or that show a signer's document.
  * Client-safe: used by site-wide components to skip canonical tags, analytics and
  * marketing widgets so the token never leaves the browser via third parties.
  */
-export const SENSITIVE_PATH_PREFIXES = ["/tools/sign/s/"] as const;
+export const SENSITIVE_PATH_PREFIXES = ["/tools/sign/s/", "/tools/sign/sign/"] as const;
 
 export function isSensitivePath(pathname: string | null | undefined): boolean {
   if (!pathname) return false;

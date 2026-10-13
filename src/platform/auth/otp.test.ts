@@ -78,6 +78,7 @@ describe("OTP flow (mocked DB)", () => {
       expect(prisma.platformOtp.updateMany.mock.calls[0][0].where).toEqual({
         email: EMAIL,
         purpose: "LOGIN",
+        signerId: null,
         consumedAt: null,
       });
       const created = prisma.platformOtp.create.mock.calls[0][0].data;
