@@ -7,6 +7,7 @@ PostgreSQL (Neon) via Prisma 7, shared with the CMS (see [ADR 002](./adr/002-pos
   - `20261004090000_platform_sign_schema`: create-only (no DROP statements), Prisma-generated.
   - `20261004090100_platform_sign_db_protections`: CHECK constraints and append-only triggers (hand-written).
   - `20261007090000_sign_early_access`: create-only, adds `sign_early_access`.
+  - `20261012090000_sign_signer_sessions`: create-only, adds `sign_signer_sessions` (no change to existing tables).
 - Append-only design: [ADR 010](./adr/010-append-only-ledger-and-audit.md).
 - Environments: **local development and tests both use `.env.local`, whose `DATABASE_URL` points to the Neon dev branch** (created from Neon main, so it has the same migration history as production). CI uses a `postgres:16` service container. There is no separate test-database variable. See [ENV.md](./ENV.md).
 - Connections: the app runtime and integration tests use the **pooled** `DATABASE_URL`. Prisma CLI commands (`migrate deploy` / `migrate status`) use the **direct** `DIRECT_URL` when set, otherwise `DATABASE_URL` (`prisma.config.ts`), because migrations need session-level locks that the pooler doesn't support.
@@ -49,6 +50,7 @@ PostgreSQL (Neon) via Prisma 7, shared with the CMS (see [ADR 002](./adr/002-pos
 | `SignTemplate` / `sign_templates` | Versioned template body (HTML, field schema, signer roles). Unique on (`slug`, `version`). Slugs are canonical in `src/modules/sign/templates/catalog.ts`. |
 | `SignDocument` / `sign_documents` | A document to be signed. Holds the public id (`KKS-YYYY-XXXXXX`), owner, template or upload source, status, field values, frozen HTML and its hash, signing order, expiry, branding snapshot, how the send was paid for, the final file and its hash, an optimistic-lock version and soft delete. |
 | `SignSigner` / `sign_signers` | A signer on a document. Holds the link-token HMAC, status, OTP, consent, view/sign/decline timestamps, signature method and file, and reminders. |
+| `SignSignerSession` / `sign_signer_sessions` | Signer cookie sessions (`kk_signer`) created by the link exchange: signer, document, the HMAC of the cookie value, a fixed 2-hour expiry, ip, user agent and revocation. Own table because `platform_sessions.customer_id` is required and Platform must not reference Sign ([AUTH.md](./AUTH.md#signer-session)). |
 | `SignField` / `sign_fields` | A placed field (signature, initials, date, text, checkbox). Coordinates are fractions of the page. |
 | `SignFile` / `sign_files` | Metadata for an encrypted object in private R2 (storage key, MIME type, size, SHA-256). The bytes never go into Postgres. |
 | `SignEarlyAccess` / `sign_early_access` | Landing-page early-access signups: unique lowercase email, optional company, role and source. Stand-alone, with no relations. **Never truncated by integration tests**: it may hold real signups. |
@@ -76,6 +78,8 @@ erDiagram
   SignSigner |o--o{ SignField : "fills"
   SignSigner |o--o| SignFile : "signature image"
   SignSigner |o--o{ SignAuditEvent : "acts in"
+  SignSigner ||--o{ SignSignerSession : "signer sessions"
+  SignDocument ||--o{ SignSignerSession : "bound to"
 
   PlatformCustomer {
     uuid id PK
@@ -243,6 +247,7 @@ The trigger raises SQLSTATE `23001` (`restrict_violation`) with the message `<ta
 | `sign_documents.public_id` (unique) | Public verification page `/tools/sign/verify/[publicId]`. |
 | `sign_signers.token_hash` (unique) | Signer link `/tools/sign/s/[token]`. |
 | `sign_signers (document_id, order)` | Sequential signing: find the current and next signer. |
+| `sign_signer_sessions.token_hash` (unique), `(signer_id)`, `(document_id)` | Validate the signer cookie on every signer request; revoke a signer's or document's sessions. |
 | `sign_fields (document_id)`, `(signer_id)` | Load fields for rendering; fields assigned to a signer. |
 | `sign_files.storage_key` (unique), `(document_id, kind)`, `(owner_id)` | Resolve an R2 object; find a document's original or final file; a customer's uploads. |
 | `sign_audit_events (document_id, occurred_at)` | Audit certificate and document timeline. |
@@ -255,6 +260,6 @@ The trigger raises SQLSTATE `23001` (`restrict_violation`) with the message `<ta
 | Signed documents, their files and audit events | Kept **7 years** unless the owner deletes the document. An owner delete sets `deleted_at` (and `sign_files.deleted_at`); R2 objects and rows are purged by a later job. |
 | Audit events, credit ledger, admin actions | Append-only, with no delete path today. Purging them after retention needs a reviewed migration that temporarily disables the trigger for a single, logged job ([ADR 010](./adr/010-append-only-ledger-and-audit.md)). |
 | OTPs (`platform_otps`) | Purged by a job added later (consumed or expired rows older than a short window). |
-| Expired and revoked sessions | Purged by a job added later. |
+| Expired and revoked sessions (`platform_sessions`, `sign_signer_sessions`) | Purged by a job added later. |
 | Early-access signups | Kept until launch outreach is done; delete on request (privacy). Never touched by test resets. |
 | Webhook payloads | Kept for admin retry and support. Retention to be set with the purge job. |
