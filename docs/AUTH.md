@@ -1,6 +1,6 @@
 # Customer authentication — KarmaKoders Sign
 
-Senders (product customers) sign in with an emailed one-time code. Customer auth is completely separate from the CMS staff login (NextAuth) — see [ADR 006](./adr/006-passwordless-otp.md) and [ADR 008](./adr/008-customer-auth-separate-from-cms.md). Signers never have accounts.
+Senders (product customers) sign in with an emailed one-time code. Customer auth is completely separate from the CMS staff login (NextAuth) — see [ADR 006](./adr/006-passwordless-otp.md) and [ADR 008](./adr/008-customer-auth-separate-from-cms.md). Signers never have accounts: they get a link token, a short signer session and an email code — see [Signer access](#signer-access).
 
 All routes below return **404 while `SIGN_APP_ENABLED` is not `"true"`** (launch switch, [ENV.md](./ENV.md)).
 
@@ -17,6 +17,13 @@ All routes below return **404 while `SIGN_APP_ENABLED` is not `"true"`** (launch
 | Rate limits | `src/platform/rate-limit` |
 | Signed-out redirect for app pages | `src/proxy.ts` |
 | Login UI / dashboard | `src/app/tools/sign/(app)/login`, `src/app/tools/sign/(app)/dashboard` |
+| Owner-scoped document access (`getDocumentForOwner`, `listDocumentsForOwner`) | `src/modules/sign/documents/access.ts` |
+| Signer link tokens, access rules | `src/modules/sign/signing/signer-access.ts`, `constants.ts` |
+| Signer sessions, `requireSigner` | `src/modules/sign/signing/signer-session.ts` |
+| Signer OTP | `src/modules/sign/signing/signer-otp.ts`, on the OTP core in `src/platform/auth/otp.ts` |
+| Link exchange and signer pages | `src/app/tools/sign/(signer)/s/[token]/route.ts`, `(signer)/sign`, `(signer)/s/invalid`, `(signer)/s/not-yet` |
+| Signer OTP APIs | `src/app/api/tools/sign/signing/otp/{request,verify}` |
+| Evidence events | `src/platform/audit` (`appendAuditEvent`) |
 
 ## Sign-in flow
 
@@ -98,7 +105,123 @@ Applied by `signApiRoute()` to every POST/PUT/PATCH/DELETE under `/api/platform/
 | **Account enumeration** | `otp/request` answers identically whether or not the email has an account; `otp/verify` returns one generic error for every failure (unknown email, wrong, expired, exhausted or already-used code); precise reasons are only logged server-side with the email masked. |
 | **Session fixation** | Sessions are created only after a successful verify, with a fresh random token; the server never accepts a client-chosen token (it must match a stored HMAC), and `__Host-` blocks subdomains from planting a cookie. |
 
+## Document authorization (senders)
+
+Every Sign API route, page and Server Action that reads or changes a document goes through `src/modules/sign/documents/access.ts`:
+
+- `getDocumentForOwner(customerId, documentId)` returns the document only if `ownerId` matches and `deletedAt` is null. Otherwise it throws `NotFoundError` → **404, never 403**, so other people's documents are never revealed to exist. Malformed ids are rejected without a query.
+- `listDocumentsForOwner(customerId, { status?, cursor?, limit })` returns the owner's non-deleted documents, newest first, with keyset pagination on the UUID v7 id (`limit` 1–100, default 20) and summary fields only.
+
+`src/modules/sign/access-boundary.test.ts` fails if any file under `src/app/tools/sign` or `src/app/api/tools/sign`, or any Sign Server Action, queries `signDocument` / `signSigner` / `signSignerSession` through Prisma directly.
+
+## Signer access
+
+Signers have no account. Access is: **emailed link token → short signer session → email OTP** (→ consent and signature in a later step). All signer routes return **404 while `SIGN_APP_ENABLED` is not `"true"`**.
+
+### Link token
+
+| Property | Value |
+|---|---|
+| Format | 32 random bytes, base64url = exactly 43 characters `[A-Za-z0-9_-]` (`createSignerToken()`). |
+| Storage | `sign_signers.token_hash` = HMAC-SHA256(token, `TOKEN_PEPPER`). The raw token goes only into the email link; it is never stored, logged, audited or sent to analytics. |
+| Resolution | `resolveSignerToken(token)`: wrong length or characters → rejected **without a DB query**; then lookup by hash + constant-time compare. |
+| Valid when | Document `SENT` or `PARTIALLY_SIGNED`; not expired (`expires_at`), voided or deleted; this signer has neither signed nor declined. |
+| Sequential order | Valid only once every signer with a lower `order` has signed. Otherwise the distinct "not your turn yet" result, which is only reported when the link is otherwise valid. |
+| Failure | One generic "This link is invalid or has expired" result for everything else. The precise reason is logged server-side with the signer id only. |
+
+### Link exchange — `GET /tools/sign/s/[token]`
+
+This is a route handler, not a page:
+
+1. Rate limit: **60 per minute per IP** (Upstash; fails closed in production).
+2. `resolveSignerToken`.
+3. In one transaction: revoke the browser's previous signer session (if any), create the new one and append the `OPENED` audit event (actor `SIGNER`, ip, user agent).
+4. Set the cookie and **303 to `/tools/sign/sign`**, so the token is not in the URL.
+
+An invalid link gets a 303 to `/tools/sign/s/invalid` ("This link is no longer valid" plus the support email). A signer whose turn hasn't come gets a 303 to `/tools/sign/s/not-yet`.
+
+Every response on `/tools/sign/s/*` and `/tools/sign/sign/*` has `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store` (set by the route handler and `next.config.ts`). The pages also carry noindex and no-referrer metadata. Both prefixes are in `SENSITIVE_PATH_PREFIXES`, so site-wide analytics and widgets skip them.
+
+### Signer session
+
+| Property | Value |
+|---|---|
+| Cookie | `__Host-kk_signer` (production) / `kk_signer` (development, test). HttpOnly, Secure in production, SameSite=Lax, Path=/, no Domain, Max-Age 2 hours. |
+| Storage | Its own table, `sign_signer_sessions`: `signer_id`, `document_id`, `token_hash`, `expires_at`, ip, user agent, `revoked_at`. `token_hash` = HMAC-SHA256(value, `SESSION_SECRET`) with a `signer-session:` prefix, distinct from customer sessions. |
+| Lifetime | Fixed **2 hours** from the exchange; no sliding refresh. Reopening the email link starts a new session. |
+| One per browser | A new exchange revokes the session behind the browser's current signer cookie and overwrites the cookie. |
+| Validation | `getCurrentSigner()` / `requireSigner()`: cookie format → hash lookup → not revoked, not expired → session, signer and document ids agree → **the same document-state rules as the link, re-checked on every call**. A document voided, expired or deleted after the cookie was issued is rejected. |
+| Pages | `/tools/sign/sign` shows "Your signing session has expired — reopen the link from your email" when there is no valid session. |
+| APIs | `/api/tools/sign/signing/*`: `requireSigner()` → 401. `requireSigner({ documentId })` also rejects a session for a different document, so a cookie for document A can't reach B. |
+
+Why a separate table rather than `platform_sessions` with a type column:
+
+- `platform_sessions.customer_id` is NOT NULL with an FK to customers, and making it nullable would change an existing column.
+- Platform tables must not reference Sign tables.
+- Keeping the two lifetimes (90-day sliding vs 2-hour fixed) on separate query paths means a bug in one check can't turn a signer cookie into a customer session.
+
+### Signer OTP
+
+`/tools/sign/sign` shows "We'll email a code to j***@example.com" until `sign_signers.otp_verified_at` is set. The address is always `SignSigner.email`, and the request body is ignored, so the signer can't send the code anywhere else.
+
+- `POST /api/tools/sign/signing/otp/request` → `requestSignerOtp`: purpose `SIGNER`, challenge scoped to the signer id (the same person signing two documents has independent codes), audit event `OTP_SENT`.
+- `POST /api/tools/sign/signing/otp/verify` `{ code }` → `verifySignerOtp`: the same hardened transaction as sender login (`verifyOtpChallenge`: conditional attempt increment with max 5 per code, constant-time compare, conditional consume). On success, in the same transaction, `otp_verified_at` is set only if still null, and only then is `OTP_VERIFIED` appended, so concurrent correct verifies record exactly one event. A signer OTP never creates a customer or a `kk_session`.
+- Both routes use `signApiRoute` (launch switch + `assertSameOrigin` on POST) and the login limits: request 3 per 10 minutes per email and 10 per hour per IP; verify 20 per hour per IP. They use their own `otp:signer:*` rate-limit keys.
+
+### Evidence
+
+`appendAuditEvent` (`src/platform/audit`) locks the document row, assigns the next gap-free `sequence`, sets `prev_hash`, and computes `hash` = SHA-256 over the canonical event fields + `prev_hash`. Metadata keys with sensitive names (`token`, `code`, `otp`, `secret`, …) throw, so link tokens and OTP codes can't become evidence. Signer access writes `OPENED`, `OTP_SENT` and `OTP_VERIFIED`.
+
+### Sequence: email link to OTP verified
+
+```mermaid
+sequenceDiagram
+  actor S as Signer (browser)
+  participant X as GET /tools/sign/s/[token]
+  participant P as /tools/sign/sign
+  participant A as /api/tools/sign/signing/otp/*
+  participant DB as Postgres
+  participant M as Email (Resend)
+
+  S->>X: open link from email (token in path)
+  X->>X: rate limit 60/min/IP, token format check
+  X->>DB: find signer by HMAC(token, TOKEN_PEPPER)
+  X->>X: document SENT/PARTIALLY_SIGNED, not expired/voided/deleted,<br/>signer not done, sequential turn
+  alt invalid
+    X-->>S: 303 /tools/sign/s/invalid
+  else not your turn
+    X-->>S: 303 /tools/sign/s/not-yet
+  else valid
+    X->>DB: tx: revoke previous signer session, create session, OPENED
+    X-->>S: 303 /tools/sign/sign + Set-Cookie kk_signer (2h)
+  end
+  S->>P: GET (cookie, no token in URL)
+  P->>DB: requireSigner: session + document state re-check
+  P-->>S: "We'll email a code to j***@example.com"
+  S->>A: POST otp/request (same origin)
+  A->>DB: requireSigner, OTP challenge (SIGNER, signer id), OTP_SENT
+  A->>M: 6-digit code to SignSigner.email
+  S->>A: POST otp/verify { code }
+  A->>DB: tx: attempt++, compare, consume, otp_verified_at, OTP_VERIFIED
+  A-->>S: { ok: true }
+  S->>P: refresh → "Verified – document review coming soon"
+```
+
+### Signer threat model
+
+| Threat | Mitigation |
+|---|---|
+| **Link forwarding** (the email is forwarded, or the link is shared) | The link alone only opens a session. Reviewing and signing require the OTP sent to the signer's own address, which the signer can't change. Sessions last 2 hours and are bound to one signer and one document. |
+| **Token leakage via Referer** | `Referrer-Policy: no-referrer` (header and metadata) on the link and signer pages. The token is removed from the URL by an immediate 303, so later pages never carry it. |
+| **Token leakage via history, caches, logs and analytics** | The 303 to a clean URL keeps the token out of later navigation. `Cache-Control: no-store`. The token is never logged (errors log only their name), audited, stored raw or put in metadata. Analytics and marketing widgets skip `SENSITIVE_PATH_PREFIXES`, and every signer page is noindex. Only the HMAC is stored, so a DB leak yields no usable links. **Residual risk:** the hosting platform's request logs record the path of the first GET. This is limited because the token is useless without the OTP and stops working once the signer signs or the document ends. |
+| **Replay after void, expiry or completion** | The document and signer state is checked at the exchange **and re-checked on every `requireSigner()` call**. A link or cookie stops working as soon as the document is voided, expires, is deleted or completes, or the signer signs or declines. |
+| **Out-of-order signing** | Sequential documents: the link is accepted only when every lower-order signer has signed ("not your turn yet" otherwise). |
+| **Cross-document access** | A session row stores both the signer and the document. `requireSigner({ documentId })` rejects any other document, and the ids must agree with the signer row. |
+| **Token guessing / brute force** | 256-bit random tokens. Malformed tokens are rejected without a query. 60 resolutions per minute per IP, failing closed in production. |
+| **Email link scanners** (security gateways that pre-open links) | They can open a session and create an `OPENED` event, but can't pass the OTP. `OPENED` means "link opened", not "viewed by the signer". |
+| **Session fixation / cookie planting** | Sessions are created only by a successful exchange, with a fresh random value. `__Host-` blocks subdomains from planting a cookie. A new exchange revokes the browser's previous session. |
+
 ## Not in scope here
 
 - The OTP email itself (Resend, template and subject) is unchanged from the tested implementation in `src/platform/email`.
-- Signer authentication (link token + OTP + consent) is part of the signing flow.
+- Document review, e-sign consent, signature capture, decline and link passwords (`sign_documents.link_password_hash`) come with the signing screens.

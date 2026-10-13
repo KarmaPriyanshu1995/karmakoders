@@ -17,12 +17,15 @@ describe("signGatedRoute", () => {
     "/tools/sign/settings",
     "/tools/sign/s/token123",
     "/tools/sign/sign/token123",
+    "/tools/sign/sign",
+    "/tools/sign/s/invalid",
+    "/tools/sign/s/not-yet",
     "/tools/sign/login/",
   ])("%s is a gated page", (path) => {
     expect(signGatedRoute(path)).toBe("page");
   });
 
-  it.each(["/api/platform/auth/otp/request", "/api/platform/auth/otp/verify", "/api/platform/auth/me", "/api/platform/auth/logout"])(
+  it.each(["/api/platform/auth/otp/request", "/api/platform/auth/otp/verify", "/api/platform/auth/me", "/api/platform/auth/logout", "/api/tools/sign/signing/otp/request", "/api/tools/sign/signing/otp/verify"])(
     "%s is a gated API",
     (path) => {
       expect(signGatedRoute(path)).toBe("api");

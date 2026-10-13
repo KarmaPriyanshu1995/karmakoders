@@ -7,6 +7,13 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+/** Signer link + signer pages: never indexed, never cached, never leak the URL via Referer. */
+const signerHeaders = [
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
+  { key: "Cache-Control", value: "no-store" },
+];
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["172.20.10.2", "localhost"],
   transpilePackages: ["mermaid"],
@@ -69,14 +76,20 @@ const nextConfig: NextConfig = {
         source: "/k.js",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
-      // Signer links carry a bearer token in the URL. Must stay after "/:path*" so it
-      // overrides the global Referrer-Policy (last matching header wins).
+      // Signer links carry a bearer token in the URL, and signer pages show a signer's
+      // document. Must stay after "/:path*" so they override the global Referrer-Policy
+      // (last matching header wins).
       {
         source: "/tools/sign/s/:path*",
-        headers: [
-          { key: "Referrer-Policy", value: "no-referrer" },
-          { key: "X-Robots-Tag", value: "noindex, nofollow" },
-        ],
+        headers: signerHeaders,
+      },
+      {
+        source: "/tools/sign/sign",
+        headers: signerHeaders,
+      },
+      {
+        source: "/tools/sign/sign/:path*",
+        headers: signerHeaders,
       },
     ];
   },

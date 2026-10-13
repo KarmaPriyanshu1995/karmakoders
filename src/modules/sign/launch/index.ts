@@ -18,7 +18,7 @@ export const SIGN_APP_PAGE_PREFIXES = [
   "/tools/sign/sign",
 ] as const;
 
-export const SIGN_APP_API_PREFIXES = ["/api/platform/auth"] as const;
+export const SIGN_APP_API_PREFIXES = ["/api/platform/auth", "/api/tools/sign"] as const;
 
 /**
  * Pages that need a signed-in customer. src/proxy.ts only checks that the session cookie is

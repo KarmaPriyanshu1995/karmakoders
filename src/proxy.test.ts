@@ -17,6 +17,9 @@ const GATED_PAGES = [
   "/tools/sign/settings",
   "/tools/sign/s/token123",
   "/tools/sign/sign/token123",
+  "/tools/sign/s/invalid",
+  "/tools/sign/s/not-yet",
+  "/tools/sign/sign",
 ];
 const PUBLIC_PAGES = ["/tools/sign", "/tools/sign/templates", "/tools/sign/templates/mutual-nda"];
 
@@ -27,7 +30,7 @@ describe("proxy: Sign launch switch", () => {
   });
 
   it("matches Sign and platform API paths", () => {
-    expect(config.matcher).toEqual(expect.arrayContaining(["/tools/sign/:path*", "/api/platform/:path*"]));
+    expect(config.matcher).toEqual(expect.arrayContaining(["/tools/sign/:path*", "/api/platform/:path*", "/api/tools/sign/:path*"]));
   });
 
   describe("SIGN_APP_ENABLED=false (default)", () => {
@@ -41,6 +44,13 @@ describe("proxy: Sign launch switch", () => {
     it("unset behaves like false", async () => {
       vi.stubEnv("SIGN_APP_ENABLED", "");
       expect((await proxy(req("/tools/sign/login"))).status).toBe(404);
+    });
+
+    it.each(["/api/tools/sign/signing/otp/request", "/api/tools/sign/signing/otp/verify"])("%s → 404 JSON", async (path) => {
+      vi.stubEnv("SIGN_APP_ENABLED", "false");
+      const res = await proxy(req(path));
+      expect(res.status).toBe(404);
+      expect(await res.json()).toEqual({ error: "Not found", code: "not_found" });
     });
 
     it("/api/platform/auth/* → 404 JSON", async () => {

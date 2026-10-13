@@ -1,4 +1,5 @@
 # sign/signers
 
-Signer rows, parallel/sequential order, token hashing, and turn-taking rules.
-Issues email link tokens and records view / sign / decline transitions.
+Signer rows, parallel/sequential order and turn-taking rules for the send flow.
+Link tokens, turn checks at link exchange and signer sessions live in `sign/signing`
+(`signer-access.ts`, `signer-session.ts`).

@@ -230,6 +230,8 @@ describe("site-wide rules", () => {
         "src/modules/sign/ui/early-access-form.tsx",
         // App route (not a public page): the OTP login form.
         "src/app/tools/sign/(app)/login/login-form.tsx",
+        // Signer route (not a public page): the signer email-code step.
+        "src/app/tools/sign/(signer)/sign/signer-otp-form.tsx",
       ].map((p) => path.normalize(p))
     );
     const clientFiles = PUBLIC_DIRS.flatMap(files).filter((f) =>

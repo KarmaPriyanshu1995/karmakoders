@@ -75,10 +75,10 @@ src/platform/                 # shared by Sign and future paid tools
 
 src/modules/sign/
   templates/                  # template registry, fields, HTML
-  documents/                  # document state machine
-  signers/                    # tokens, order, OTP for signers
+  documents/                  # document state machine; owner-scoped access (access.ts)
+  signers/                    # signer rows and order for the send flow
   pdf/                        # stamp/certificate via pdf-lib; HMAC client to render service
-  signing/                    # consent, capture, decline, void
+  signing/                    # link tokens, signer session, signer OTP; consent, capture, decline
   ui/                         # Sign-only components (preview, pad, dashboard)
 
 src/app/tools/page.tsx        # redirect → /tools/sign (reserve slug from CMS [slug])
@@ -125,7 +125,8 @@ src/proxy.ts                  # Next.js 16 request interception (/admin/*, /logi
 | `/tools/sign/new/upload` | Sender | Upload your own PDF (separate flow, not a catalog template) |
 | `/tools/sign/documents/[id]` | Sender | Status, remind, void, download |
 | `/tools/sign/billing` | Sender | Credits, plans, invoices via Paddle |
-| `/tools/sign/s/[token]` | Signer | No account |
+| `/tools/sign/s/[token]` | Signer | No account. Route handler: token → signer session cookie → 303 to `/tools/sign/sign` ([AUTH.md](./AUTH.md#signer-access)) |
+| `/tools/sign/sign` | Signer | Signer session required; email OTP, then review/sign (later step) |
 | `/tools/sign/verify/[publicId]` | Public | Verification |
 | `/legal/terms`, `/legal/privacy`, `/legal/refund-policy`, `/legal/esign-disclosure`, `/legal/acceptable-use` | Public | Sign policies (drafts pending lawyer review). The CMS `/privacy`, `/terms`, `/refund-policy` and `/contact` stay for the agency site. |
 | `/admin/sign` | Staff | NextAuth + permission **`sign:admin`** |

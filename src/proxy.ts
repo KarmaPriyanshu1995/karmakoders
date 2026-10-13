@@ -23,7 +23,11 @@ function signLaunchGate(pathname: string): NextResponse | null {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname.startsWith("/tools/sign") || pathname.startsWith("/api/platform")) {
+  if (
+    pathname.startsWith("/tools/sign") ||
+    pathname.startsWith("/api/platform") ||
+    pathname.startsWith("/api/tools/sign")
+  ) {
     const gated = signLaunchGate(pathname);
     if (gated) return gated;
     // Signed-out visitors to app pages go to login with a safe `next`. Cookie presence only:
@@ -72,5 +76,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/tools/sign/:path*", "/api/platform/:path*"],
+  matcher: ["/admin/:path*", "/login", "/tools/sign/:path*", "/api/platform/:path*", "/api/tools/sign/:path*"],
 };
