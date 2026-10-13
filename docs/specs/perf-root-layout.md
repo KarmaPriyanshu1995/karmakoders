@@ -61,8 +61,10 @@ has no imports in `src/`. `@tiptap` (1 file) and `@dnd-kit` (4 files) are admin-
 
 Other client components mounted by the root layout on every page: `ThemeProvider` (sets three CSS
 colour variables after mount — does **not** hide or delay content), `SiteContentProvider` (context
-only), `CanonicalURL`, `TrackingScripts`, `ConversionWidgets` (WhatsApp/booking widgets and an
-exit-intent popup), `Toaster`.
+only), `TrackingScripts`, `ConversionWidgets` (WhatsApp/booking widgets and an
+exit-intent popup), `Toaster`. (The former `CanonicalURL` client component was removed in QA-1:
+canonicals now come only from each page's metadata via `alternates.canonical`, built with
+`canonicalUrl()` in `src/lib/seo/canonical.ts`, so there is one server-rendered tag per page.)
 
 ## 4. Google Tag Manager / Analytics
 
