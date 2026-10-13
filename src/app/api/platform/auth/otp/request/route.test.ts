@@ -101,6 +101,20 @@ describe("POST /api/platform/auth/otp/request", () => {
     expect(requestCustomerOtp).not.toHaveBeenCalled();
   });
 
+  it("every response is Cache-Control: no-store (200, 400, 429, 404, 500)", async () => {
+    const responses = [await POST(post({ email: "jane@example.com" })), await POST(post({ email: "nope" }))];
+    consumePlatformRateLimit.mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterSec: 120 });
+    responses.push(await POST(post({ email: "jane@example.com" })));
+    vi.stubEnv("SIGN_APP_ENABLED", "false");
+    responses.push(await POST(post({ email: "jane@example.com" })));
+    vi.stubEnv("SIGN_APP_ENABLED", "true");
+    requestCustomerOtp.mockRejectedValueOnce(new Error("boom"));
+    responses.push(await POST(post({ email: "jane@example.com" })));
+
+    expect(responses.map((r) => r.status)).toEqual([200, 400, 429, 404, 500]);
+    for (const res of responses) expect(res.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("unexpected errors → generic 500", async () => {
     requestCustomerOtp.mockRejectedValue(new Error("db exploded with secret detail"));
     const res = await POST(post({ email: "jane@example.com" }));

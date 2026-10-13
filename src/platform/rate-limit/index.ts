@@ -67,6 +67,23 @@ export function resetMemoryRateLimits() {
   limiterCache.clear();
 }
 
+/**
+ * Retry-After for Upstash single-region `Ratelimit.slidingWindow` (@upstash/ratelimit 2.2): never
+ * shorter than the real wait.
+ *
+ * The Lua script denies when `floor(prev × (1 − p)) + cur ≥ limit` (p = elapsed fraction of the
+ * current fixed window; only allowed requests are counted, atomically, so cur ≤ limit) and reports
+ * `reset` = end of the current fixed window. Exactly at `reset` (p = 0) a window that ended full is
+ * still denied; any moment after it, `floor(prev × (1 − p)) ≤ limit − 1` with cur = 0, so the
+ * request is allowed (assuming nothing else consumes the same key meanwhile). Rounding `reset − now`
+ * up to whole seconds can land exactly on `reset`, and our `now` is read after the Redis call, so
+ * one extra second guarantees the retry arrives strictly after `reset`. Overstates by at most ~2 s.
+ * (The multi-region script has different arithmetic; re-check this if the limiter changes.)
+ */
+export function slidingWindowRetryAfterSec(input: { reset: number; now: number }): number {
+  return Math.ceil(Math.max(0, input.reset - input.now) / 1000) + 1;
+}
+
 function redisConfigured(): boolean {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
@@ -129,7 +146,7 @@ export async function consumePlatformRateLimit(options: {
     return {
       allowed: result.success,
       remaining: result.remaining,
-      retryAfterSec: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
+      retryAfterSec: slidingWindowRetryAfterSec({ reset: result.reset, now: Date.now() }),
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown";

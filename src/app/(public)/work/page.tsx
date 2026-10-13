@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import Link from "next/link";
 import { PRIMARY_NAV } from "@/lib/content/nav";
+import { canonicalUrl } from "@/lib/seo/canonical";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ function HubIndex({
 export const metadata: Metadata = {
   title: "Work | karmakoders",
   description: "Portfolio, case studies, and success stories from KarmaKoders.",
+  alternates: { canonical: canonicalUrl("/work") },
 };
 
 export default function WorkPage() {

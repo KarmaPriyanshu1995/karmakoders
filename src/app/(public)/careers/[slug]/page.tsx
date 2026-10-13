@@ -4,6 +4,7 @@ import { Building, MapPin, Briefcase, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { ApplicationForm } from "@/components/careers/ApplicationForm";
 import type { Metadata } from "next";
+import { canonicalUrl } from "@/lib/seo/canonical";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 
@@ -14,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${job.title} | Careers`,
     description: `Apply for the ${job.title} position at our company.`,
+    alternates: { canonical: canonicalUrl(`/careers/${slug}`) },
   };
 }
 

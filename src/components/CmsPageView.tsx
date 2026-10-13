@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SITE_PAGES } from "@/lib/sitePages";
+import { canonicalUrl } from "@/lib/seo/canonical";
 import { prisma } from "@/lib/prisma";
 
 interface CmsPageViewProps {
@@ -30,6 +31,7 @@ export async function generateCmsMetadata(slug: string): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: { canonical: canonicalUrl(slug === "home" ? "/" : `/${slug}`) },
     openGraph: { title, description },
   };
 }

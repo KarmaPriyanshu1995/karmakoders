@@ -70,7 +70,7 @@ Upstash sliding window via `src/platform/rate-limit`. In-memory only in developm
 | `otp/request` | 3 per 10 minutes per email **and** 10 per hour per IP |
 | `otp/verify` | 20 per hour per IP; plus at most 5 attempts per code (in the DB) |
 
-A blocked request gets **429**, `code: "rate_limited"`, a friendly message and `Retry-After` (seconds, the longest wait among the limits hit).
+A blocked request gets **429**, `code: "rate_limited"`, a friendly message and `Retry-After` (seconds, the longest wait among the limits hit). For the Upstash sliding window it is the end of the current window rounded up plus 1 s, so a client that retries exactly at `Retry-After` is never refused again (`slidingWindowRetryAfterSec`). Every `/api/platform/auth/*` and `/api/tools/sign/*` response carries `Cache-Control: no-store` (set once in `signApiRoute`).
 
 **Client IP.** `x-forwarded-for` (first entry), else `x-real-ip`. On Vercel every request passes through Vercel's edge, which overwrites these headers with the real client IP, so a client cannot spoof them to dodge per-IP limits. Outside Vercel they are client-controlled — acceptable only for development/test.
 

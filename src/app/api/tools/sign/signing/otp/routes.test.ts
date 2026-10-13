@@ -114,6 +114,23 @@ describe("POST /api/tools/sign/signing/otp/verify", () => {
   });
 });
 
+describe("signer APIs are never cached", () => {
+  it("Cache-Control: no-store on 200, 400, 401, 403 and 429", async () => {
+    const responses = [
+      await verify.POST(post("verify", { code: "123456" })),
+      await verify.POST(post("verify", { code: "12ab" })),
+      await request.POST(post("request", {}, "https://evil.test")),
+    ];
+    consumePlatformRateLimit.mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterSec: 120 });
+    responses.push(await request.POST(post("request", {})));
+    getCurrentSigner.mockResolvedValue(null);
+    responses.push(await request.POST(post("request", {})));
+
+    expect(responses.map((r) => r.status)).toEqual([200, 400, 403, 429, 401]);
+    for (const res of responses) expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+});
+
 describe("signer APIs follow SIGN_APP_ENABLED", () => {
   it.each([
     ["request", () => request.POST(post("request", {}))],

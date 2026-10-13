@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { requireSignAppEnabledPage } from "@/modules/sign/launch/server";
+import { NOINDEX_OPEN_GRAPH } from "@/modules/sign/seo";
 
 export const metadata: Metadata = {
   title: "Sign dashboard | KarmaKoders Sign",
   description: "Manage your KarmaKoders Sign documents, billing, and sends.",
   robots: { index: false, follow: false },
+  // Noindex: no canonical, and an Open Graph without the root layout's og:url.
+  openGraph: NOINDEX_OPEN_GRAPH,
 };
 
 /** Dashboard, compose, documents, billing, settings: 404 while SIGN_APP_ENABLED is off. */

@@ -56,7 +56,6 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { getSiteConfig } from "@/lib/actions";
-import CanonicalURL from "@/components/CanonicalURL";
 import { DEFAULT_SITE_JSON_LD } from "@/lib/seo/entityDetector";
 import { TrackingScripts } from "@/components/TrackingScripts";
 import { SiteContentProvider } from "@/components/SiteContentProvider";
@@ -175,7 +174,6 @@ export default async function RootLayout({
     <html lang="en" className={htmlClass} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: customStyles }} suppressHydrationWarning />
-        <CanonicalURL />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(DEFAULT_SITE_JSON_LD) }}

@@ -3,12 +3,14 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import Link from "next/link";
 import { PRIMARY_NAV } from "@/lib/content/nav";
+import { canonicalUrl } from "@/lib/seo/canonical";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Insights | karmakoders",
   description: "Tech blog, startup ideas, free prompts, and free tools from KarmaKoders.",
+  alternates: { canonical: canonicalUrl("/insights") },
 };
 
 export default function InsightsPage() {

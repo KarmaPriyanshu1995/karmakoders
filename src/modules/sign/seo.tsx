@@ -6,6 +6,16 @@ import { PLANS, PRICING_PLAN_IDS } from "@/platform/billing/plans";
 export const SITE_ORIGIN = "https://www.karmakoders.com";
 const OG_IMAGE = { url: "/og-image.png", width: 1200, height: 630, alt: "KarmaKoders Sign" };
 
+/**
+ * Open Graph for noindex pages (app, login, signer): replaces the root layout's openGraph, whose
+ * `url` is the site root. No `url` (and no `alternates.canonical`) on pages that must not be indexed.
+ */
+export const NOINDEX_OPEN_GRAPH = {
+  type: "website",
+  siteName: "KarmaKoders",
+  images: [OG_IMAGE],
+} as const satisfies NonNullable<Metadata["openGraph"]>;
+
 /** Unique title/description + canonical, Open Graph and Twitter tags for a public page. */
 export function signPageMetadata(input: {
   title: string;

@@ -5,6 +5,10 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  // Clickjacking: no route may be framed. Only frame-ancestors for now; the full CSP comes with
+  // the security hardening step.
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
 ];
 
 /** Signer link + signer pages: never indexed, never cached, never leak the URL via Referer. */
@@ -15,6 +19,7 @@ const signerHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   allowedDevOrigins: ["172.20.10.2", "localhost"],
   transpilePackages: ["mermaid"],
   images: {

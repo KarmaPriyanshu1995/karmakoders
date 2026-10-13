@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { ContentHub } from "@/components/content/ContentHub";
+import { canonicalUrl } from "@/lib/seo/canonical";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Success Stories | karmakoders",
   description: "Client ROI, delivery metrics, and verified outcomes from KarmaKoders projects.",
+  alternates: { canonical: canonicalUrl("/success-stories") },
 };
 
 export default function SuccessStoriesPage() {

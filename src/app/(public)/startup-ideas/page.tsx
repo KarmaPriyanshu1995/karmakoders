@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { ContentHub } from "@/components/content/ContentHub";
+import { canonicalUrl } from "@/lib/seo/canonical";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Startup Ideas | karmakoders",
   description: "4-week ready-to-build MVP blueprints with stack, scope, and budget.",
+  alternates: { canonical: canonicalUrl("/startup-ideas") },
 };
 
 export default function StartupIdeasPage() {
