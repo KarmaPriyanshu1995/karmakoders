@@ -16,7 +16,8 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
-          include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+          // .test.tsx: component tests; they opt into jsdom per file with `// @vitest-environment jsdom`.
+          include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
           exclude: ["**/node_modules/**", ...INTEGRATION],
           sequence: { groupOrder: 0 },
         },
