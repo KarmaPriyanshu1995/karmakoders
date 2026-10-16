@@ -211,6 +211,20 @@ describe("legal pages", () => {
   });
 });
 
+/** "use client" modules of the Sign design system. Never re-exported from the ui barrel. */
+const DESIGN_SYSTEM_CLIENT_FILES = [
+  "src/modules/sign/ui/account-menu.tsx",
+  "src/modules/sign/ui/copy-button.tsx",
+  "src/modules/sign/ui/dialog.tsx",
+  "src/modules/sign/ui/dropdown-menu.tsx",
+  "src/modules/sign/ui/form.tsx",
+  "src/modules/sign/ui/tabs.tsx",
+  "src/modules/sign/ui/toast.tsx",
+  "src/modules/sign/ui/tooltip.tsx",
+  "src/modules/sign/ui/typed-signature.tsx",
+  "src/modules/sign/ui/typed-signature-loader.tsx",
+];
+
 describe("site-wide rules", () => {
   const ROOT = process.cwd();
   const PUBLIC_DIRS = ["src/app/tools/sign", "src/app/legal", "src/modules/sign/ui", "src/modules/sign/content"];
@@ -232,12 +246,36 @@ describe("site-wide rules", () => {
         "src/app/tools/sign/(app)/login/login-form.tsx",
         // Signer route (not a public page): the signer email-code step.
         "src/app/tools/sign/(signer)/sign/signer-otp-form.tsx",
+        // Sign design-system primitives (docs/DESIGN.md): interactive, for app and signer pages.
+        // Public marketing pages must not import them (next test).
+        ...DESIGN_SYSTEM_CLIENT_FILES,
+        // Dev-only preview (404 outside development).
+        "src/app/tools/sign/(dev)/dev/ui/ui-preview.tsx",
       ].map((p) => path.normalize(p))
     );
     const clientFiles = PUBLIC_DIRS.flatMap(files).filter((f) =>
       /^\s*["']use client["']/.test(fs.readFileSync(path.join(ROOT, f), "utf8"))
     );
     expect(clientFiles.map((f) => path.normalize(f)).filter((f) => !allowed.has(f))).toEqual([]);
+  });
+
+  it("the ui barrel (imported by public pages) re-exports no Client Component", () => {
+    const barrel = fs.readFileSync(path.join(ROOT, "src/modules/sign/ui/index.ts"), "utf8");
+    for (const f of DESIGN_SYSTEM_CLIENT_FILES) {
+      expect(barrel, f).not.toMatch(new RegExp(`from\\s+["']\\./${path.basename(f, ".tsx")}["']`));
+    }
+  });
+
+  it("public marketing and legal pages do not import the design-system Client Components", () => {
+    const marketing = ["src/app/tools/sign/(marketing)", "src/app/legal"].flatMap(files);
+    expect(marketing.length).toBeGreaterThan(0);
+    const clientModules = DESIGN_SYSTEM_CLIENT_FILES.map((f) => path.basename(f, ".tsx"));
+    for (const f of marketing) {
+      const source = fs.readFileSync(path.join(ROOT, f), "utf8");
+      for (const name of clientModules) {
+        expect(source, `${f} imports ${name}`).not.toMatch(new RegExp(`from\\s+["'][^"']*sign/ui/${name}["']`));
+      }
+    }
   });
 
   it("Client Components never import zod or schema modules (keeps the client bundle small)", () => {
