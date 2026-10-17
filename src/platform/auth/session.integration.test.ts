@@ -111,4 +111,33 @@ describe.skipIf(Boolean(SKIP_REASON))("sessions (DATABASE_URL)", () => {
     const slid = await prisma.platformSession.findUniqueOrThrow({ where });
     expect(slid.expiresAt.getTime() - Date.now()).toBeGreaterThan(29 * DAY);
   });
+
+  it("lists only the customer's active sessions, newest first, with a device label and no secrets", async () => {
+    const { createCustomerSession, listCustomerSessions } = await import("@/platform/auth/session");
+    const { hashSessionToken } = await import("@/platform/auth/crypto");
+    const c = await newCustomer("list");
+    const other = await newCustomer("list-other");
+    const chrome = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+    const iphone =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    const current = await createCustomerSession(c.id, { userAgent: chrome, ip: "203.0.113.7" });
+    const phone = await createCustomerSession(c.id, { userAgent: iphone });
+    const revoked = await createCustomerSession(c.id, { userAgent: chrome });
+    const expired = await createCustomerSession(c.id, { userAgent: chrome });
+    await createCustomerSession(other.id, { userAgent: chrome });
+
+    const byToken = (raw: string) => ({ tokenHash: hashSessionToken(raw) });
+    await prisma.platformSession.update({ where: byToken(revoked.rawToken), data: { revokedAt: new Date() } });
+    await prisma.platformSession.update({ where: byToken(expired.rawToken), data: { expiresAt: new Date(Date.now() - 1000) } });
+    await prisma.platformSession.update({ where: byToken(phone.rawToken), data: { lastSeenAt: new Date(Date.now() - DAY) } });
+    const currentRow = await prisma.platformSession.findUniqueOrThrow({ where: byToken(current.rawToken) });
+
+    const sessions = await listCustomerSessions(c.id, currentRow.id);
+    expect(sessions.map((s) => [s.device, s.current])).toEqual([
+      ["Chrome on Windows", true],
+      ["Safari on iPhone", false],
+    ]);
+    expect(Object.keys(sessions[0]).sort()).toEqual(["current", "device", "id", "lastActiveAt"]);
+    expect(JSON.stringify(sessions)).not.toContain("203.0.113.7");
+  });
 });

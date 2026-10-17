@@ -14,6 +14,7 @@ import {
 } from "./constants";
 import { generateSessionToken, hashSessionToken } from "./crypto";
 import { buildLoginHref } from "./redirect";
+import { describeUserAgent } from "./user-agent";
 
 export type CurrentCustomer = Pick<PlatformCustomer, "id" | "email" | "name" | "status">;
 
@@ -181,6 +182,47 @@ export async function revokeSession(rawToken?: string | null): Promise<void> {
     );
   }
   await clearSessionCookie();
+}
+
+export type CustomerSessionSummary = {
+  id: string;
+  /** e.g. "Chrome on Windows". Never the raw user-agent, IP or token hash. */
+  device: string;
+  lastActiveAt: string;
+  current: boolean;
+};
+
+/** Max sessions listed on the settings page. */
+const SESSION_LIST_LIMIT = 20;
+
+/**
+ * The customer's active sessions (not revoked, not expired, within the 90-day absolute limit),
+ * most recently active first, for the settings page. Exposes only a device label and times.
+ */
+export async function listCustomerSessions(
+  customerId: string,
+  currentSessionId: string | null,
+  now: Date = new Date()
+): Promise<CustomerSessionSummary[]> {
+  const sessions = await withDbRetry(() =>
+    prisma.platformSession.findMany({
+      where: {
+        customerId,
+        revokedAt: null,
+        expiresAt: { gt: now },
+        createdAt: { gt: new Date(now.getTime() - SESSION_ABSOLUTE_MAX_MS) },
+      },
+      select: { id: true, userAgent: true, lastSeenAt: true },
+      orderBy: { lastSeenAt: "desc" },
+      take: SESSION_LIST_LIMIT,
+    })
+  );
+  return sessions.map((s) => ({
+    id: s.id,
+    device: describeUserAgent(s.userAgent),
+    lastActiveAt: s.lastSeenAt.toISOString(),
+    current: s.id === currentSessionId,
+  }));
 }
 
 /** Logout everywhere: revokes every active session of the customer. Returns how many. */

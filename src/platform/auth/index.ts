@@ -41,12 +41,16 @@ export {
   requireCustomer,
   revokeSession,
   revokeAllSessions,
+  listCustomerSessions,
   sessionCookieOptions,
   nextSessionExpiry,
   shouldRefreshSession,
   type CurrentCustomer,
   type CustomerSession,
+  type CustomerSessionSummary,
 } from "./session";
+
+export { describeUserAgent } from "./user-agent";
 
 export { safeNextPath, buildLoginHref } from "./redirect";
 
