@@ -52,7 +52,9 @@ export function allowedOrigins(env: EnvSource = process.env): Set<string> {
  * signature instead.
  */
 export function assertSameOrigin(source: Request | HeaderReader, env: EnvSource = process.env): void {
-  const headers = "headers" in source ? source.headers : source;
+  // Duck-type on get(): Next's headers() object (HeadersAdapter) extends Headers but also has its
+  // own `headers` field, so `"headers" in source` would wrongly treat it as a Request.
+  const headers = typeof (source as HeaderReader).get === "function" ? (source as HeaderReader) : (source as Request).headers;
   const origin = originOf(headers.get("origin")) ?? originOf(headers.get("referer"));
   if (!origin || !allowedOrigins(env).has(origin)) {
     throw new PlatformError("forbidden", "Invalid request origin");

@@ -51,6 +51,17 @@ describe("assertSameOrigin", () => {
     expect(() => assertSameOrigin(post({ origin: "http://localhost:3000" }), DEV)).not.toThrow();
   });
 
+  it("reads Next's headers() object in Server Actions (HeadersAdapter has its own `headers` field)", async () => {
+    const { HeadersAdapter } = await import("next/dist/server/web/spec-extension/adapters/headers");
+    const fromNext = (h: Record<string, string>) => HeadersAdapter.seal(HeadersAdapter.from(h));
+    expect(() => assertSameOrigin(fromNext({ origin: "https://www.karmakoders.com" }), PROD)).not.toThrow();
+    expect(() => assertSameOrigin(fromNext({ referer: "https://www.karmakoders.com/tools/sign/dashboard" }), PROD)).not.toThrow();
+    expect(() => assertSameOrigin(fromNext({ origin: "https://evil.example" }), PROD)).toThrow(
+      expect.objectContaining({ status: 403, code: "forbidden" })
+    );
+    expect(() => assertSameOrigin(fromNext({}), PROD)).toThrow(expect.objectContaining({ code: "forbidden" }));
+  });
+
   it("accepts an origin listed in ALLOWED_ORIGINS_EXTRA", () => {
     const env = { ...PROD, ALLOWED_ORIGINS_EXTRA: "https://staging.example.com" };
     expect(() => assertSameOrigin(post({ origin: "https://staging.example.com" }), env)).not.toThrow();
