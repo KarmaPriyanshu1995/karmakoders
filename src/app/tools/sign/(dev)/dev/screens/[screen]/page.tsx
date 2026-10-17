@@ -19,7 +19,7 @@ type PageProps = {
 };
 
 /**
- * One sender screen in one fixture state (?state=), with a switcher for the others. One state
+ * One sender or signer screen in one fixture state (?state=), with a switcher for the others. One state
  * per page keeps it fast and avoids duplicate element ids. 404 unless NODE_ENV is "development".
  */
 export default async function SignScreenPreviewPage({ params, searchParams }: PageProps) {
@@ -56,9 +56,14 @@ export default async function SignScreenPreviewPage({ params, searchParams }: Pa
           </nav>
         </div>
       </div>
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 md:px-12" data-preview-state={state.id}>
-        {state.render()}
-      </div>
+      {screen.group === "signer" ? (
+        // Signer screens bring their own SignerShell and run full width, as on the real route.
+        <div data-preview-state={state.id}>{state.render()}</div>
+      ) : (
+        <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 md:px-12" data-preview-state={state.id}>
+          {state.render()}
+        </div>
+      )}
     </div>
   );
 }

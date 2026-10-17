@@ -35,8 +35,33 @@ describe("/tools/sign/dev/screens", () => {
     }
   });
 
-  it("covers every sender screen", () => {
-    expect(PREVIEW_SCREENS.map((s) => s.id)).toEqual(["dashboard", "documents", "document", "templates", "builder", "upload", "billing", "settings"]);
+  it("covers every sender and signer screen", () => {
+    expect(PREVIEW_SCREENS.filter((s) => s.group === "sender").map((s) => s.id)).toEqual([
+      "dashboard",
+      "documents",
+      "document",
+      "templates",
+      "builder",
+      "upload",
+      "billing",
+      "settings",
+    ]);
+    expect(PREVIEW_SCREENS.filter((s) => s.group === "signer").map((s) => s.id)).toEqual([
+      "signer-verify",
+      "signer-consent",
+      "signer-review",
+      "signer-sign",
+      "signer-done",
+      "signer-decline",
+      "signer-states",
+    ]);
+  });
+
+  it("previews every signer state screen", async () => {
+    const { SIGNER_STATE_KINDS } = await import("@/modules/sign/ui/fixtures/signer");
+    const states = PREVIEW_SCREENS.find((s) => s.id === "signer-states")!.states.map((s) => s.id);
+    expect(states).toEqual(SIGNER_STATE_KINDS.map((k) => k.id));
+    expect(states).toEqual(["invalid", "not-yet", "expired", "voided", "already-signed", "network"]);
   });
 
   it("in development, lists every screen and renders every state", async () => {
