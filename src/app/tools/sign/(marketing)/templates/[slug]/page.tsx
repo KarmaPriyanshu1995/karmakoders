@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/product-ui";
 import { generateBreadcrumbSchema, generateFaqSchema } from "@/lib/seo/schemaGenerator";
 import { isSignAppEnabled } from "@/platform/env/flags";
-import { getSignPrimaryCta } from "@/modules/sign/launch";
+import { getTemplateCta } from "@/modules/sign/launch";
 import {
   TEMPLATE_CATEGORY_LABELS,
   getRelatedTemplates,
@@ -45,7 +45,8 @@ export default async function SignTemplateDetailPage({ params }: PageProps) {
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
 
-  const cta = getSignPrimaryCta(isSignAppEnabled());
+  // Static page: the CTA goes through login with next=builder; login forwards signed-in visitors.
+  const cta = getTemplateCta(template.slug, isSignAppEnabled());
   const related = getRelatedTemplates(template.slug, 3);
   const url = `${SITE_ORIGIN}/tools/sign/templates/${template.slug}`;
 

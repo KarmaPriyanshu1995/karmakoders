@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EARLY_ACCESS_HREF, getPlanCta, getSignPrimaryCta, signGatedRoute } from "@/modules/sign/launch";
+import { EARLY_ACCESS_HREF, getPlanCta, getSignPrimaryCta, getTemplateCta, requiresCustomerSession, signGatedRoute } from "@/modules/sign/launch";
 
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -48,6 +48,30 @@ describe("signGatedRoute", () => {
   });
 });
 
+describe("requiresCustomerSession (proxy login redirect)", () => {
+  it.each([
+    "/tools/sign/dashboard",
+    "/tools/sign/documents",
+    "/tools/sign/documents/doc_1",
+    "/tools/sign/new",
+    "/tools/sign/new/mutual-nda",
+    "/tools/sign/new/upload",
+    "/tools/sign/billing",
+    "/tools/sign/settings",
+    "/tools/sign/settings/",
+  ])("%s needs a session", (path) => {
+    expect(requiresCustomerSession(path)).toBe(true);
+    expect(signGatedRoute(path)).toBe("page");
+  });
+
+  it.each(["/tools/sign", "/tools/sign/login", "/tools/sign/templates/mutual-nda", "/tools/sign/documentsx", "/tools/sign/dev/screens"])(
+    "%s does not",
+    (path) => {
+      expect(requiresCustomerSession(path)).toBe(false);
+    }
+  );
+});
+
 describe("launch-aware CTAs", () => {
   it('say "Get started" → login when the app is enabled', () => {
     expect(getSignPrimaryCta(true)).toEqual({ label: "Get started", href: "/tools/sign/login", kind: "app" });
@@ -65,6 +89,18 @@ describe("launch-aware CTAs", () => {
       expect(getPlanCta(planId, false)).toEqual({ kind: "early-access", label: "Get early access", href: EARLY_ACCESS_HREF });
     }
     expect(EARLY_ACCESS_HREF).toBe("/tools/sign#early-access");
+  });
+
+  it("template CTA: builder when signed in, login?next=builder when signed out, early access when off", async () => {
+    const { safeNextPath } = await import("@/platform/auth/redirect");
+    expect(getTemplateCta("mutual-nda", true, true)).toEqual({ label: "Get started", href: "/tools/sign/new/mutual-nda", kind: "app" });
+    const signedOut = getTemplateCta("mutual-nda", true);
+    expect(signedOut).toEqual({ label: "Get started", href: "/tools/sign/login?next=%2Ftools%2Fsign%2Fnew%2Fmutual-nda", kind: "app" });
+    // After login, the next path is allowed and lands on the builder.
+    const next = new URL(signedOut.href, "https://kk.invalid").searchParams.get("next");
+    expect(safeNextPath(next)).toBe("/tools/sign/new/mutual-nda");
+    expect(getTemplateCta("mutual-nda", false)).toEqual(getSignPrimaryCta(false));
+    expect(getTemplateCta("mutual-nda", false, true)).toEqual(getSignPrimaryCta(false));
   });
 
   it("never link a disabled CTA to a gated route", () => {

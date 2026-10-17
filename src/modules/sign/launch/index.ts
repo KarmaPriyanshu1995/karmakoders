@@ -1,4 +1,5 @@
 import type { PlanId } from "@/platform/billing/plans";
+import { buildLoginHref } from "@/platform/auth/redirect";
 
 /**
  * Sign launch switch (SIGN_APP_ENABLED). Pure helpers shared by src/proxy.ts, pages,
@@ -62,6 +63,17 @@ export function getSignPrimaryCta(appEnabled: boolean): SignCta {
   return appEnabled
     ? { label: "Get started", href: "/tools/sign/login", kind: "app" }
     : { label: "Get early access", href: EARLY_ACCESS_HREF, kind: "early-access" };
+}
+
+/**
+ * "Get started" on a template page: straight to the builder when signed in, otherwise to login
+ * with `next` set to the builder (the login page forwards an already signed-in visitor there).
+ * Early access while the app is disabled. Template pages are static, so they pass signedIn=false.
+ */
+export function getTemplateCta(slug: string, appEnabled: boolean, signedIn = false): SignCta {
+  if (!appEnabled) return getSignPrimaryCta(false);
+  const builder = `/tools/sign/new/${encodeURIComponent(slug)}`;
+  return { label: "Get started", href: signedIn ? builder : buildLoginHref(builder), kind: "app" };
 }
 
 /**

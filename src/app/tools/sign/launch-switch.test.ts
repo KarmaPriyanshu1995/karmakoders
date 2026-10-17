@@ -88,8 +88,10 @@ describe("every CTA on public pages follows SIGN_APP_ENABLED", () => {
     vi.stubEnv("SIGN_APP_ENABLED", "true");
     const ctas = ctasIn(await renderPage(page));
     expect(ctas.length).toBeGreaterThan(0);
+    // Template pages deep-link to their builder through login (`next`); the others go to login.
+    const expectedHref = page === "template" ? "/tools/sign/login?next=%2Ftools%2Fsign%2Fnew%2Fmutual-nda" : "/tools/sign/login";
     for (const cta of ctas) {
-      expect(cta.href).toBe("/tools/sign/login");
+      expect(cta.href).toBe(expectedHref);
       expect(cta.kind === "app" || cta.kind === "signup").toBe(true);
       expect(cta.label).toMatch(/^(Get started|Get \d+ credits)$/);
     }
