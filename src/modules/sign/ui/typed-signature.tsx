@@ -68,3 +68,9 @@ export default function TypedSignature({ name, value, onChange, className }: Typ
     </fieldset>
   );
 }
+
+/** The name in one signature font, on white: the adopt preview and the placed field. */
+export function TypedSignatureText({ name, font, className }: { name: string; font: string; className?: string }) {
+  const match = SIGNATURE_FONTS.find((f) => f.id === font) ?? SIGNATURE_FONTS[0];
+  return <span className={cn(match.className, "text-[#1C1B1A]", className)}>{name}</span>;
+}

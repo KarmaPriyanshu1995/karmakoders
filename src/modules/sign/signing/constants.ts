@@ -30,3 +30,10 @@ export const SIGNER_RESPONSE_HEADERS = {
   "Referrer-Policy": "no-referrer",
   "Cache-Control": "no-store",
 } as const;
+
+/** Decline reason (PRD S8: required, short). The decline API (Step 9) must enforce the same limit. */
+export const DECLINE_REASON_MAX = 500;
+
+/** Uploaded signature image. The signing API (Step 9) must enforce the same limits. */
+export const SIGNATURE_IMAGE_MAX_BYTES = 1024 * 1024;
+export const SIGNATURE_IMAGE_MIME_TYPES = ["image/png", "image/jpeg"] as const;

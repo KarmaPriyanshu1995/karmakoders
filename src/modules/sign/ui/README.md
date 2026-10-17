@@ -6,4 +6,5 @@ Sign's components, built on the site's dark theme. Rules, reuse map and status v
 - Wrap `@/components/product-ui` primitives; never modify them or `src/components/ui`.
 - `colors.ts` holds only the semantic status colours and contrast math; `status.ts` the status vocabulary.
 - Import the typed signature picker only through `typed-signature-loader.tsx` (code-split fonts).
+- Signer screens live in `screens/signer/`. The signature pad is imported only by `sign-dialog.tsx`, and the review screen loads the dialog with `next/dynamic`.
 - Marketing-page components here (template cards, pricing, legal) predate the design system and are unchanged.

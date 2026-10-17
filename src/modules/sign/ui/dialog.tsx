@@ -8,13 +8,21 @@ import { Button, IconButton } from "./button";
 import { PANEL_CLASSES } from "./card";
 
 export const Dialog = DialogPrimitive.Root;
+
+/** Below sm: pinned to the bottom, full width, rounded top only, within thumb reach. */
+const SHEET_CLASSES =
+  "max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:w-full max-sm:max-w-none max-sm:max-h-[92dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0 max-sm:px-4 max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))]";
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
->(function DialogContent({ className, children, hideClose = false, ...props }, ref) {
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    hideClose?: boolean;
+    /** "sheet": a bottom sheet on phones (below sm), the centred dialog from sm up. */
+    layout?: "center" | "sheet";
+  }
+>(function DialogContent({ className, children, hideClose = false, layout = "center", ...props }, ref) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
@@ -23,6 +31,7 @@ export const DialogContent = React.forwardRef<
         className={cn(
           PANEL_CLASSES,
           "fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 text-white focus:outline-none",
+          layout === "sheet" && SHEET_CLASSES,
           className
         )}
         {...props}

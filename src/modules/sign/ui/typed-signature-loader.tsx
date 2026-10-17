@@ -17,3 +17,8 @@ export const TypedSignatureLazy = dynamic(() => import("./typed-signature"), {
     </div>
   ),
 });
+
+/** Code-split typed signature text (adopt preview, placed field). Same font chunk as above. */
+export const TypedSignatureTextLazy = dynamic(() => import("./typed-signature").then((m) => m.TypedSignatureText), {
+  loading: () => <span className="text-[#1C1B1A]">…</span>,
+});

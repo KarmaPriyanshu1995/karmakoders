@@ -52,3 +52,40 @@ describe("signature fonts stay code-split", () => {
     expect(barrel.text).not.toMatch(/from\s+["']\.\/typed-signature/);
   });
 });
+
+/** Static value imports (not `import type`, not dynamic) of a module by basename. */
+const staticImportOf = (name: string) => new RegExp(String.raw`(?:import(?!\s+type\b)|export)[^;]*from\s+["'][^"']*/${name}["']`);
+
+describe("the signature pad and sign dialog stay code-split", () => {
+  const SIGNER_CHROME = [
+    "src/app/tools/sign/(signer)/layout.tsx",
+    "src/modules/sign/ui/screens/signer/signer-shell.tsx",
+  ];
+
+  it("only the sign dialog imports the signature pad", () => {
+    const importers = sources.filter((s) => staticImportOf("signature-pad").test(s.text)).map((s) => s.rel);
+    expect(importers).toEqual(["src/modules/sign/ui/screens/signer/sign-dialog.tsx"]);
+  });
+
+  it("nothing imports the sign dialog statically; the review screen loads it with next/dynamic", () => {
+    expect(sources.filter((s) => staticImportOf("sign-dialog").test(s.text)).map((s) => s.rel)).toEqual([]);
+    const review = sources.find((s) => s.rel === "src/modules/sign/ui/screens/signer/review-screen.tsx")!;
+    expect(review.text).toMatch(/dynamic\(\(\) => import\("\.\/sign-dialog"\)/);
+  });
+
+  it("the signer layout and shell load neither the pad, the dialog, the typed signature nor the fonts", () => {
+    for (const rel of SIGNER_CHROME) {
+      const file = sources.find((s) => s.rel === rel);
+      expect(file, rel).toBeDefined();
+      expect(file!.text, rel).not.toMatch(/signature-pad|sign-dialog|typed-signature|signer-flow|review-screen/);
+      expect(FONT_NAMES.test(file!.text), rel).toBe(false);
+    }
+  });
+
+  it("detects static imports but not type-only or dynamic ones", () => {
+    const re = staticImportOf("sign-dialog");
+    expect(re.test('import SignDialog from "./sign-dialog";')).toBe(true);
+    expect(re.test('import type { SignTab } from "./sign-dialog";')).toBe(false);
+    expect(re.test('const SignDialog = dynamic(() => import("./sign-dialog"));')).toBe(false);
+  });
+});

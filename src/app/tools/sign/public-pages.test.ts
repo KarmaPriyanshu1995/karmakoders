@@ -243,6 +243,20 @@ const APP_SCREEN_CLIENT_FILES = [
   "src/modules/sign/ui/screens/upload/upload-screen.tsx",
 ];
 
+/**
+ * "use client" modules of the signer screens (task 6C). Signer pages only: never in the ui
+ * barrel, never imported by marketing or legal pages.
+ */
+const SIGNER_SCREEN_CLIENT_FILES = [
+  "src/modules/sign/ui/screens/signer/consent-screen.tsx",
+  "src/modules/sign/ui/screens/signer/decline-flow.tsx",
+  "src/modules/sign/ui/screens/signer/review-screen.tsx",
+  "src/modules/sign/ui/screens/signer/sign-dialog.tsx",
+  "src/modules/sign/ui/screens/signer/signature-pad.tsx",
+  "src/modules/sign/ui/screens/signer/signer-flow.tsx",
+  "src/modules/sign/ui/screens/signer/verify-email-screen.tsx",
+];
+
 describe("site-wide rules", () => {
   const ROOT = process.cwd();
   const PUBLIC_DIRS = ["src/app/tools/sign", "src/app/legal", "src/modules/sign/ui", "src/modules/sign/content"];
@@ -262,15 +276,19 @@ describe("site-wide rules", () => {
         "src/modules/sign/ui/early-access-form.tsx",
         // App route (not a public page): the OTP login form.
         "src/app/tools/sign/(app)/login/login-form.tsx",
-        // Signer route (not a public page): the signer email-code step.
+        // Signer route (not a public page): live actions for the email-code step and the signing steps.
         "src/app/tools/sign/(signer)/sign/signer-otp-form.tsx",
+        "src/app/tools/sign/(signer)/sign/signer-flow-live.tsx",
         // Sign design-system primitives (docs/DESIGN.md): interactive, for app and signer pages.
         // Public marketing pages must not import them (next test).
         ...DESIGN_SYSTEM_CLIENT_FILES,
         // Logged-in sender screens.
         ...APP_SCREEN_CLIENT_FILES,
-        // Dev-only preview (404 outside development).
+        // Signer screens.
+        ...SIGNER_SCREEN_CLIENT_FILES,
+        // Dev-only previews (404 outside development).
         "src/app/tools/sign/(dev)/dev/ui/ui-preview.tsx",
+        "src/app/tools/sign/(dev)/dev/screens/signer-previews.tsx",
       ].map((p) => path.normalize(p))
     );
     const clientFiles = PUBLIC_DIRS.flatMap(files).filter((f) =>
@@ -282,7 +300,7 @@ describe("site-wide rules", () => {
   it("the ui barrel (imported by public pages) re-exports no Client Component", () => {
     const barrel = fs.readFileSync(path.join(ROOT, "src/modules/sign/ui/index.ts"), "utf8");
     expect(barrel).not.toMatch(/from\s+["']\.\/screens\//);
-    for (const f of [...DESIGN_SYSTEM_CLIENT_FILES, ...APP_SCREEN_CLIENT_FILES]) {
+    for (const f of [...DESIGN_SYSTEM_CLIENT_FILES, ...APP_SCREEN_CLIENT_FILES, ...SIGNER_SCREEN_CLIENT_FILES]) {
       expect(barrel, f).not.toMatch(new RegExp(`from\\s+["']\\./${path.basename(f, ".tsx")}["']`));
     }
   });
