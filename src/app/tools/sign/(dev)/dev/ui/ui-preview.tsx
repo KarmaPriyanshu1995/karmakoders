@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ArrowRight, FileSignature, Inbox, MoreHorizontal, Pencil, Plus, Send, Trash2 } from "lucide-react";
 // Client code imports Sign UI modules by path: the "@/modules/sign/ui" barrel also exports
 // server-only marketing components (pricing reads plans.ts).
@@ -121,6 +122,11 @@ export function UiPreview() {
         <p className="max-w-2xl leading-relaxed text-[#A39F97]">
           Every Sign component, variant and state on the site&apos;s dark theme. Rules live in docs/DESIGN.md. This page
           returns 404 unless NODE_ENV is development.
+        </p>
+        <p>
+          <Link href="/tools/sign/dev/screens" className="font-semibold text-[#FFC300] underline-offset-4 hover:underline">
+            Sender app screens in every state →
+          </Link>
         </p>
       </header>
 
