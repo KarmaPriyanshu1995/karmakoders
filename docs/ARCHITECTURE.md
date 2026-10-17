@@ -143,7 +143,7 @@ When you add a logged-in page, put it under `(workspace)` and add its prefix to 
 | `/tools/sign/billing` | Sender | Credits, plans, invoices via Paddle |
 | `/tools/sign/settings` | Sender | Profile, branding, signed-in devices |
 | `/tools/sign/s/[token]` | Signer | No account. Route handler: token → signer session cookie → 303 to `/tools/sign/sign` ([AUTH.md](./AUTH.md#signer-access)) |
-| `/tools/sign/sign` | Signer | Signer session required; email OTP, then review/sign (later step) |
+| `/tools/sign/sign` | Signer | Signer session required; email OTP, then consent, review, sign or decline (screens in place; submission in Step 9) |
 | `/tools/sign/verify/[publicId]` | Public | Verification |
 | `/legal/terms`, `/legal/privacy`, `/legal/refund-policy`, `/legal/esign-disclosure`, `/legal/acceptable-use` | Public | Sign policies (drafts pending lawyer review). The CMS `/privacy`, `/terms`, `/refund-policy` and `/contact` stay for the agency site. |
 | `/admin/sign` | Staff | NextAuth + permission **`sign:admin`** |

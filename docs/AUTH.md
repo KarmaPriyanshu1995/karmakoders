@@ -22,6 +22,7 @@ All routes below return **404 while `SIGN_APP_ENABLED` is not `"true"`** (launch
 | Signer sessions, `requireSigner` | `src/modules/sign/signing/signer-session.ts` |
 | Signer OTP | `src/modules/sign/signing/signer-otp.ts`, on the OTP core in `src/platform/auth/otp.ts` |
 | Link exchange and signer pages | `src/app/tools/sign/(signer)/s/[token]/route.ts`, `(signer)/sign`, `(signer)/s/invalid`, `(signer)/s/not-yet` |
+| What signer pages show (title, sender, masked email, message) | `src/modules/sign/signing/signer-view.ts` (`getSignerPageDetails`, read-only) |
 | Signer OTP APIs | `src/app/api/tools/sign/signing/otp/{request,verify}` |
 | Evidence events | `src/platform/audit` (`appendAuditEvent`) |
 
@@ -204,7 +205,7 @@ sequenceDiagram
   S->>A: POST otp/verify { code }
   A->>DB: tx: attempt++, compare, consume, otp_verified_at, OTP_VERIFIED
   A-->>S: { ok: true }
-  S->>P: refresh → "Verified – document review coming soon"
+  S->>P: refresh → consent, review and sign (submitted in Step 9)
 ```
 
 ### Signer threat model
@@ -224,4 +225,4 @@ sequenceDiagram
 ## Not in scope here
 
 - The OTP email itself (Resend, template and subject) is unchanged from the tested implementation in `src/platform/email`.
-- Document review, e-sign consent, signature capture, decline and link passwords (`sign_documents.link_password_hash`) come with the signing screens.
+- The signer screens for consent, review, signature capture and decline exist (docs/DESIGN.md, "Signer screens") but submit nothing yet: recording consent, signatures and declines, and link passwords (`sign_documents.link_password_hash`), come in Step 9.

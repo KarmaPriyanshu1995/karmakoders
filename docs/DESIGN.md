@@ -107,7 +107,7 @@ Icons: `lucide-react` only, `aria-hidden` when there is a text label.
 | Marketing (landing, pricing, templates, legal) | `(marketing)` | Site Navbar and Footer. Unchanged. |
 | Login | `(app)` | The original minimal Sign header. Unchanged, guarded by `login-baseline.test.ts`. |
 | Logged-in app (dashboard, documents, new document, billing, settings) | `(workspace)` | Compact header in the Navbar style: wordmark + "Sign" tag, section nav (Documents, Templates, Billing, Settings: inline from `lg`, always in the account menu), a primary **New document** button (icon-only below `sm`, same accessible name), credit balance, account menu |
-| Signer pages | `(signer)` | Minimal: wordmark only, no site navigation |
+| Signer pages | `(signer)` | `SignerShell`: the sender's company name (else the wordmark, not a link), "Secured by KarmaKoders Sign", no site navigation; footer links to the e-sign disclosure and privacy policy |
 
 The floating **Book a call** and **WhatsApp** widgets are hidden on logged-in app pages (`src/modules/sign/app-paths.ts`) and signer pages (`isSensitivePath`). They stay on marketing pages and the login page.
 
@@ -118,6 +118,17 @@ Each logged-in page is a thin server page that loads data and renders a **presen
 - Documents list: a table from `md` up (`hidden md:table`) and cards below it (`md:hidden`). Filters and search are links and a GET form, so they work without JavaScript.
 - Placeholders: actions that are not wired yet (remind, void, duplicate, download, send, checkout) show an info toast that says so and change nothing.
 - **Signer colours** (upload field placement): `src/modules/sign/ui/signer-colors.ts` has ten hues as `border-{hue}-700 bg-{hue}-50 text-{hue}-900` on the white page. Text is at least 4.5 : 1 on its tint and borders at least 3 : 1 on white (`signer-colors.test.ts`). Every placed field also shows the signer's initials, and a legend lists the signers, so colour is never the only indicator.
+
+### Signer screens
+
+Signer pages follow the same pattern: presentational screens in `src/modules/sign/ui/screens/signer/` with view models in `src/modules/sign/ui/signer-view-models.ts`, fixtures in `fixtures/signer.ts` (dev preview and tests only; `signer-routes.test.ts` fails if `(signer)` imports them), and every screen and state in the dev preview under **Signer screens**. Screens never call an API: the page passes `actions`. Real routes show only real data (document title, the sender's company or name, the masked email, the sender's message) through `getSignerPageDetails` (`src/modules/sign/signing/signer-view.ts`).
+
+- **Flow:** verify email (6-digit code, `autocomplete="one-time-code"`, numeric, paste-friendly, resend countdown) → consent (plain-language summary, checkbox, link to the full disclosure, "Decline to sign") → review → sign → done. Decline is available from consent and review; the reason is required (PRD S8, max `DECLINE_REASON_MAX`) and confirmed with `ConfirmDialog`.
+- **Review:** each page is a `DocumentFrame` at `aspect-[8.5/11] w-full` with text in container units (`text-[length:…cqw]`), so it fits the width with no sideways scroll; pinch-zoom is never disabled. The signer's fields are outlined and labelled; other signers' fields are muted and say "Another signer". Every field is at least 44 px tall.
+- **Bottom bar (phones):** fixed, within thumb reach: "2 fields left", **Next field** (scrolls to and focuses it), then **Finish**. `SignerShell reserveBottomBar` keeps its height from the first render, so nothing shifts. From `md` the same controls sit in a sticky toolbar.
+- **Sign dialog:** `DialogContent layout="sheet"` (bottom sheet below `sm`, dialog from `sm`). Tabs **Draw** (`signature-pad.tsx`, pointer events for mouse, touch and pen, undo and clear), **Type** (the full keyboard alternative, `TypedSignatureLazy`) and **Upload** (PNG/JPG, `SIGNATURE_IMAGE_MAX_BYTES`, limit shown), with an adopt preview. The intent statement sits beside the **Sign** button and is linked with `aria-describedby`. The dialog is loaded with `next/dynamic` only when opened, so the pad and the signature fonts never load with the signer layout (`signature-fonts.test.ts`).
+- **States:** link invalid, not your turn, session expired, document voided while signing, already signed, network error with retry (`signer-state-screen.tsx`). The 5B notices (`signer-notice.tsx`) render through it.
+- **Placeholders:** consent, sign and decline are `TODO(Step 9)`; nothing is recorded and no document state changes.
 
 ## 6. Status vocabulary
 
