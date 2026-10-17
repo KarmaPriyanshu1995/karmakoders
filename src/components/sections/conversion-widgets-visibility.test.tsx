@@ -36,6 +36,12 @@ const APP_PAGES = [
   "/tools/sign/billing",
   "/tools/sign/settings",
   "/tools/sign/dev/ui",
+  // Sender screens (task 6B)
+  "/tools/sign/new",
+  "/tools/sign/documents",
+  "/tools/sign/documents/",
+  "/tools/sign/dev/screens",
+  "/tools/sign/dev/screens/builder",
 ];
 const SIGNER_PAGES = ["/tools/sign/s/raw-token", "/tools/sign/s/invalid", "/tools/sign/s/not-yet", "/tools/sign/sign"];
 const MARKETING_AND_LOGIN = [
@@ -67,6 +73,9 @@ describe("isSignAppPath", () => {
   it("matches whole path segments only", () => {
     expect(isSignAppPath("/tools/sign/new")).toBe(true);
     expect(isSignAppPath("/tools/sign/newsletter")).toBe(false);
+    expect(isSignAppPath("/tools/sign/documentsx")).toBe(false);
+    expect(isSignAppPath("/tools/sign/settings-old")).toBe(false);
+    expect(isSignAppPath("/tools/sign/billing/history")).toBe(true);
     expect(isSignAppPath("/tools/sign/login")).toBe(false);
     expect(isSignAppPath("/tools/sign")).toBe(false);
     expect(isSignAppPath(null)).toBe(false);

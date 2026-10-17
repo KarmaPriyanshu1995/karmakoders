@@ -6,6 +6,7 @@ import { requireSignAppEnabledPage } from "@/modules/sign/launch/server";
 import { NOINDEX_OPEN_GRAPH } from "@/modules/sign/seo";
 import { AccountMenu } from "@/modules/sign/ui/account-menu";
 import { CreditBalanceChip } from "@/modules/sign/ui/display";
+import { NewDocumentButton, WorkspaceNav } from "@/modules/sign/ui/workspace-nav";
 import { logoutAction, logoutAllAction } from "./dashboard/actions";
 
 export const metadata: Metadata = {
@@ -17,8 +18,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * Logged-in Sign app (dashboard, new/*, and later documents, billing, settings): a compact
- * header in the site Navbar style with the credit balance and account menu. 404 while
+ * Logged-in Sign app (dashboard, new/*, documents, billing, settings): a compact header in the
+ * site Navbar style with section links, "New document", the credit balance and account menu. 404 while
  * SIGN_APP_ENABLED is off. Each page still calls requireCustomer(); the header only reads.
  * The login page keeps its own (app) layout.
  */
@@ -40,10 +41,13 @@ export default async function SignWorkspaceLayout({ children }: { children: Reac
               Sign
             </span>
           </Link>
+          {profile ? <WorkspaceNav /> : null}
           {profile ? (
             <div className="flex items-center gap-2 sm:gap-3">
-              <CreditBalanceChip credits={profile.creditsBalance} className="max-[359px]:hidden" />
-              <AccountMenu email={profile.email} logoutAction={logoutAction} logoutAllAction={logoutAllAction} />
+              <NewDocumentButton />
+              {/* Below sm the balance moves into the account menu so the header fits at 360px. */}
+              <CreditBalanceChip credits={profile.creditsBalance} className="hidden sm:inline-flex" />
+              <AccountMenu email={profile.email} credits={profile.creditsBalance} logoutAction={logoutAction} logoutAllAction={logoutAllAction} />
             </div>
           ) : null}
         </div>

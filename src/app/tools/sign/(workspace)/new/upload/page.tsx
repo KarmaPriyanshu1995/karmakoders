@@ -1,30 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { requireCustomer } from "@/platform/auth";
-import { LegalDisclaimer } from "@/modules/sign/ui";
+import { UPLOAD_PDF_MAX_BYTES } from "@/modules/sign/documents/upload-limits";
+import { TEN_SIGNER_PEOPLE } from "@/modules/sign/ui/fixtures/documents";
+import { UploadScreen } from "@/modules/sign/ui/screens/upload/upload-screen";
+import { WORKSPACE_ROBOTS, loadWorkspace } from "../../_lib/workspace";
 
 export const metadata: Metadata = {
   title: "Upload a PDF | KarmaKoders Sign",
-  robots: { index: false, follow: false },
+  robots: WORKSPACE_ROBOTS,
 };
 
-/**
- * Upload-your-own-PDF flow (separate from the template catalog by design).
- * Stub — sign-in gated; the real upload + field placement flow replaces this later.
- */
+/** Upload-your-own-PDF flow (separate from the template catalog by design). */
 export default async function SignUploadPage() {
-  await requireCustomer({ redirectToLoginFrom: "/tools/sign/new/upload" });
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-black tracking-tight">Upload your own PDF</h1>
-      <p className="max-w-xl text-[#A39F97]">
-        PDF upload and signature field placement ship in an upcoming release.
-      </p>
-      <Link href="/tools/sign/templates" className="text-sm text-[#FFC300] underline-offset-4 hover:underline">
-        Browse templates instead
-      </Link>
-      <LegalDisclaimer />
-    </div>
-  );
+  await loadWorkspace("/tools/sign/new/upload");
+  // TODO(Step 7): signers come from the signers step, and the file is uploaded encrypted to R2.
+  const signers = TEN_SIGNER_PEOPLE.slice(0, 2).map((p, i) => ({ id: `s${i + 1}`, ...p }));
+  return <UploadScreen vm={{ maxBytes: UPLOAD_PDF_MAX_BYTES, signers }} />;
 }

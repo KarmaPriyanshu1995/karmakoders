@@ -225,6 +225,24 @@ const DESIGN_SYSTEM_CLIENT_FILES = [
   "src/modules/sign/ui/typed-signature-loader.tsx",
 ];
 
+/**
+ * "use client" modules of the logged-in sender screens (task 6B). App pages only: never in the
+ * ui barrel, never imported by marketing or legal pages.
+ */
+const APP_SCREEN_CLIENT_FILES = [
+  "src/modules/sign/ui/workspace-nav.tsx",
+  "src/modules/sign/ui/screens/branding-form.tsx",
+  "src/modules/sign/ui/screens/document-actions.tsx",
+  "src/modules/sign/ui/screens/document-row-actions.tsx",
+  "src/modules/sign/ui/screens/placeholder-actions.ts",
+  "src/modules/sign/ui/screens/template-picker-screen.tsx",
+  "src/modules/sign/ui/screens/builder/builder-screen.tsx",
+  "src/modules/sign/ui/screens/builder/details-step.tsx",
+  "src/modules/sign/ui/screens/builder/review-step.tsx",
+  "src/modules/sign/ui/screens/builder/signers-step.tsx",
+  "src/modules/sign/ui/screens/upload/upload-screen.tsx",
+];
+
 describe("site-wide rules", () => {
   const ROOT = process.cwd();
   const PUBLIC_DIRS = ["src/app/tools/sign", "src/app/legal", "src/modules/sign/ui", "src/modules/sign/content"];
@@ -249,6 +267,8 @@ describe("site-wide rules", () => {
         // Sign design-system primitives (docs/DESIGN.md): interactive, for app and signer pages.
         // Public marketing pages must not import them (next test).
         ...DESIGN_SYSTEM_CLIENT_FILES,
+        // Logged-in sender screens.
+        ...APP_SCREEN_CLIENT_FILES,
         // Dev-only preview (404 outside development).
         "src/app/tools/sign/(dev)/dev/ui/ui-preview.tsx",
       ].map((p) => path.normalize(p))
@@ -261,7 +281,8 @@ describe("site-wide rules", () => {
 
   it("the ui barrel (imported by public pages) re-exports no Client Component", () => {
     const barrel = fs.readFileSync(path.join(ROOT, "src/modules/sign/ui/index.ts"), "utf8");
-    for (const f of DESIGN_SYSTEM_CLIENT_FILES) {
+    expect(barrel).not.toMatch(/from\s+["']\.\/screens\//);
+    for (const f of [...DESIGN_SYSTEM_CLIENT_FILES, ...APP_SCREEN_CLIENT_FILES]) {
       expect(barrel, f).not.toMatch(new RegExp(`from\\s+["']\\./${path.basename(f, ".tsx")}["']`));
     }
   });
@@ -275,6 +296,8 @@ describe("site-wide rules", () => {
       for (const name of clientModules) {
         expect(source, `${f} imports ${name}`).not.toMatch(new RegExp(`from\\s+["'][^"']*sign/ui/${name}["']`));
       }
+      // Sender screens and the workspace nav are app-only.
+      expect(source, `${f} imports a sender screen`).not.toMatch(/from\s+["'][^"']*sign\/ui\/(screens\/|workspace-nav)/);
     }
   });
 

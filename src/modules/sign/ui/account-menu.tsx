@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, LogOut, MonitorSmartphone } from "lucide-react";
-import { Avatar } from "./display";
+import { ChevronDown, CreditCard, FileStack, LayoutDashboard, LayoutTemplate, LogOut, MonitorSmartphone, Settings } from "lucide-react";
+import { Avatar, formatCredits } from "./display";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./dropdown-menu";
+import { WORKSPACE_LINKS } from "./workspace-links";
+
+const LINK_ICONS = {
+  "/tools/sign/documents": FileStack,
+  "/tools/sign/new": LayoutTemplate,
+  "/tools/sign/billing": CreditCard,
+  "/tools/sign/settings": Settings,
+} as const;
 
 /**
  * Account menu for the logged-in app header. The log-out Server Actions are passed in by the
@@ -18,10 +26,13 @@ import {
  */
 export function AccountMenu({
   email,
+  credits,
   logoutAction,
   logoutAllAction,
 }: {
   email: string;
+  /** Shown in the menu on small screens, where the header hides the balance chip. */
+  credits?: number;
   logoutAction: () => Promise<void>;
   logoutAllAction: () => Promise<void>;
 }) {
@@ -38,6 +49,7 @@ export function AccountMenu({
         <DropdownMenuLabel>
           Signed in as
           <span className="mt-0.5 block break-all text-sm font-semibold text-white">{email}</span>
+          {credits !== undefined ? <span className="mt-1 block text-sm text-white sm:hidden">{formatCredits(credits)}</span> : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
@@ -46,6 +58,17 @@ export function AccountMenu({
             Dashboard
           </Link>
         </DropdownMenuItem>
+        {WORKSPACE_LINKS.map(({ href, label }) => {
+          const Icon = LINK_ICONS[href];
+          return (
+            <DropdownMenuItem key={href} asChild>
+              <Link href={href}>
+                <Icon aria-hidden />
+                {label}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
         <DropdownMenuSeparator />
         <form action={logoutAction}>
           <DropdownMenuItem asChild>

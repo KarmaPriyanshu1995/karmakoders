@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   }),
   redirect: vi.fn(),
+  usePathname: () => "/tools/sign/documents",
 }));
 vi.mock("@/platform/auth", () => ({
   getCurrentCustomer: () => getCurrentCustomer(),
@@ -40,6 +41,21 @@ describe("(workspace) app header", () => {
     expect(html).toContain('aria-label="Account menu"');
     expect(html).toContain("Page body");
     expect(getCustomerProfile).toHaveBeenCalledWith("c1");
+  });
+
+  it("has the section nav and an always-visible New document button (icon-only on mobile)", async () => {
+    getCurrentCustomer.mockResolvedValue({ id: "c1", email: "jane@example.com", name: null, status: "ACTIVE" });
+    getCustomerProfile.mockResolvedValue({ id: "c1", email: "jane@example.com", name: null, creditsBalance: 1, subscriptions: [] });
+    const html = await renderLayout();
+    const nav = /<nav aria-label="Sign"[^>]*>([\s\S]*?)<\/nav>/.exec(html)![1];
+    for (const href of ["/tools/sign/documents", "/tools/sign/new", "/tools/sign/billing", "/tools/sign/settings"]) {
+      expect(nav).toContain(`href="${href}"`);
+    }
+    expect(nav).toMatch(/aria-current="page"[^>]*>Documents</);
+    const button = /<a[^>]*aria-label="New document"[^>]*>[\s\S]*?<\/a>/.exec(html)![0];
+    expect(button).toContain('href="/tools/sign/new"');
+    expect(button).toMatch(/<span aria-hidden="true" class="hidden sm:inline">New document<\/span>/);
+    expect(html).toContain("1 credit");
   });
 
   it("renders without the account area when nobody is signed in (the page redirects)", async () => {
