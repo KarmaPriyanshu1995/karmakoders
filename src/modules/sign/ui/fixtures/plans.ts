@@ -8,6 +8,7 @@ import type { PlanSummaryVM } from "../view-models";
 const FREE_BASE = {
   kind: "free",
   planName: "Free",
+  subscriptionName: null,
   creditsBalance: 0,
   maxSigners: 2,
   freeMaxSigners: 2,
@@ -22,6 +23,7 @@ export const PLAN_FREE_AT_LIMIT: PlanSummaryVM = { ...FREE_BASE, freeUsed: 3 };
 export const PLAN_CREDITS: PlanSummaryVM = {
   kind: "credits",
   planName: "Free",
+  subscriptionName: null,
   creditsBalance: 12,
   maxSigners: 10,
   freeMaxSigners: 2,
@@ -33,12 +35,22 @@ export const PLAN_CREDITS: PlanSummaryVM = {
 export const PLAN_PRO: PlanSummaryVM = {
   kind: "pro",
   planName: "Sign Pro",
+  subscriptionName: "Sign Pro",
   creditsBalance: 4,
   maxSigners: 10,
   freeMaxSigners: 2,
-  freeUsed: 3,
+  // Subscribers never consume the free allowance.
+  freeUsed: 0,
   freeLimit: 3,
   renewsAt: "2026-11-17T00:00:00.000Z",
+};
+
+export const PLAN_ALL_ACCESS: PlanSummaryVM = {
+  ...PLAN_PRO,
+  planName: "All Access (Yearly)",
+  subscriptionName: "All Access",
+  creditsBalance: 0,
+  renewsAt: "2027-09-01T00:00:00.000Z",
 };
 
 export const PLAN_FIXTURES = {
@@ -47,4 +59,5 @@ export const PLAN_FIXTURES = {
   freeAtLimit: PLAN_FREE_AT_LIMIT,
   credits: PLAN_CREDITS,
   pro: PLAN_PRO,
+  allAccess: PLAN_ALL_ACCESS,
 } as const;

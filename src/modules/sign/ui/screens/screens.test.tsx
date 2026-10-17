@@ -221,6 +221,7 @@ describe("BuilderScreen", () => {
     ["free-at-limit", "You're out of free documents"],
     ["credits", "Uses 1 credit"],
     ["pro", "Included in Sign Pro"],
+    ["all-access", "Included in All Access"],
   ])("review shows the cost line for %s", async (id, text) => {
     const { filledBuilderState } = await import("../fixtures/builder");
     const vm = byId(BUILDER_STATES, id).vm;

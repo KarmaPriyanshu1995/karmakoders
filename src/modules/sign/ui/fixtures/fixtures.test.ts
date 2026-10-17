@@ -114,6 +114,7 @@ describe("planSummaryFrom (real profile → plan view model)", () => {
     expect(planSummaryFrom({ creditsBalance: 0, subscriptions: [] }, { freeUsed: 2 })).toMatchObject({
       kind: "free",
       planName: "Free",
+      subscriptionName: null,
       maxSigners: 2,
       freeUsed: 2,
       freeLimit: 3,
@@ -132,6 +133,24 @@ describe("planSummaryFrom (real profile → plan view model)", () => {
         },
         { freeUsed: 0 }
       )
-    ).toMatchObject({ kind: "pro", planName: "Sign Pro (Yearly)", maxSigners: 10, renewsAt: "2027-01-01T00:00:00.000Z" });
+    ).toMatchObject({
+      kind: "pro",
+      planName: "Sign Pro (Yearly)",
+      subscriptionName: "Sign Pro",
+      maxSigners: 10,
+      renewsAt: "2027-01-01T00:00:00.000Z",
+    });
+    expect(
+      planSummaryFrom(
+        {
+          creditsBalance: 3,
+          subscriptions: [
+            { product: "SIGN_PRO", interval: "MONTH", status: "ACTIVE", currentPeriodEnd: "2026-11-01T00:00:00.000Z" },
+            { product: "ALL_ACCESS", interval: "YEAR", status: "ACTIVE", currentPeriodEnd: "2027-06-01T00:00:00.000Z" },
+          ],
+        },
+        { freeUsed: 0 }
+      )
+    ).toMatchObject({ kind: "pro", planName: "All Access (Yearly)", subscriptionName: "All Access", renewsAt: "2027-06-01T00:00:00.000Z" });
   });
 });

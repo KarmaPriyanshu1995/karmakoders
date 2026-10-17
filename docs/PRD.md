@@ -170,7 +170,7 @@ Each story has 2–3 acceptance criteria. “I” is the persona in the title.
 **As a** sender, **I want** to prepare the document for free and only pay (or use a credit) when I send **so that** I am not charged for drafts I abandon.
 
 1. Creating a draft never decrements credits or free quota.
-2. On Send, the app checks: remaining free sends this calendar month → else Sign Pro / All Access entitlement → else wallet credits → else Paddle checkout for a pack or subscription.
+2. On Send, the app checks: Sign Pro / All Access entitlement (subscribers never use the free allowance) → else remaining free sends this calendar month → else wallet credits → else Paddle checkout for a pack or subscription.
 3. If checkout is required, the document stays unsent until Paddle confirms; on success, send proceeds once. Duplicate clicks do not double-charge.
 
 ### S5 — Track views and signatures; remind

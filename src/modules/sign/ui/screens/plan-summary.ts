@@ -18,14 +18,15 @@ export function planSummaryFrom(
   const hasSubscription = profile.subscriptions.length > 0;
   const kind = hasSubscription ? "pro" : profile.creditsBalance > 0 ? "credits" : "free";
   const paidMaxSigners = PLANS.sign_pro_monthly.maxSigners ?? freeMaxSigners;
-  const renewsAt =
-    profile.subscriptions.find((s) => s.product === "ALL_ACCESS")?.currentPeriodEnd ??
-    profile.subscriptions[0]?.currentPeriodEnd ??
-    null;
+  // All Access beats Sign Pro, as in activePlanName.
+  const best = profile.subscriptions.find((s) => s.product === "ALL_ACCESS") ?? profile.subscriptions[0];
+  const subscriptionName = best ? PLANS[best.product === "ALL_ACCESS" ? "all_access_monthly" : "sign_pro_monthly"].displayName : null;
+  const renewsAt = best?.currentPeriodEnd ?? null;
 
   return {
     kind,
     planName: activePlanName(profile.subscriptions),
+    subscriptionName,
     creditsBalance: profile.creditsBalance,
     maxSigners: kind === "free" ? freeMaxSigners : paidMaxSigners,
     freeMaxSigners,

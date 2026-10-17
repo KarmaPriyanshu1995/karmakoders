@@ -18,6 +18,8 @@ export type PlanSummaryVM = {
   kind: PlanKind;
   /** "Free", "Sign Pro", "All Access (Yearly)", … from plans.ts. */
   planName: string;
+  /** Active subscription product, "Sign Pro" or "All Access" (no interval); null without one. */
+  subscriptionName: string | null;
   creditsBalance: number;
   /** Max signers per document for the customer's best entitlement (plans.ts). */
   maxSigners: number;

@@ -18,7 +18,7 @@ import type {
 } from "../view-models";
 import { findDocumentDetail } from "./details";
 import { DOCUMENT_FIXTURES, DOC_COMPLETED, TEN_SIGNER_PEOPLE, listDocuments, manyDocuments } from "./documents";
-import { PLAN_CREDITS, PLAN_FREE_AT_LIMIT, PLAN_FREE_NEW, PLAN_FREE_TWO_USED, PLAN_PRO } from "./plans";
+import { PLAN_ALL_ACCESS, PLAN_CREDITS, PLAN_FREE_AT_LIMIT, PLAN_FREE_NEW, PLAN_FREE_TWO_USED, PLAN_PRO } from "./plans";
 
 /**
  * Every screen in every state, for the dev preview (/tools/sign/dev/screens) and the screen
@@ -152,6 +152,7 @@ export const BUILDER_STATES: FixtureState<BuilderVM>[] = [
   { id: "free-at-limit", label: "Free, out of free documents", vm: builder(PLAN_FREE_AT_LIMIT) },
   { id: "credits", label: "Credits", vm: builder(PLAN_CREDITS, "freelance-service-agreement") },
   { id: "pro", label: "Sign Pro", vm: builder(PLAN_PRO, "no-objection-certificate") },
+  { id: "all-access", label: "All Access", vm: builder(PLAN_ALL_ACCESS, "offer-letter") },
 ];
 
 export const UPLOAD_STATES: FixtureState<UploadVM>[] = [

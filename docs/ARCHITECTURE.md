@@ -190,8 +190,8 @@ Database tables, protections and retention: [DATABASE.md](./DATABASE.md).
 
 Order of use:
 
-1. Free: remaining sends this **calendar month** (UTC) if signer count ≤ 2
-2. Else Sign Pro or All Access subscription (Paddle status active)
+1. Sign Pro or All Access subscription (Paddle status active). Subscribers never consume the free allowance.
+2. Else Free: remaining sends this **calendar month** (UTC) if signer count ≤ 2
 3. Else credits (`platform_customers.credits_balance`, changed only with an append-only `platform_credit_ledger` row; 1 credit = 1 send)
 4. Else return `payment_required` with Paddle price IDs
 
