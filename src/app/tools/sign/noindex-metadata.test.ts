@@ -30,13 +30,14 @@ async function metadataOf(load: () => Promise<unknown>): Promise<Metadata> {
 }
 
 const APP_LAYOUT = () => import("./(app)/layout");
+const WORKSPACE_LAYOUT = () => import("./(workspace)/layout");
 const SIGNER_LAYOUT = () => import("./(signer)/layout");
 
 const NOINDEX_PAGES = [
   ["/tools/sign/login", APP_LAYOUT, () => import("./(app)/login/page")],
-  ["/tools/sign/dashboard", APP_LAYOUT, () => import("./(app)/dashboard/page")],
-  ["/tools/sign/new/[template]", APP_LAYOUT, () => import("./(app)/new/[template]/page")],
-  ["/tools/sign/new/upload", APP_LAYOUT, () => import("./(app)/new/upload/page")],
+  ["/tools/sign/dashboard", WORKSPACE_LAYOUT, () => import("./(workspace)/dashboard/page")],
+  ["/tools/sign/new/[template]", WORKSPACE_LAYOUT, () => import("./(workspace)/new/[template]/page")],
+  ["/tools/sign/new/upload", WORKSPACE_LAYOUT, () => import("./(workspace)/new/upload/page")],
   ["/tools/sign/s/invalid", SIGNER_LAYOUT, () => import("./(signer)/s/invalid/page")],
   ["/tools/sign/s/not-yet", SIGNER_LAYOUT, () => import("./(signer)/s/not-yet/page")],
   ["/tools/sign/sign", SIGNER_LAYOUT, () => import("./(signer)/sign/page")],

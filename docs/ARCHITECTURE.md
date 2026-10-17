@@ -91,6 +91,20 @@ src/app/(admin)/admin/(dashboard)/sign/   # staff UI at /admin/sign
 src/proxy.ts                  # Next.js 16 request interception (/admin/*, /login)
 ```
 
+### Sign route groups
+
+Route groups under `src/app/tools/sign/` decide each page's chrome. They don't change URLs.
+
+| Group | Pages | Layout |
+|---|---|---|
+| `(marketing)` | landing, pricing, templates | Site Navbar + Footer (`MarketingShell`) |
+| `(app)` | `login` only | Original minimal Sign header, unchanged (guarded by `login-baseline.test.ts`) |
+| `(workspace)` | `dashboard`, `new/*`, and **every future logged-in page** (`documents`, `billing`, `settings`) | Compact app header: wordmark, credit balance, account menu |
+| `(signer)` | `s/*`, `sign` | Minimal signer chrome, no site navigation |
+| `(dev)` | `dev/ui` | Dev-only design-system preview (404 outside `NODE_ENV=development`) |
+
+When you add a logged-in page, put it under `(workspace)` and add its prefix to `src/modules/sign/app-paths.ts`, which hides the site's Book a call and WhatsApp widgets there. Design rules: [DESIGN.md](./DESIGN.md).
+
 **Do not** add Sign domain code to `src/lib/tools/` (free-tools). **Do not** mount OTP under `src/app/api/auth/`. **Do not** store Sign PDFs in UploadThing.
 
 ## 3. Services

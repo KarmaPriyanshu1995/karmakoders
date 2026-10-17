@@ -52,7 +52,8 @@ afterEach(() => {
 describe("gated Sign pages", () => {
   const gated = [
     ["login page", () => import("./(app)/login/page")],
-    ["app layout (dashboard, new/*, documents, billing, settings)", () => import("./(app)/layout")],
+    ["login layout (app group)", () => import("./(app)/layout")],
+    ["workspace layout (dashboard, new/*, documents, billing, settings)", () => import("./(workspace)/layout")],
     ["signer layout (/s/*)", () => import("./(signer)/layout")],
   ] as const;
 

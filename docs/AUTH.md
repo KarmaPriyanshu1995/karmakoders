@@ -16,7 +16,7 @@ All routes below return **404 while `SIGN_APP_ENABLED` is not `"true"`** (launch
 | Route wrapper (launch switch + CSRF + error mapping) | `src/modules/sign/launch/route.ts` (`signApiRoute`) |
 | Rate limits | `src/platform/rate-limit` |
 | Signed-out redirect for app pages | `src/proxy.ts` |
-| Login UI / dashboard | `src/app/tools/sign/(app)/login`, `src/app/tools/sign/(app)/dashboard` |
+| Login UI / dashboard | `src/app/tools/sign/(app)/login`, `src/app/tools/sign/(workspace)/dashboard` |
 | Owner-scoped document access (`getDocumentForOwner`, `listDocumentsForOwner`) | `src/modules/sign/documents/access.ts` |
 | Signer link tokens, access rules | `src/modules/sign/signing/signer-access.ts`, `constants.ts` |
 | Signer sessions, `requireSigner` | `src/modules/sign/signing/signer-session.ts` |

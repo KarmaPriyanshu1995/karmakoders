@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Placeholder dashboard (the real one comes later). Launch switch + noindex from the (app) layout. */
+/** Placeholder dashboard (the real one comes later). Launch switch + noindex from the (workspace) layout. */
 export default async function SignDashboardPage() {
   const { customer } = await requireCustomer({ redirectToLoginFrom: "/tools/sign/dashboard" });
   const profile = await getCustomerProfile(customer.id);

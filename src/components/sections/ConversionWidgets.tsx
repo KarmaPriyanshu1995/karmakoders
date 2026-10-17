@@ -8,6 +8,7 @@ import { isBookableUrl, whatsappHref } from "@/lib/brand";
 import { trackEvent } from "@/lib/analytics";
 import { useSiteContent } from "@/components/SiteContentProvider";
 import { isSensitivePath } from "@/platform/privacy/sensitive-paths";
+import { isSignAppPath } from "@/modules/sign/app-paths";
 
 function hideOn(pathname: string | null) {
   if (!pathname) return true;
@@ -16,7 +17,8 @@ function hideOn(pathname: string | null) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api") ||
     pathname === "/contact" ||
-    isSensitivePath(pathname)
+    isSensitivePath(pathname) ||
+    isSignAppPath(pathname)
   );
 }
 
