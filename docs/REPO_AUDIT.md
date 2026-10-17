@@ -43,6 +43,7 @@ There is **no** `src/platform/`, `src/modules/`, or public `/tools` tree today.
 - Brand tokens in use: `#252422`, `#1C1B1A`, `#FFC300`, `#FFFFFF`, `#A39F97`.
 - UI kits in `src/components/ui/`: Button (CVA + Radix Slot), Card, a scroll animation demo. Not a full shadcn install.
 - Other UI: `lucide-react`, `framer-motion`, `sonner`, `@dnd-kit/*`, TipTap, Three.js / R3F, mermaid.
+- **CMS theme mode:** *Admin → Appearance → Base Theme Mode* (`SiteConfig.globalTheme.mode`) must stay **Dark**. KarmaKoders Sign supports the dark theme only; in Light mode the root layout remaps `.text-white` to dark text and Sign pages become unreadable. See [DESIGN.md](./DESIGN.md#1-one-theme).
 
 ## 3. APIs, auth, database, env
 

@@ -99,9 +99,9 @@ Route groups under `src/app/tools/sign/` decide each page's chrome. They don't c
 |---|---|---|
 | `(marketing)` | landing, pricing, templates | Site Navbar + Footer (`MarketingShell`) |
 | `(app)` | `login` only | Original minimal Sign header, unchanged (guarded by `login-baseline.test.ts`) |
-| `(workspace)` | `dashboard`, `new/*`, and **every future logged-in page** (`documents`, `billing`, `settings`) | Compact app header: wordmark, credit balance, account menu |
+| `(workspace)` | `dashboard`, `documents`, `documents/[id]`, `new`, `new/*`, `billing`, `settings`, and **every future logged-in page** | Compact app header: wordmark, section nav, New document, credit balance, account menu |
 | `(signer)` | `s/*`, `sign` | Minimal signer chrome, no site navigation |
-| `(dev)` | `dev/ui` | Dev-only design-system preview (404 outside `NODE_ENV=development`) |
+| `(dev)` | `dev/ui`, `dev/screens/*` | Dev-only design-system and sender-screen previews (404 outside `NODE_ENV=development`) |
 
 When you add a logged-in page, put it under `(workspace)` and add its prefix to `src/modules/sign/app-paths.ts`, which hides the site's Book a call and WhatsApp widgets there. Design rules: [DESIGN.md](./DESIGN.md).
 
@@ -134,11 +134,14 @@ When you add a logged-in page, put it under `(workspace)` and add its prefix to 
 | `/tools/sign/templates` | Public / sender | Catalog |
 | `/tools/sign/templates/[slug]` | Public / sender | Preview |
 | `/tools/sign/login` | Sender | OTP start |
-| `/tools/sign/dashboard` | Sender | List documents |
-| `/tools/sign/new/[template]` | Sender | Compose |
+| `/tools/sign/dashboard` | Sender | Counts, recent documents, quick start, free usage |
+| `/tools/sign/documents` | Sender | All documents: status filter, search, cursor pagination |
+| `/tools/sign/new` | Sender | Template picker (catalog + upload card) |
+| `/tools/sign/new/[template]` | Sender | Builder: details, signers, review & send |
 | `/tools/sign/new/upload` | Sender | Upload your own PDF (separate flow, not a catalog template) |
 | `/tools/sign/documents/[id]` | Sender | Status, remind, void, download |
 | `/tools/sign/billing` | Sender | Credits, plans, invoices via Paddle |
+| `/tools/sign/settings` | Sender | Profile, branding, signed-in devices |
 | `/tools/sign/s/[token]` | Signer | No account. Route handler: token → signer session cookie → 303 to `/tools/sign/sign` ([AUTH.md](./AUTH.md#signer-access)) |
 | `/tools/sign/sign` | Signer | Signer session required; email OTP, then review/sign (later step) |
 | `/tools/sign/verify/[publicId]` | Public | Verification |
