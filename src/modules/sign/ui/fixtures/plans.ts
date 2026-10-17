@@ -48,9 +48,3 @@ export const PLAN_FIXTURES = {
   credits: PLAN_CREDITS,
   pro: PLAN_PRO,
 } as const;
-
-/**
- * Free documents sent this month, for pages that show the real plan. Usage is not recorded yet.
- * TODO(Step 10): read from PlatformUsage for the current UTC month.
- */
-export const FIXTURE_FREE_USED = 2;

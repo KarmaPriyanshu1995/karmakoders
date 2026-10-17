@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { isValidElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { buildLoginHref } from "@/platform/auth/redirect";
 
 const notFound = vi.fn(() => {
@@ -22,6 +25,8 @@ vi.mock("@/platform/auth", () => ({
   listCustomerSessions: (...args: unknown[]) => listCustomerSessions(...(args as [])),
 }));
 vi.mock("./(workspace)/dashboard/actions", () => ({ logoutAction: vi.fn(), logoutAllAction: vi.fn() }));
+const getFreeSignUsage = vi.fn<(customerId: string) => Promise<number>>(async () => 1);
+vi.mock("@/platform/billing/usage", () => ({ getFreeSignUsage: (id: string) => getFreeSignUsage(id) }));
 
 type PageModule = { default: (props: { params: Promise<Record<string, string>>; searchParams: Promise<Record<string, string>> }) => Promise<unknown> };
 
@@ -52,7 +57,10 @@ afterEach(() => {
 });
 
 describe("logged-in Sign pages", () => {
-  it.each(PAGES)("%s renders for a signed-in customer", async (_url, load, params) => {
+  // Document detail is always a 404 until documents are wired (Step 7).
+  const RENDERING = PAGES.filter(([url]) => !url.startsWith("/tools/sign/documents/"));
+
+  it.each(RENDERING)("%s renders for a signed-in customer", async (_url, load, params) => {
     expect(isValidElement(await renderPage(load, params))).toBe(true);
     expect(notFound).not.toHaveBeenCalled();
   });
@@ -75,5 +83,59 @@ describe("logged-in Sign pages", () => {
   it("settings lists the real sessions of the signed-in customer", async () => {
     await renderPage(() => import("./(workspace)/settings/page"), {});
     expect(listCustomerSessions).toHaveBeenCalledWith("c1", "s1");
+  });
+});
+
+describe("no fake data on real routes", () => {
+  const html = async (load: () => Promise<unknown>, params: Record<string, string> = {}) =>
+    renderToStaticMarkup((await renderPage(load, params)) as React.ReactElement);
+
+  it("no file under (workspace) imports the fixtures", () => {
+    const root = path.join(process.cwd(), "src/app/tools/sign/(workspace)");
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
+    const offenders = walk(root).filter((file) =>
+      /from\s+["'](?:@\/modules\/sign\/ui\/fixtures|[./]+.*\/fixtures)(?:\/[^"']*)?["']/.test(fs.readFileSync(file, "utf8"))
+    );
+    expect(walk(root).length).toBeGreaterThan(5);
+    expect(offenders).toEqual([]);
+  });
+
+  it("dashboard shows the first-document guide and the real free usage", async () => {
+    const auth = await import("@/platform/auth");
+    vi.mocked(auth.getCustomerProfile).mockResolvedValueOnce({
+      id: "c1",
+      email: "jane@example.com",
+      name: null,
+      creditsBalance: 0,
+      subscriptions: [],
+    });
+    const out = await html(() => import("./(workspace)/dashboard/page"));
+    expect(out).toContain("Send your first document");
+    expect(out).not.toContain("Recent documents");
+    expect(out).toContain('aria-valuetext="1 of 3 free documents this month"');
+    expect(getFreeSignUsage).toHaveBeenCalledWith("c1");
+  });
+
+  it("documents list shows its empty state, whatever the filter", async () => {
+    const Page = ((await import("./(workspace)/documents/page")) as PageModule).default;
+    const out = renderToStaticMarkup(
+      (await Page({ params: Promise.resolve({}), searchParams: Promise.resolve({ status: "completed", q: "acme" }) })) as React.ReactElement
+    );
+    expect(out).toContain("No documents yet");
+    expect(out).not.toContain("<table");
+  });
+
+  it("document detail is a 404 for any id, including fixture ids", async () => {
+    await expect(renderPage(() => import("./(workspace)/documents/[id]/page"), { id: "doc_completed" })).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("billing shows no purchases and upload lists only the sender", async () => {
+    expect(await html(() => import("./(workspace)/billing/page"))).toContain("No purchases yet");
+    const Page = ((await import("./(workspace)/new/upload/page")) as PageModule).default;
+    const element = (await Page({ params: Promise.resolve({}), searchParams: Promise.resolve({}) })) as React.ReactElement<{
+      vm: { signers: { email: string }[] };
+    }>;
+    expect(element.props.vm.signers).toEqual([{ id: "me", name: "You", email: "jane@example.com" }]);
   });
 });

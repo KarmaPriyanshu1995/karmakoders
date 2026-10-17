@@ -113,7 +113,7 @@ The floating **Book a call** and **WhatsApp** widgets are hidden on logged-in ap
 
 ### Sender screens
 
-Each logged-in page is a thin server page that loads data and renders a **presentational screen** from `src/modules/sign/ui/screens/` with a typed **view model** (`src/modules/sign/ui/view-models.ts`). Screens never call the database or an API. Data that does not exist yet comes from **fixtures** in `src/modules/sign/ui/fixtures/`, and each page marks it with `TODO(Step N)`. Screens are imported by path and never added to the ui barrel. Every screen in every fixture state is previewed at **`/tools/sign/dev/screens`** (development only).
+Each logged-in page is a thin server page that loads data and renders a **presentational screen** from `src/modules/sign/ui/screens/` with a typed **view model** (`src/modules/sign/ui/view-models.ts`). Screens never call the database or an API. Real routes show only real data: where data isn't wired yet, the page renders the screen's **empty state** (`screens/empty-view-models.ts`) with a `TODO(Step N)`. **Fixtures** in `src/modules/sign/ui/fixtures/` are for the dev preview and tests only; `workspace-routes.test.ts` fails if any file under `(workspace)` imports them. Screens are imported by path and never added to the ui barrel. Every screen in every fixture state is previewed at **`/tools/sign/dev/screens`** (development only).
 
 - Documents list: a table from `md` up (`hidden md:table`) and cards below it (`md:hidden`). Filters and search are links and a GET form, so they work without JavaScript.
 - Placeholders: actions that are not wired yet (remind, void, duplicate, download, send, checkout) show an info toast that says so and change nothing.

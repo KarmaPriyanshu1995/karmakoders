@@ -22,3 +22,5 @@ export {
   type BillingInterval,
   type PriceIdMap,
 } from "./plans";
+
+export { getFreeSignUsage } from "./usage";
