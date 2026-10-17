@@ -138,11 +138,12 @@ describe("DocumentDetailScreen", () => {
     expect(within(signers).getAllByRole("listitem")).toHaveLength(state.vm.signers.length);
   });
 
-  it("completed: downloads and verify, no void or remind", () => {
+  it("completed: downloads, no void or remind, and no Verify link until the verify page exists", () => {
     render(<DocumentDetailScreen vm={byId(DOCUMENT_DETAIL_STATES, "completed").vm} />);
     expect(screen.getByRole("button", { name: "Download signed PDF" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Download audit certificate" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Verify" }).getAttribute("href")).toMatch(/^\/tools\/sign\/verify\//);
+    expect(screen.queryByRole("link", { name: /Verify/ })).toBeNull();
+    expect(document.querySelector('a[href^="/tools/sign/verify"]')).toBeNull();
     expect(screen.queryByRole("button", { name: "Void document" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remind all" })).toBeNull();
   });

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Avatar } from "../display";
 import { CopyButton } from "../copy-button";
 import { DocumentFrame } from "../document-frame";
@@ -7,14 +7,10 @@ import { Alert } from "../feedback";
 import { StatusBadge } from "../status-badge";
 import type { DocumentDetailVM, SignerVM } from "../view-models";
 import { DocumentActionBar, RemindSignerButton } from "./document-actions";
-import { canRemindSigner, documentActions } from "./document-policy";
+import { canRemindSigner } from "./document-policy";
 import { activityLabel, formatDate, formatDateTime } from "./format";
 import { DocumentStatus, PageHeader, SectionHeading, TEXT_LINK } from "./parts";
 
-/** Public verification page for a completed document. TODO(Step 11): the verify page itself. */
-export function verifyHref(publicId: string): string {
-  return `/tools/sign/verify/${encodeURIComponent(publicId)}`;
-}
 
 function StatusNotice({ vm }: { vm: DocumentDetailVM }) {
   const { document: doc, signers } = vm;
@@ -78,7 +74,6 @@ function SignerTimes({ signer, documentStatus }: { signer: SignerVM; documentSta
 
 export function DocumentDetailScreen({ vm }: { vm: DocumentDetailVM }) {
   const { document: doc, signers, activity, preview } = vm;
-  const actions = documentActions(doc.status);
   const sequential = doc.signingOrder === "sequential";
   const active = doc.status === "SENT" || doc.status === "PARTIALLY_SIGNED";
 
@@ -101,12 +96,8 @@ export function DocumentDetailScreen({ vm }: { vm: DocumentDetailVM }) {
             Document ID <code className="break-all rounded-md bg-white/5 px-2 py-1 font-mono text-white">{doc.publicId}</code>
           </span>
           <CopyButton value={doc.publicId} label="Copy ID" />
-          {actions.canVerify ? (
-            <Link href={verifyHref(doc.publicId)} className={`${TEXT_LINK} inline-flex min-h-11 items-center gap-1 text-sm`}>
-              <ShieldCheck aria-hidden className="size-4" />
-              Verify
-            </Link>
-          ) : null}
+          {/* TODO(Step 9): when documentActions(status).canVerify, link "Verify" to /tools/sign/verify/<publicId>.
+              Hidden until that page exists, so the link never 404s. */}
         </div>
         <DocumentActionBar status={doc.status} />
       </div>
